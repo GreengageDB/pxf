@@ -1,6 +1,6 @@
 # https://github.com/GreengageDB/greengage/tree/main/ci
 ARG GGDB_IMAGE=greengagedb/ggdb6_ubuntu:6.29.0
-FROM $GGDB_IMAGE as base
+FROM $GGDB_IMAGE AS base
 
 # install go, ginkgo and keep env variables which may be used as a part of base image
 RUN set -eux; \
@@ -54,7 +54,7 @@ RUN rm /home/gpadmin/bin_gpdb/server-*.tar.gz && \
 WORKDIR /tmp/build
 
 # create separate image with files we don't want to keep in base image
-FROM base as build
+FROM base AS build
 COPY . /tmp/build/pxf_src
 ENV JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
 SHELL ["bash", "-c"]
@@ -66,7 +66,7 @@ RUN source gpdb_src/concourse/scripts/common.bash && \
     pxf_src/concourse/scripts/compile_pxf.bash
 
 # create test image which prepares base image and keeps only pxf artifacts from build image
-FROM base as test
+FROM base AS test
 ENV GPHOME=/usr/local/greengage-db-devel
 ENV PXF_HOME=/usr/local/greengage-db-devel/pxf
 
@@ -74,7 +74,7 @@ COPY --from=build /tmp/build/${OUTPUT_ARTIFACT_DIR}/pxf.tar.gz /tmp/build/${OUTP
 COPY --from=build /tmp/build/pxf_src /tmp/build/pxf_src
 
 # create test image with full support of SSL 
-FROM test as test_ssl
+FROM test AS test_ssl
 
 COPY --from=build /tmp/build/pxf_src/automation/env/conf/ssl/certs /opt/ssl/certs
 
