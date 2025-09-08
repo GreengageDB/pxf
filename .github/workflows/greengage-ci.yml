@@ -1,0 +1,71 @@
+# Main CI pipeline orchestrating build, test, and upload stages
+name: Greengage CI
+
+on:
+  push:
+    branches: ['main']  # Trigger on push to main (after merged PR)
+  pull_request:
+    branches: ['*'] # Trigger on pull requests for all branches
+
+# Concurrency control to cancel previous runs on new push to same PR/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true  # Automatically cancel any previous runs for the same group
+
+jobs:
+  # Build developer's debug version as docker image
+  build:
+    strategy:
+      fail-fast: true  # Stop on any failure in the matrix
+      matrix:
+        target_os: [ubuntu]
+    permissions:
+      contents: read  # Explicit for default behavior
+      packages: write # Required for GHCR access
+      actions: write  # Required for artifact upload
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@feat/build-pxf
+    with:
+      pxf: true
+      version: 6
+      target_os: ${{ matrix.target_os }}
+    secrets:
+      ghcr_token: ${{ secrets.GITHUB_TOKEN }}
+
+  regression-tests:
+    needs: build
+    if: github.event_name == 'pull_request'  # Only for PR
+    strategy:
+      fail-fast: true
+      matrix:
+        target_os: [ubuntu]
+    permissions:
+      contents: read  # Explicit for default behavior
+      packages: read  # Explicit for GHCR access clarity
+      actions: write  # Required for artifact upload
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression-pxf.yml@feat/build-pxf
+    with:
+      version: 6
+      target_os: ${{ matrix.target_os }}
+    secrets:
+      ghcr_token: ${{ secrets.GITHUB_TOKEN }}
+
+  upload:
+    if: github.event_name == 'push'  # For push to main or tags
+    needs: build  # For push (main or tags)
+    strategy:
+      fail-fast: true
+      matrix:
+        target_os: [ubuntu]
+    permissions:
+      contents: read  # Explicit for default behavior
+      packages: write # Required for GHCR access
+      actions: write  # Required for artifact upload
+    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@feat/build-pxf
+    with:
+      pxf: true
+      version: 6
+      target_os: ${{ matrix.target_os }}
+    secrets:
+      ghcr_token: ${{ secrets.GITHUB_TOKEN }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
