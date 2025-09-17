@@ -688,6 +688,8 @@ gpdbwritableformatter_export(PG_FUNCTION_ARGS)
 	nullBit = boolArrayToByteArray(myData->nulls, ncolumns, nvalidcolumns, &nullBitLen, tupdesc);
 	appendBinaryStringInfo(myData->export_format_tuple, (char *) nullBit, nullBitLen);
 
+	pfree(nullBit);
+
 	/* Column Value */
 	for (i = 0; i < ncolumns; i++)
 	{
