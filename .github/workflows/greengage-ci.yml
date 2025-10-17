@@ -13,59 +13,199 @@ concurrency:
   cancel-in-progress: true  # Automatically cancel any previous runs for the same group
 
 jobs:
-  # Build developer's debug version as docker image
+  # prepare-cache:
+  #   name: Prepare Environment Cache
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - uses: actions/checkout@v4
+
+  #     - name: Install dependencies
+  #       run: |
+  #         sudo apt-get update
+  #         sudo apt-get install -y curl rsync yq docker.io
+
+  #     - name: Build environment cache
+  #       run: |
+  #         chmod +x ci/build_environment.sh
+  #         ci/build_environment.sh
+
+  #     - name: Cache artifacts
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: ~/.cache/greengage
+  #         key: env-cache-${{ github.sha }}
+
   build:
-    strategy:
-      fail-fast: true  # Stop on any failure in the matrix
-      matrix:
-        target_os: [ubuntu]
-    permissions:
-      contents: read  # Explicit for default behavior
-      packages: write # Required for GHCR access
-      actions: write  # Required for artifact upload
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-build.yml@feat/build-pxf
-    with:
-      pxf: true
-      version: 6
-      target_os: ${{ matrix.target_os }}
-    secrets:
-      ghcr_token: ${{ secrets.GITHUB_TOKEN }}
+    name: Build PXF Packages
+    runs-on: ubuntu-latest
+    # needs: [prepare-cache]
 
-  regression-tests:
-    needs: build
-    if: github.event_name == 'pull_request'  # Only for PR
     strategy:
-      fail-fast: true
       matrix:
-        target_os: [ubuntu]
-    permissions:
-      contents: read  # Explicit for default behavior
-      packages: read  # Explicit for GHCR access clarity
-      actions: write  # Required for artifact upload
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-tests-regression-pxf.yml@feat/build-pxf
-    with:
-      version: 6
-      target_os: ${{ matrix.target_os }}
-    secrets:
-      ghcr_token: ${{ secrets.GITHUB_TOKEN }}
+        include:
+          - image: greengagedb/ggdb6_ubuntu:6.29.1
+            dev_home: /home/gpadmin
+            version: dh-6.29.1
+          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+            dev_home: /home/gpadmin
+            version: ghcr-latest
 
-  upload:
-    if: github.event_name == 'push'  # For push to main or tags
-    needs: build  # For push (main or tags)
+    # Build in developer's Greengage image from GHCR
+    container:
+      image: ${{ matrix.image }}
+      volumes:
+        - ${{ github.workspace }}:${{ matrix.dev_home }}/pxf
+      env:
+        PXF_HOME: ${{ env.PXF_HOME }}
+        DEV_HOME: ${{ matrix.dev_home }}
+        GPHOME: ${{ env.GPHOME }}
+        PATH: ${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin
+        JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Java and Go
+        run: |
+          set -eux
+          apt-get update
+          apt-get install -y openjdk-17-jdk
+          go_version=$(grep -E '^go [0-9]+\.[0-9]+\.[0-9]+' cli/go.mod | cut -d' ' -f2)
+          curl -L https://go.dev/dl/go$go_version.linux-amd64.tar.gz -o go.tar.gz
+          tar -C /usr/local -xzf go.tar.gz
+          go version
+
+      - name: Build and package
+        working-directory: ${{ matrix.dev_home }}/pxf
+        run: |
+          set -eux
+          git config --global --add safe.directory $(pwd)
+          localedef -c -i ru_RU -f CP1251 ru_RU.CP1251
+          mkdir -p $GPHOME
+          tar -xzf $DEV_HOME/bin_gpdb/bin_gpdb.tar.gz -C $GPHOME/
+          source $GPHOME/greengage_path.sh
+          make all install deb
+
+      - name: Cache deb packages
+        uses: actions/cache@v4
+        with:
+          path: build/*.deb
+          key: pxf-deb-${{ github.sha }}-${{ matrix.version }}
+
+      - name: Upload ${{ github.job }} artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pxf-deb-${{ matrix.version }}
+          path: build/*.deb
+
+  integration:
+    name: Run Integration Tests
+    runs-on: ubuntu-latest
+    # needs: [build, prepare-cache]
+
     strategy:
-      fail-fast: true
       matrix:
-        target_os: [ubuntu]
-    permissions:
-      contents: read  # Explicit for default behavior
-      packages: write # Required for GHCR access
-      actions: write  # Required for artifact upload
-    uses: greengagedb/greengage-ci/.github/workflows/greengage-reusable-upload.yml@feat/build-pxf
-    with:
-      pxf: true
-      version: 6
-      target_os: ${{ matrix.target_os }}
-    secrets:
-      ghcr_token: ${{ secrets.GITHUB_TOKEN }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        include:
+          - image: greengagedb/ggdb6_ubuntu:6.29.1
+            dev_home: /home/gpadmin
+            version: dh-6.29.1
+          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+            dev_home: /home/gpadmin
+            version: ghcr-latest
+
+    env:
+      PXF_HOME: ${{ vars.PXF_HOME }}
+      GPHOME: ${{ vars.GPHOME }}
+      PATH: ${{ vars.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin
+      JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
+      DEBIAN_FRONTEND: noninteractive
+      IT_TAG: ${{ matrix.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build PXF automation image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./automation/env/Dockerfile
+          push: false
+          tags: greengagedb/ggdb6_pxf_automation:${{ matrix.version }}
+          build-args: GGDB_IMAGE=${{ matrix.image }}
+
+      - name: Run integration tests
+        run: |
+          set -ex
+          cd automation/env
+          bash run_it.sh true
+
+      - name: Upload ${{ github.job }} artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts_${{ github.job }}-${{ matrix.version }}
+          path: artifacts
+          retention-days: 7
+          if-no-files-found: warn  # Warning if no artifacts are found
+
+  regression:  # Regression tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    strategy:
+      matrix:
+        include:
+          - image: greengagedb/ggdb6_ubuntu:6.29.1
+            dev_home: /home/gpadmin
+            version: dh-6.29.1
+          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+            dev_home: /home/gpadmin
+            version: ghcr-latest
+
+    env:
+      PXF_HOME: ${{ vars.PXF_HOME }}
+      GPHOME: ${{ vars.GPHOME }}
+      PATH: ${{ vars.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin
+      JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
+      DEBIAN_FRONTEND: noninteractive
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build PXF ${{ github.job }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./ci/Dockerfile
+          push: false
+          tags: greengagedb/ggdb6_pxf_${{ github.job }}:${{ matrix.version }}
+          build-args: GGDB_IMAGE=${{ matrix.image }}
+
+      # Run Regression tests
+      - name: Regression test
+        run: |
+          mkdir logs
+          docker run --user root:root \
+            -v ./logs:/logs \
+            --sysctl 'kernel.sem=500 1024000 200 4096' \
+            --privileged \
+            greengagedb/ggdb6_pxf_${{ github.job }}:${{ matrix.version }} \
+            bash -c "
+              set +e
+              cd /tmp/build || status=1
+              pxf_src/ci/test_in_docker.sh
+              status=\$?
+              find /tmp/build/pxf_src/fdw -type f -name *.diffs -exec mv -f {} /logs \;
+              echo \">>> STATUS \$status\"
+              exit \${status:-1}
+            "
+
+      # Upload regression artifacts
+      - name: Upload ${{ github.job }} artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs_${{ env.IMAGE_NAME }}-${{ matrix.version }}
+          path: logs
+          retention-days: 7
+          if-no-files-found: warn  # Warning if no artifacts are found
