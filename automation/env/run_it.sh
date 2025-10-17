@@ -25,7 +25,7 @@ fi
 echo "----------------"
 echo "Start containers"
 echo "----------------"
-docker compose -p $compose_name up -d
+docker compose -p $compose_name up  --quiet-pull --no-deps -d --remove-orphans
 
 function check_docker_container_status() {
   local check_oracle_service_health=$1 # Whether the oracle service should be healthy immediately or not
@@ -133,7 +133,7 @@ echo "Restart containers"
 echo "------------------"
 docker compose logs > artifacts/compose_before_restart.log
 docker compose down
-docker compose up -d
+docker compose up  --quiet-pull --no-deps -d --remove-orphans
 check_docker_container_status false # We don't need oracle service for FDW tests
 
 echo "----------------------------------"
@@ -162,7 +162,7 @@ echo "Stop containers and start containers with ssl"
 echo "------------------"
 docker compose logs > artifacts/compose_before_ssl.log
 docker compose down
-docker compose -f docker-compose-ssl.yaml up -d
+docker compose -f docker-compose-ssl.yaml up  --quiet-pull --no-deps -d --remove-orphans
 check_docker_container_status false # We don't need oracle service ssl tests
 
 echo "------------------------------------------------------------------------"
