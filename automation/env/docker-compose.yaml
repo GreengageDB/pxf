@@ -1,6 +1,6 @@
 services:
   mdw:
-    image: "greengagedb/ggdb6_pxf_automation"
+    image: "greengagedb/ggdb6_pxf_automation:${IT_TAG:-it}"
     restart: unless-stopped
     working_dir: /home/gpadmin
     hostname: mdw
@@ -44,7 +44,7 @@ services:
       net.unix.max_dgram_qlen: 4096
 
   sdw1:
-    image: "greengagedb/ggdb6_pxf_automation"
+    image: "greengagedb/ggdb6_pxf_automation:${IT_TAG:-it}"
     restart: unless-stopped
     privileged: true
     hostname: sdw1
@@ -74,7 +74,7 @@ services:
       net.unix.max_dgram_qlen: 4096
 
   sdw2:
-    image: "greengagedb/ggdb6_pxf_automation"
+    image: "greengagedb/ggdb6_pxf_automation:${IT_TAG:-it}"
     restart: unless-stopped
     privileged: true
     hostname: sdw2
