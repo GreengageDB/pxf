@@ -1,4 +1,5 @@
 *.iml
+.cache/
 .idea/
 .vscode/
 *.pyc
@@ -11,3 +12,4 @@
 build/
 server/*/out
 server/tmp
+artifacts/
