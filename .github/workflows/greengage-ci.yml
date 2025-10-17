@@ -142,7 +142,8 @@ jobs:
           push: false
           tags: greengagedb/ggdb6_pxf_automation:${{ matrix.version }}
           build-args: GGDB_IMAGE=${{ matrix.image }}
-
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v1
       - name: Run integration tests
         run: |
           set -ex
