@@ -67,15 +67,17 @@ jobs:
         GPHOME: ${{ env.GPHOME }}
         PATH: ${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin
         JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
+        DEBIAN_FRONTEND: noninteractive
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Java and Go
+        shell: bash
         run: |
           set -eux
-          apt-get update
-          apt-get install -y openjdk-17-jdk
+          apt  update
+          apt  install -y openjdk-17-jdk
           go_version=$(grep -E '^go [0-9]+\.[0-9]+\.[0-9]+' cli/go.mod | cut -d' ' -f2)
           curl -L https://go.dev/dl/go$go_version.linux-amd64.tar.gz -o go.tar.gz
           tar -C /usr/local -xzf go.tar.gz
@@ -83,6 +85,7 @@ jobs:
 
       - name: Build and package
         working-directory: ${{ matrix.dev_home }}/pxf
+        shell: bash
         run: |
           set -eux
           git config --global --add safe.directory $(pwd)
@@ -155,7 +158,8 @@ jobs:
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
 
-  regression:  # Regression tests
+  regression:
+    name: Run Regression Tests
     runs-on: ubuntu-latest
     timeout-minutes: 180
 
@@ -189,6 +193,7 @@ jobs:
 
       # Run Regression tests
       - name: Regression test
+        shell: bash
         run: |
           mkdir logs
           docker run --user root:root \
