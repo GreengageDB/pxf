@@ -155,7 +155,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: artifacts_${{ github.job }}-${{ matrix.version }}
-          path: artifacts
+          path: automation/env/artifacts/
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
 
