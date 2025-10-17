@@ -1,0 +1,5 @@
+Package: pxf-gp6
+Version: %VERSION%
+Architecture: amd64
+Maintainer: %MAINTAINER%
+Description: Greengage PXF framework for external data access

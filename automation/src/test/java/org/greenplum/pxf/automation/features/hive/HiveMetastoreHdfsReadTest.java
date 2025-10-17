@@ -9,7 +9,7 @@ import org.greenplum.pxf.automation.components.cluster.PhdCluster;
 import org.greenplum.pxf.automation.components.cluster.installer.nodes.Node;
 import org.greenplum.pxf.automation.components.cluster.installer.nodes.SegmentNode;
 import org.greenplum.pxf.automation.components.hive.Hive;
-import org.greenplum.pxf.automation.features.BaseFeature;
+import org.greenplum.pxf.automation.features.hive.HiveBaseTest;
 import org.greenplum.pxf.automation.structures.tables.hive.HiveTable;
 import org.greenplum.pxf.automation.structures.tables.pxf.ReadableExternalTable;
 import org.greenplum.pxf.automation.structures.tables.utils.TableFactory;
@@ -24,7 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 @WorksWithFDW
 @Feature("Reading HDFS files from Hive Metastore")
-public class HiveMetastoreHdfsReadTest extends BaseFeature {
+public class HiveMetastoreHdfsReadTest extends HiveBaseTest {
     private static final String[] HIVE_TABLE_FIELDS = {
             "location   STRING",
             "month STRING",
@@ -37,6 +37,7 @@ public class HiveMetastoreHdfsReadTest extends BaseFeature {
             "number_of_orders   INT",
             "total_sales   FLOAT8"
     };
+    private static final String HIVE_DATAFILE = "pxf_hive_datafile.txt";
     private static final String SELECT_QUERY = "SELECT * FROM ${pxf_read_table}";
     private static final String SOURCE_TEXT_TABLE_NAME = "sales_info";
     private static final String SOURCE_PARQUET_TABLE_NAME = "hive_parquet_table";
@@ -74,13 +75,12 @@ public class HiveMetastoreHdfsReadTest extends BaseFeature {
 
     @Test(groups = { "hive", "hcatalog", "features", "gpdb" }, description = "Check PXF support for reading HDFS files from Hive metastore")
     public void testPxfReadHDFSFilesHiveMetastore() throws Exception {
-        String srcPath = "/tmp/test_data/hive/pxf_hive_datafile.txt";
         hive = (Hive) SystemManagerImpl.getInstance().getSystemObject("hive");
 
         sourceTextTable = TableFactory.getHiveByRowCommaTable(SOURCE_TEXT_TABLE_NAME, HIVE_TABLE_FIELDS);
         sourceTextTable.setStoredAs("textfile");
         hive.createTableAndVerify(sourceTextTable);
-        hive.loadData(sourceTextTable, srcPath, true);
+        loadDataIntoHive(hdfs, hive, HIVE_DATAFILE, sourceTextTable);
         hive.runQuery(SELECT_QUERY.replace("${pxf_read_table}", "default." + SOURCE_TEXT_TABLE_NAME));
 
         sourceParquetTable = TableFactory.getHiveByRowCommaTable(SOURCE_PARQUET_TABLE_NAME, HIVE_TABLE_FIELDS);

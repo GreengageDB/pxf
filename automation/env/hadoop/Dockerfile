@@ -7,13 +7,13 @@ ENV HADOOP_VERSION=${HADOOP_VERSION:-3.3.6}
 ENV HIVE_VERSION=${HIVE_VERSION:-4.0.0}
 ENV HBASE_VERSION=${HBASE_VERSION:-2.5.10}
 ENV TEZ_VERSION=${TEZ_VERSION:-0.10.3}
-ENV ZOOKEEPER_VERSION=${ZOOKEEPER_VERSION:-3.9.3}
+ENV ZOOKEEPER_VERSION=${ZOOKEEPER_VERSION:-3.9.4}
 
 ENV HADOOP_URL  https://archive.apache.org/dist/hadoop/core/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz
 ENV HIVE_URL https://archive.apache.org/dist/hive/hive-$HIVE_VERSION/apache-hive-$HIVE_VERSION-bin.tar.gz
 ENV HBASE_URL https://archive.apache.org/dist/hbase/$HBASE_VERSION/hbase-$HBASE_VERSION-hadoop3-bin.tar.gz
 ENV TEZ_URL https://archive.apache.org/dist/tez/$TEZ_VERSION/apache-tez-$TEZ_VERSION-bin.tar.gz
-ENV ZOOKEEPER_URL https://dlcdn.apache.org/zookeeper/zookeeper-$ZOOKEEPER_VERSION/apache-zookeeper-$ZOOKEEPER_VERSION-bin.tar.gz
+ENV ZOOKEEPER_URL https://archive.apache.org/dist/zookeeper/zookeeper-$ZOOKEEPER_VERSION/apache-zookeeper-$ZOOKEEPER_VERSION-bin.tar.gz
 
 # Download Hadoop
 RUN set -x \

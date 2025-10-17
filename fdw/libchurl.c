@@ -41,6 +41,9 @@
 #include <curl/curl.h>
 #undef CURL_DISABLE_TYPECHECK
 
+/* time to wait on curl_multi_wait */
+#define CURL_PXF_UPLOAD_TIMEOUT 1000
+
 /*
  * internal buffer for libchurl internal context
  */
@@ -122,6 +125,7 @@ static bool		internal_buffer_large_enough(churl_buffer *buffer, size_t required)
 static void		flush_internal_buffer(churl_context *context);
 static char	   *get_dest_address(CURL * curl_handle);
 static void		enlarge_internal_buffer(churl_buffer *buffer, size_t required);
+static void		multi_wait(churl_context *context, int wait_ms);
 static void		finish_upload(churl_context *context);
 static void		cleanup_curl_handle(churl_context *context);
 static void		multi_remove_handle(churl_context *context);
@@ -825,6 +829,21 @@ enlarge_internal_buffer(churl_buffer *buffer, size_t required)
 }
 
 /*
+ * Wrapper over curl_multi_wait. Can be used with
+ * curl_multi_perform call to keep an event-loop
+ * from busy-spinning.
+ */
+static void
+multi_wait(churl_context *context, int wait_ms)
+{
+	CURLMcode mc = curl_multi_wait(context->multi_handle, NULL, 0, wait_ms, NULL);
+
+	if (mc != CURLM_OK)
+		elog(ERROR, "internal error: curl_multi_wait failed (%d - %s)",
+				mc, curl_easy_strerror(mc));
+}
+
+/*
  * Let libcurl finish the upload by
  * calling perform repeatedly
  */
@@ -837,11 +856,18 @@ finish_upload(churl_context *context)
 	flush_internal_buffer(context);
 
 	/*
-	 * allow read_callback to say 'all done' by returning a zero thus ending
-	 * the connection
+	 * read_callback already said 'all done' by returning a zero
+	 * during flushing the upload buffer. Now libcurl is in
+	 * “wait for the server’s reply” state. Additionally query canceling
+	 * is allowed while waiting.
 	 */
 	while (context->curl_still_running != 0)
+	{
+		CHECK_FOR_INTERRUPTS();
+
+		multi_wait(context, CURL_PXF_UPLOAD_TIMEOUT);
 		multi_perform(context);
+	}
 }
 
 static void

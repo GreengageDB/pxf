@@ -30,7 +30,6 @@ services:
       - "./conf/mysql/jdbc-site.xml:/usr/local/greengage-db-devel/pxf/templates/mysql/jdbc-site.xml:ro"
       - "./conf/backpressure/jdbc-site.xml:/usr/local/greengage-db-devel/pxf/templates/backpressure/jdbc-site.xml:ro"
       - "./conf/pxf-reload/jdbc-site.xml:/usr/local/greengage-db-devel/pxf/templates/pxf-reload/jdbc-site.xml:ro"
-      - "test-data:/home/gpadmin/pxf_src/automation/src/test/resources/data"
     healthcheck:
       test:  sudo -H -u gpadmin bash -l -c "psql -d postgres -U gpadmin -Atc 'SELECT 1;'"
       interval: 30s
@@ -123,7 +122,6 @@ services:
       - "share-lib:/share:rw"
       - "./hadoop/hive-env.sh:/opt/hive/conf/hive-env.sh:ro"
       - "./hadoop/hbase-site.xml:/opt/hbase/conf/hbase-site.xml:ro"
-      - "test-data:/tmp/test_data"
     healthcheck:
       test: bash /healthcheck_hadoop.sh
       interval: 30s

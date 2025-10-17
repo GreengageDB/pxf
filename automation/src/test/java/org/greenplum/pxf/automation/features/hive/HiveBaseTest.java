@@ -371,7 +371,7 @@ public class HiveBaseTest extends BaseFeature {
     }
 
     @Step("Load data into Hive")
-    void loadDataIntoHive(Hdfs hdfs, Hive hive, String fileName, HiveTable tableName) throws Exception {
+    protected void loadDataIntoHive(Hdfs hdfs, Hive hive, String fileName, HiveTable tableName) throws Exception {
 
         // copy data to hdfs
         hdfs.copyFromLocal(localDataResourcesFolder + "/hive/" + fileName,
