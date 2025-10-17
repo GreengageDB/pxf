@@ -1,7 +1,6 @@
-version: "3"
 services:
   mdw:
-    image: "ggdb6_pxf_automation:it"
+    image: "greengagedb/ggdb6_pxf_automation"
     restart: unless-stopped
     working_dir: /home/gpadmin
     hostname: mdw
@@ -45,7 +44,7 @@ services:
       net.unix.max_dgram_qlen: 4096
 
   sdw1:
-    image: "ggdb6_pxf_automation:it"
+    image: "greengagedb/ggdb6_pxf_automation"
     restart: unless-stopped
     privileged: true
     hostname: sdw1
@@ -75,7 +74,7 @@ services:
       net.unix.max_dgram_qlen: 4096
 
   sdw2:
-    image: "ggdb6_pxf_automation:it"
+    image: "greengagedb/ggdb6_pxf_automation"
     restart: unless-stopped
     privileged: true
     hostname: sdw2
@@ -105,7 +104,7 @@ services:
       net.unix.max_dgram_qlen: 4096
 
   hadoop:
-    image: pxf-hadoop:3.3.6
+    image: "greengagedb/pxf-hadoop:3.3.6"
     restart: unless-stopped
     container_name: hadoop
     environment:
@@ -134,7 +133,7 @@ services:
       - hive-metastore-db
 
   hive-metastore-db:
-    image: "docker.io/library/postgres:12.0"
+    image: "library/postgres:12.0"
     restart: unless-stopped
     container_name: hive-metastore-db
     hostname: hive-metastore-db
@@ -166,7 +165,7 @@ services:
       retries: 3
 
   mysql:
-    image: "mysql:8.3.0"
+    image: "library/mysql:8.3.0"
     restart: unless-stopped
     container_name: mysql
     hostname: mysql
@@ -185,7 +184,7 @@ services:
       retries: 3
 
   minio:
-    image: hub.adsw.io/adbm/minio:RELEASE.2024-07-15T19-02-30Z
+    image: minio/minio:RELEASE.2024-07-15T19-02-30Z
     ports:
       - '9000:9000'
       - '9001:9001'
