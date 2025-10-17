@@ -2,8 +2,8 @@
 
 # shellcheck disable=SC2329
 save_logs() {
-    docker compose logs > artifacts/compose_before_exit.log
-    journalctl -exu docker > artifacts/docker.log
+    docker compose logs >> artifacts/compose_before_exit.log
+    journalctl -exu docker >> artifacts/docker.log
 } ; trap save_logs EXIT
 
 build_images=$1
@@ -131,7 +131,7 @@ start_copy_artifacts jdbc external-table
 echo "------------------"
 echo "Restart containers"
 echo "------------------"
-docker compose logs > artifacts/compose_before_restart.log
+docker compose logs >> artifacts/compose_before_restart.log
 docker compose down
 docker compose up  --quiet-pull --no-deps -d --remove-orphans
 check_docker_container_status false # We don't need oracle service for FDW tests
@@ -160,7 +160,7 @@ start_copy_artifacts jdbc fdw
 echo "------------------"
 echo "Stop containers and start containers with ssl"
 echo "------------------"
-docker compose logs > artifacts/compose_before_ssl.log
+docker compose logs >> artifacts/compose_before_ssl.log
 docker compose down
 docker compose -f docker-compose-ssl.yaml up  --quiet-pull --no-deps -d --remove-orphans
 check_docker_container_status false # We don't need oracle service ssl tests
@@ -176,7 +176,7 @@ start_copy_artifacts ggdbssl fdw
 echo "-------------------"
 echo "Shutdown containers"
 echo "-------------------"
-docker compose logs > artifacts/compose_before_down.log
+docker compose logs >> artifacts/compose_before_down.log
 docker compose -f docker-compose-ssl.yaml down
 
 echo "-------------------------"
