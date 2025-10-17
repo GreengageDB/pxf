@@ -125,6 +125,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - run: mkdir .cache # Directory .cache/ required for docker build
       - name: Build PXF automation image
         uses: docker/build-push-action@v6
         with:
