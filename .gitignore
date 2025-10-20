@@ -1,6 +1,7 @@
 *.iml
 .cache/
 .idea/
+.local/
 .vscode/
 *.pyc
 *.log
