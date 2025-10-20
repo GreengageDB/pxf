@@ -62,12 +62,12 @@ function check_docker_container_status() {
     container_ids=$(docker compose ps -q)
     for container_id in $container_ids
     do
-      status=$(docker inspect $container_id --format "{{.State.Health.Status}}")
+      status=$(docker inspect "$container_id" --format "{{.State.Health.Status}}")
       if [ "$status" != "healthy" ]; then
         docker_name=$(docker container ls --all --no-trunc --filter "id=$container_id" --format "{{.Names}}")
         [ -n "$DEBUG" ] && echo "Container $docker_name unhealty after $i attempt(s)" > "artifacts/compose_unhealthy_$docker_name.log" || true
         [ -n "$DEBUG" ] && docker compose logs "$docker_name" >> "artifacts/compose_unhealthy_$docker_name.log" || true
-        if [ "$docker_name" != "oracle" ]; then
+        if [[ "$docker_name" != "oracle" && "$docker_name" != "mysql" ]]; then
           unhealthy_present="true"
           echo "Container '$docker_name' is not in a healthy status yet. Current status is '$status'."
         else
