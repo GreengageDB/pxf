@@ -53,7 +53,7 @@ compose_up
 
 function check_docker_container_status() {
   local check_oracle_service_health=$1 # Whether the oracle service should be healthy immediately or not
-  for i in {1..120}; do
+  for i in {1..20}; do
     unhealthy_present="false"
     echo "-----------------------------------"
     echo "Check docker containers status (attempt $i)"
@@ -80,7 +80,8 @@ function check_docker_container_status() {
       Check docker containers status (attempt $i)
       -----------------------------------
 EOF
-      docker compose logs >> artifacts/compose_status.log || true
+      docker compose logs >> artifacts/compose_status.log
+      journalctl -exu docker >> artifacts/docker_status.log
     fi
     done
     if [ "$unhealthy_present" == "true" ]; then
