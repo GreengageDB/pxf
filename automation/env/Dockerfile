@@ -1,6 +1,6 @@
 # automation/env/Dockerfile
 ARG GGDB_IMAGE=greengagedb/ggdb6_ubuntu:6.29.1
-FROM ubuntu AS download
+FROM ghcr.io/linuxserver/alpine:latest AS download
 
 ARG GO_URL=https://go.dev/dl/go1.21.3.linux-amd64.tar.gz
 ARG MAVEN_URL=https://archive.apache.org/dist/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz
@@ -8,8 +8,7 @@ ARG JAR_ENCR_URL=https://repo1.maven.org/maven2/io/arenadata/security/encryption
 ARG JAR_OJDBC_URL=https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc8/12.2.0.1/ojdbc8-12.2.0.1.jar
 ARG JAR_MYSQL_URL=https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar
 
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt update && apt install -y --no-install-recommends curl ca-certificates
+RUN apk add --no-cache curl tar
 
 # --- ATTENTION! folder .cache must be exists ---
 RUN --mount=type=bind,source=.cache,target=.cache,rw \
