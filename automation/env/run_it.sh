@@ -56,7 +56,7 @@ function check_docker_container_status() {
   for i in {1..120}; do
     unhealthy_present="false"
     echo "-----------------------------------"
-    echo "Check docker containers status: $i"
+    echo "Check docker containers status (attempt $i)"
     echo "-----------------------------------"
     container_ids=$(docker compose ps -q)
     for container_id in $container_ids
@@ -74,6 +74,14 @@ function check_docker_container_status() {
           fi
         fi
       fi
+    if [ -n "$DEBUG" ] ; then
+      cat <<EOF >> artifacts/compose_status.log
+      -----------------------------------
+      Check docker containers status (attempt $i)
+      -----------------------------------
+EOF
+      docker compose logs >> artifacts/compose_status.log || true
+    fi
     done
     if [ "$unhealthy_present" == "true" ]; then
       sleep 10
