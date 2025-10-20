@@ -1,6 +1,6 @@
 # automation/env/Dockerfile
 ARG GGDB_IMAGE=greengagedb/ggdb6_ubuntu:6.29.1
-FROM ghcr.io/linuxserver/alpine:latest AS download
+FROM ghcr.io/linuxcontainers/alpine AS download
 
 ARG GO_URL=https://go.dev/dl/go1.21.3.linux-amd64.tar.gz
 ARG MAVEN_URL=https://archive.apache.org/dist/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz
