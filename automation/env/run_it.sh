@@ -27,6 +27,7 @@ save_logs() {
   if [ -n "$DEBUG" ]; then
     docker compose logs >> artifacts/compose_before_exit.log
     journalctl -exu docker >> artifacts/docker.log
+    journalctl -exu containerd >> artifacts/containerd.log
   fi
   compose_down
 } ; trap save_logs EXIT
