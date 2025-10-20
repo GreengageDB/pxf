@@ -1,14 +1,38 @@
 #!/usr/bin/env bash
 
+export DOCKERCOMPOSEBIN='docker compose'
+
+compose_up() {
+  local compose_file="${1:-docker-compose.yaml}"
+  [ -n "$DEBUG" ] && echo "Starting Docker compose with '$compose_file'" || true
+   COMPOSE_HTTP_TIMEOUT=300 $DOCKERCOMPOSEBIN -f "$compose_file" up  --quiet-pull --no-deps -d --remove-orphans
+}
+
+compose_down() {
+  [ -n "$DEBUG" ] && echo -en 'Find working Docker Composes... ' || true
+  COMPOSES=$($DOCKERCOMPOSEBIN ls -q)
+  if [ -n "$COMPOSES" ]; then
+    [ -n "$DEBUG" ] && echo "found: '$COMPOSES'" || true
+    for COMPOSE in $COMPOSES; do
+      [ -n "$DEBUG" ] && echo "Stopping $COMPOSE" || true
+      COMPOSE_HTTP_TIMEOUT=300 $DOCKERCOMPOSEBIN -p $COMPOSE down
+    done
+  else
+      [ -n "$DEBUG" ] && echo 'found nothing' || true
+  fi
+} ; export -f compose_down
+
 # shellcheck disable=SC2329
 save_logs() {
+  if [ -n "$DEBUG" ]; then
     docker compose logs >> artifacts/compose_before_exit.log
     journalctl -exu docker >> artifacts/docker.log
+  fi
+  compose_down
 } ; trap save_logs EXIT
 
 build_images=$1
 run_test_service_name=mdw
-compose_name=integration_tests
 
 mkdir -p artifacts
 
@@ -25,7 +49,7 @@ fi
 echo "----------------"
 echo "Start containers"
 echo "----------------"
-docker compose -p $compose_name up  --quiet-pull --no-deps -d --remove-orphans
+compose_up
 
 function check_docker_container_status() {
   local check_oracle_service_health=$1 # Whether the oracle service should be healthy immediately or not
@@ -131,9 +155,9 @@ start_copy_artifacts jdbc external-table
 echo "------------------"
 echo "Restart containers"
 echo "------------------"
-docker compose logs >> artifacts/compose_before_restart.log
-docker compose down
-docker compose up  --quiet-pull --no-deps -d --remove-orphans
+[ -n "$DEBUG" ] && docker compose logs >> artifacts/compose_before_restart.log || true
+compose_down
+compose_up
 check_docker_container_status false # We don't need oracle service for FDW tests
 
 echo "----------------------------------"
@@ -160,9 +184,9 @@ start_copy_artifacts jdbc fdw
 echo "------------------"
 echo "Stop containers and start containers with ssl"
 echo "------------------"
-docker compose logs >> artifacts/compose_before_ssl.log
-docker compose down
-docker compose -f docker-compose-ssl.yaml up  --quiet-pull --no-deps -d --remove-orphans
+[ -n "$DEBUG" ] && docker compose logs >> artifacts/compose_before_ssl.log || true
+compose_down
+compose_up docker-compose-ssl.yaml
 check_docker_container_status false # We don't need oracle service ssl tests
 
 echo "------------------------------------------------------------------------"
@@ -176,8 +200,8 @@ start_copy_artifacts ggdbssl fdw
 echo "-------------------"
 echo "Shutdown containers"
 echo "-------------------"
-docker compose logs >> artifacts/compose_before_down.log
-docker compose -f docker-compose-ssl.yaml down
+[ -n "$DEBUG" ] && docker compose logs >> artifacts/compose_before_down.log || true
+compose_down
 
 echo "-------------------------"
 echo "Check tests result status"
