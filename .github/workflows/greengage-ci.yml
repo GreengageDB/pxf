@@ -114,6 +114,7 @@ jobs:
     # needs: [build, prepare-cache]
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - image: greengagedb/ggdb6_ubuntu:6.29.1
