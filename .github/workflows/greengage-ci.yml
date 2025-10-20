@@ -131,6 +131,7 @@ jobs:
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
       IT_TAG: ${{ matrix.version }}
+      DEBUG: 'true'
 
     steps:
       - uses: actions/checkout@v4
