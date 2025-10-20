@@ -53,7 +53,7 @@ compose_up
 
 function check_docker_container_status() {
   local check_oracle_service_health=$1 # Whether the oracle service should be healthy immediately or not
-  for i in {1..20}; do
+  for i in {01..20}; do
     unhealthy_present="false"
     echo "-----------------------------------"
     echo "Check docker containers status (attempt $i)"
@@ -64,10 +64,14 @@ function check_docker_container_status() {
       status=$(docker inspect $container_id --format "{{.State.Health.Status}}")
       if [ "$status" != "healthy" ]; then
         docker_name=$(docker container ls --all --no-trunc --filter "id=$container_id" --format "{{.Names}}")
+        [ -n "$DEBUG" ] && echo "Container $docker_name unhealty after $i attempt(s)" > "artifacts/compose_unhealthy_$docker_name.log" || true
+        [ -n "$DEBUG" ] && docker compose logs "$docker_name" >> "artifacts/compose_unhealthy_$docker_name.log" || true
         if [ "$docker_name" != "oracle" ]; then
           unhealthy_present="true"
           echo "Container '$docker_name' is not in a healthy status yet. Current status is '$status'."
         else
+          [ -n "$DEBUG" ] && echo "Container $docker_name healty after $i attempt(s)" > "artifacts/compose_healthy_$docker_name.log" || true
+          [ -n "$DEBUG" ] && docker compose logs "$docker_name" >> "artifacts/compose_healthy_$docker_name.log" || true
           if [ "$check_oracle_service_health" == "true" ]; then
             unhealthy_present="true"
             echo "Container '$docker_name' is not in a healthy status yet. Current status is '$status'."
@@ -75,13 +79,13 @@ function check_docker_container_status() {
         fi
       fi
     if [ -n "$DEBUG" ] ; then
-      cat <<EOF >> artifacts/compose_status.log
+      cat > "artifacts/compose_status_attempt_$i.log" <<EOF
       -----------------------------------
       Check docker containers status (attempt $i)
       -----------------------------------
 EOF
-      docker compose logs >> artifacts/compose_status.log
-      journalctl -exu docker >> artifacts/docker_status.log
+      docker compose logs >> "artifacts/compose_status_attempt_$i.log"
+      journalctl -exu docker > artifacts/docker_status.log
     fi
     done
     if [ "$unhealthy_present" == "true" ]; then
