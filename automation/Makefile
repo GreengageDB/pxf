@@ -10,7 +10,6 @@ UNAME_S := $(shell uname -s)
 MAVEN_TEST_OPTS+= -B -e
 PXF_TMP_LIB := $(HOME)/automation_tmp_lib
 BASE_PATH   ?= /mnt/nfs/var/nfsshare
-USE_FDW     ?= false
 
 ifneq "$(TEST)" ""
 	MAVEN_TEST_OPTS+= -Dtest=$(TEST)
@@ -18,6 +17,10 @@ endif
 
 ifneq "$(GROUP)" ""
 	MAVEN_TEST_OPTS+= -Dgroups=$(GROUP)
+endif
+
+ifneq "$(USE_FDW)"" "true"
+	USE_FDW = false
 endif
 
 MAVEN_TEST_OPTS+= -Djava.awt.headless=true -DuseFDW=$(USE_FDW)
