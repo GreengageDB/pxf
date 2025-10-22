@@ -6,6 +6,7 @@ export USE_FDW=${2:-$USE_FDW}
 export USE_SSL=${3:-$USE_SSL}
 export BUILD_IMAGES=${4:-$BUILD_IMAGES}
 
+export IT_TAG=${IT_TAG:-it}
 export TEST_SERVICE=${TEST_SERVICE:-'mdw'}
 export ARTIFACTS=${ARTIFACTS:-'artifacts'}
 export LOG_DIR=${LOG_DIR:-$ARTIFACTS/docker_logs}
@@ -75,8 +76,8 @@ echo -en "-----\n----- Start running '$GROUP' tests with $TYPE\n-----\n"
 
 bash compose.sh up
 
-[ -n "$DEBUG" ] && echo "Run 'docker compose exec $TEST_SERVICE -u gpadmin -e GROUP=\"$GROUP\" -e USE_FDW=\"$USE_FDW\" \"make -C \$TEST_HOME\"'" | tee -a "$LOG_DIR/compose_before_down.log" || true
-docker compose exec "$TEST_SERVICE" -u gpadmin -e GROUP="$GROUP" -e USE_FDW="$USE_FDW" "make -C \$TEST_HOME"
+[ -n "$DEBUG" ] && echo "Run 'docker compose exec -u gpadmin -e GROUP=\"$GROUP\" -e USE_FDW=\"$USE_FDW\" \"$TEST_SERVICE\" \"bash make -C \$TEST_HOME\"'" | tee -a "$LOG_DIR/compose_before_down.log" || true
+docker compose exec -u gpadmin -e GROUP="$GROUP" -e USE_FDW="$USE_FDW" "$TEST_SERVICE" "bash make -C \$TEST_HOME"
 check_test_result $? "$GROUP" "$$TYPE"
 start_copy_artifacts "$GROUP" "$$TYPE"
 

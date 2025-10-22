@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -eux
 
+export IT_TAG=${IT_TAG:-it}
 export TESTS='smoke gpdb jdbc'
 export LOG_DIR='artifacts/docker_logs'
 
