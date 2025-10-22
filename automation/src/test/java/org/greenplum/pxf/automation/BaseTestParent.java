@@ -2,6 +2,7 @@ package org.greenplum.pxf.automation;
 
 import jsystem.framework.report.ListenerstManager;
 import jsystem.framework.system.SystemManagerImpl;
+import jsystem.framework.system.SystemObject;
 import jsystem.utils.FileUtils;
 import listeners.CustomAutomationLogger;
 import listeners.TestAnalyzer;
@@ -23,6 +24,7 @@ import org.testng.annotations.*;
 import reporters.CustomAutomationReport;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.lang.reflect.Method;
 
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTH_TO_LOCAL;
@@ -33,6 +35,7 @@ import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.HADOOP_SECURITY
  */
 @Listeners({CustomAutomationLogger.class, CustomAutomationReport.class, TestAnalyzer.class})
 public abstract class BaseTestParent {
+    private static final String SYSTEM_OBJECT_PREFIX = "/sut/";
     // Objects used in the tests
     protected PhdCluster cluster;
     protected Regress regress;
@@ -70,11 +73,9 @@ public abstract class BaseTestParent {
         LogManager.getLogger("io.qameta.allure.AllureLifecycle").setLevel(Level.OFF);
 
         try {
-
             cluster = (PhdCluster) systemManager.getSystemObjectByXPath("/sut/cluster");
-
             // Initialize HDFS system object
-            hdfs = (Hdfs) systemManager.getSystemObjectByXPath("/sut/hdfs");
+            hdfs = (Hdfs) getNullableSystemObject("hdfs");
 
             String testPrincipal = cluster.getTestKerberosPrincipal();
             trySecureLogin(hdfs, testPrincipal);
@@ -96,14 +97,13 @@ public abstract class BaseTestParent {
             }
 
             initializeWorkingDirectory(hdfs, gpdb.getUserName());
-
-            if (hdfsNonSecure != null) {
-                initializeWorkingDirectory(hdfsNonSecure, gpdb.getUserName());
-            }
+            initializeWorkingDirectory(hdfsNonSecure, gpdb.getUserName());
 
             // get pxfHost
             // check if HA:
-            pxfHost = hdfs.getHaNameservice();
+            if (hdfs != null) {
+                pxfHost = hdfs.getHaNameservice();
+            }
             pxfPort = null; // HA doesn't have ip:port
             if (StringUtils.isEmpty(pxfHost)) {
                 pxfPort = "5888";
@@ -114,8 +114,7 @@ public abstract class BaseTestParent {
                         pxfHost = pxfNode.getHost();
                     }
                 } else {
-                    // if other than MultiNodeCluster get pxfHost from hdfs
-                    pxfHost = hdfs.getHost();
+                    pxfHost = "localhost";
                 }
             }
 
@@ -302,6 +301,7 @@ public abstract class BaseTestParent {
     }
 
     protected void trySecureLogin(Hdfs hdfs, String kerberosPrincipal) throws Exception {
+        if (hdfs == null) return;
         if (StringUtils.isEmpty(kerberosPrincipal)) return;
 
         String testUser = kerberosPrincipal.split("@")[0];
@@ -340,6 +340,7 @@ public abstract class BaseTestParent {
     }
 
     protected void initializeWorkingDirectory(Hdfs hdfs, String userName) throws Exception {
+        if (hdfs == null) return;
         hdfs.removeDirectory(hdfs.getWorkingDirectory());
         hdfs.createDirectory(hdfs.getWorkingDirectory());
         if (userName != null) {
@@ -354,6 +355,16 @@ public abstract class BaseTestParent {
             hdfs.removeDirectory(hdfs.getWorkingDirectory());
         } catch (Exception e) {
             e.printStackTrace(System.err);
+        }
+    }
+
+    private SystemObject getNullableSystemObject(String systemObjName) throws FileNotFoundException {
+        try {
+            systemManager.checkObject(systemObjName);
+            return systemManager.getSystemObjectByXPath(SYSTEM_OBJECT_PREFIX + systemObjName);
+        } catch (Throwable t) {
+            t.printStackTrace(System.out);
+            return null;
         }
     }
 }
