@@ -7,7 +7,7 @@ export DOCKERCOMPOSEBIN='docker compose'
 
 # --- Functions ---
 compose_up() {
-  local compose_file="${1:-docker-compose.yaml}"
+  local compose_file="${1:-docker-compose${USE_SSL:+-ssl}.yaml}"
   [ -n "$DEBUG" ] && echo "Starting Docker compose with '$compose_file'" || true
    COMPOSE_HTTP_TIMEOUT=300 $DOCKERCOMPOSEBIN -f "$compose_file" up  --quiet-pull --no-deps -d --remove-orphans
 }
