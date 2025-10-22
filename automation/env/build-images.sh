@@ -11,9 +11,9 @@ popd
 echo "===================================="
 echo "      Build Hadoop 3.3.6 image      "
 echo "===================================="
-pushd hadoop
-docker build -f Dockerfile -t pxf-hadoop:3.3.6 .
-popd
+#pushd hadoop
+#docker build -f Dockerfile -t pxf-hadoop:3.3.6 .
+#popd
 
 #echo "===================================="
 #echo "      Build Vault image      "

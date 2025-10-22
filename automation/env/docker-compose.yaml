@@ -104,7 +104,7 @@ services:
       net.unix.max_dgram_qlen: 4096
 
   hadoop:
-    image: pxf-hadoop:3.3.6
+    image: greengagedb/pxf-hadoop:3.3.6
     restart: unless-stopped
     container_name: hadoop
     environment:
@@ -154,6 +154,8 @@ services:
     container_name: oracle
     hostname: oracle
     privileged: true
+    environment:
+      - INIT_MEM_PST=10
     ports:
       - '1521:1521'
       - '8080:8080'

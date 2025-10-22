@@ -93,6 +93,7 @@ RUN cp ${PXF_HOME}/templates/hbase-site.xml \
 
 # Copy pxf-application.properties
 COPY ./automation/env/conf/pxf-application.properties ${PXF_HOME}/conf/pxf-application.properties
+COPY ./automation/env/conf/pxf-env.sh ${PXF_HOME}/conf/pxf-env.sh
 
 RUN mkdir ${PXF_HOME}/servers/oracle
 COPY ./automation/env/conf/oracle/jdbc-site.xml ${PXF_HOME}/servers/oracle/jdbc-site.xml

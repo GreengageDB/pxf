@@ -157,7 +157,7 @@ services:
       net.unix.max_dgram_qlen: 4096
 
   hadoop:
-    image: pxf-hadoop:3.3.6
+    image: greengagedb/pxf-hadoop:3.3.6
     restart: unless-stopped
     container_name: hadoop
     environment:
@@ -211,6 +211,8 @@ services:
     ports:
       - '1521:1521'
       - '8080:8080'
+    environment:
+      - INIT_MEM_PST=10
     healthcheck:
       test: echo "SELECT 333 from dual;" | sqlplus -L system/oracle@ORCL | grep 333 > /dev/null; if [ 0 != $$? ]; then exit 1; fi;
       interval: 30s
