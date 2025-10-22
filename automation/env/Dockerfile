@@ -63,9 +63,11 @@ RUN mkdir -p /data1/master /data1/primary /data1/mirror && chmod -R 755 /data1 &
 # --- JAR libraries ---
 RUN mkdir -p $PXF_HOME/lib/ && mv /opt/lib $PXF_HOME/
 
+# --- Build PXF ---
 COPY $BUILD_CONTEXT/ /home/gpadmin/pxf_src
 COPY $BUILD_CONTEXT/automation/env/scripts/compile_pxf_without_test.sh /home/gpadmin/pxf_src/concourse/scripts/compile_pxf_without_test.sh
 RUN chmod +x /home/gpadmin/pxf_src/concourse/scripts/compile_pxf_without_test.sh
+
 RUN source gpdb_src/concourse/scripts/common.bash && \
     source $GPHOME/greengage_path.sh && \
     /home/gpadmin/pxf_src/concourse/scripts/compile_pxf_without_test.sh && \
