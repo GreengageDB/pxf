@@ -9,4 +9,4 @@
 ##############################################################################
 
 # Memory
-export PXF_JVM_OPTS="-Xmx512m -Xms512m"
+export PXF_JVM_OPTS="-Xmx1g -Xms1g"
