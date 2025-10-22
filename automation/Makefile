@@ -19,7 +19,7 @@ ifneq "$(GROUP)" ""
 	MAVEN_TEST_OPTS+= -Dgroups=$(GROUP)
 endif
 
-ifneq "$(USE_FDW)"" "true"
+ifneq "$(USE_FDW)" "true"
 	USE_FDW = false
 endif
 
