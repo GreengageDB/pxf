@@ -111,6 +111,7 @@ jobs:
   integration:
     name: Run '${{ matrix.test }}' group with ${{ matrix.fdw && 'FDW' || 'external table' }}${{ matrix.ssl && ' and SSL' || '' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 180
     # needs: [build, prepare-cache]
 
     strategy:
