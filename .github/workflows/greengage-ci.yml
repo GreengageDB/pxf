@@ -179,8 +179,8 @@ jobs:
           context: .
           file: ./automation/env/Dockerfile
           push: false
-          tags: greengagedb/ggdb6_pxf_automation:$IT_TAG
-          build-args: GGDB_IMAGE
+          tags: greengagedb/ggdb6_pxf_automation:${{ env.IT_TAG }}
+          build-args: GGDB_IMAGE=${{ env.GGDB_IMAGE }}
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v1
       - name: Run integration tests
@@ -228,8 +228,8 @@ jobs:
   #         context: .
   #         file: ./ci/Dockerfile
   #         push: false
-  #         tags: greengagedb/ggdb6_pxf_${{ github.job }}:$IT_TAG
-  #         build-args: GGDB_IMAGE=${{ matrix.image }}
+  #         tags: greengagedb/ggdb6_pxf_${{ github.job }}:${{ env.IT_TAG }}
+  #         build-args: GGDB_IMAGE=${{ env.GGDB_IMAGE }}
 
   #     # Run Regression tests
   #     - name: Regression test
@@ -240,7 +240,7 @@ jobs:
   #           -v ./logs:/logs \
   #           --sysctl 'kernel.sem=500 1024000 200 4096' \
   #           --privileged \
-  #           greengagedb/ggdb6_pxf_${{ github.job }}:$IT_TAG \
+  #           greengagedb/ggdb6_pxf_${{ github.job }}:${{ env.IT_TAG }} \
   #           bash -c "
   #             set +e
   #             cd /tmp/build || status=1
