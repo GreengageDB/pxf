@@ -109,7 +109,7 @@ jobs:
   #         path: build/*.deb
 
   integration:
-    name: Run '${{ matrix.test }}' group tests with ${{ matrix.fdw && 'FDW' || 'external table' }}${{ matrix.ssl && ' and SSL' || '' }}
+    name: Run '${{ matrix.test }}' group with ${{ matrix.fdw && 'FDW' || 'external table' }}${{ matrix.ssl && ' and SSL' || '' }}
     runs-on: ubuntu-latest
     # needs: [build, prepare-cache]
 
@@ -183,17 +183,17 @@ jobs:
           build-args: GGDB_IMAGE=${{ env.GGDB_IMAGE }}
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v1
-      - name: Run integration tests
+      - name: Run ${{ matrix.test }} test ${{ matrix.fdw && ' with fdw' || '' }}
         run: |
           set -ex
           cd automation/env
           bash it.sh
 
-      - name: Upload ${{ github.job }} artifacts
+      - name: Upload integration tests artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts_${{ github.job }}-${{ matrix.test }}${{ matrix.fdw && '-fdw' || '' }}${{ matrix.ssl && '-ssl' || '' }}
+          name: artifacts-${{ github.job }}-${{ matrix.test }}${{ matrix.fdw && '-fdw' || '' }}${{ matrix.ssl && '-ssl' || '' }}
           path: automation/env/artifacts/
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
@@ -251,7 +251,7 @@ jobs:
   #             exit \${status:-1}
   #           "
 
-  #     # Upload regression artifacts
+  #     # Upload regression tests artifacts
   #     - name: Upload ${{ github.job }} artifacts
   #       if: always()
   #       uses: actions/upload-artifact@v4
