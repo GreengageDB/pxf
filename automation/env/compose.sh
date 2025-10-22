@@ -3,6 +3,7 @@ set -e
 
 # --- Declarations ---
 export DOCKERCOMPOSEBIN='docker compose'
+export DEBUG_DIR=${DEBUG_DIR:-artifacts/docker_logs}
 
 # --- Functions ---
 compose_up() {
@@ -38,14 +39,14 @@ check_docker_container_status() {
       status=$(docker inspect "$container_id" --format "{{.State.Health.Status}}")
       if [ "$status" != "healthy" ]; then
         docker_name=$(docker container ls --all --no-trunc --filter "id=$container_id" --format "{{.Names}}")
-        [ -n "$DEBUG" ] && echo "Container $docker_name unhealty after $i attempt(s)" > "artifacts/compose_unhealthy_$docker_name.log" || true
-        [ -n "$DEBUG" ] && docker compose logs "$docker_name" >> "artifacts/compose_unhealthy_$docker_name.log" || true
+        [ -n "$DEBUG" ] && echo "Container $docker_name unhealty after $i attempt(s)" > "$DEBUG_DIR/compose_unhealthy_$docker_name.log" || true
+        [ -n "$DEBUG" ] && docker compose logs "$docker_name" >> "$DEBUG_DIR/compose_unhealthy_$docker_name.log" || true
         if [[ "$docker_name" != "oracle" && "$docker_name" != "mysql" ]]; then
           unhealthy_present="true"
           echo "Container '$docker_name' is not in a healthy status yet. Current status is '$status'."
         else
-          [ -n "$DEBUG" ] && echo "Container $docker_name healty after $i attempt(s)" > "artifacts/compose_healthy_$docker_name.log" || true
-          [ -n "$DEBUG" ] && docker compose logs "$docker_name" >> "artifacts/compose_healthy_$docker_name.log" || true
+          [ -n "$DEBUG" ] && echo "Container $docker_name healty after $i attempt(s)" > "$DEBUG_DIR/compose_healthy_$docker_name.log" || true
+          [ -n "$DEBUG" ] && docker compose logs "$docker_name" >> "$DEBUG_DIR/compose_healthy_$docker_name.log" || true
           if [ "$check_oracle_service_health" == "true" ]; then
             unhealthy_present="true"
             echo "Container '$docker_name' is not in a healthy status yet. Current status is '$status'."
@@ -53,13 +54,13 @@ check_docker_container_status() {
         fi
       fi
     if [ -n "$DEBUG" ] ; then
-      cat > "artifacts/compose_status_attempt_$i.log" <<EOF
+      cat > "$DEBUG_DIR/compose_status_attempt_$i.log" <<EOF
       -----------------------------------
       Check docker containers status (attempt $i)
       -----------------------------------
 EOF
-      docker compose logs >> "artifacts/compose_status_attempt_$i.log"
-      journalctl -exu docker > artifacts/docker_status.log
+      docker compose logs >> "$DEBUG_DIR/compose_status_attempt_$i.log"
+      journalctl -exu docker > $DEBUG_DIR/docker_status.log
     fi
     done
     if [ "$unhealthy_present" == "true" ]; then
@@ -87,8 +88,8 @@ case $1 in
         check_docker_container_status false
         ;;
     down)
-        [ -n "$DEBUG" ] && mkdir -p artifacts
-        [ -n "$DEBUG" ] && docker compose logs >> artifacts/compose_before_down.log || true
+        [ -n "$DEBUG" ] && mkdir -p "$DEBUG_DIR"
+        [ -n "$DEBUG" ] && docker compose logs >> "$DEBUG_DIR/compose_before_down.log" || true
         compose_down
         ;;
     *)

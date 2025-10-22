@@ -8,7 +8,7 @@ export BUILD_IMAGES=${4:-$BUILD_IMAGES}
 export IT_TAG=${IT_TAG:-it}
 export TEST_SERVICE=${TEST_SERVICE:-'mdw'}
 export ARTIFACTS=${ARTIFACTS:-'artifacts'}
-export LOG_DIR=${LOG_DIR:-$ARTIFACTS/docker_logs}
+export DEBUG_DIR=${DEBUG_DIR:-$ARTIFACTS/docker_logs}
 export DOCKERCOMPOSEBIN=${DOCKERCOMPOSEBIN:-'docker compose'}
 
 # Set a variable to check the results of all tests at the end of the script
@@ -18,10 +18,10 @@ test_result_status=0
 # shellcheck disable=SC2329
 trap_exit() {
   if [ -n "$DEBUG" ]; then
-    mkdir -p "$LOG_DIR"
-    docker compose logs >> "$LOG_DIR/compose_before_exit.log"
-    journalctl -exu docker >> "$LOG_DIR/docker.log"
-    journalctl -exu containerd >> "$LOG_DIR/containerd.log"
+    mkdir -p "$DEBUG_DIR"
+    docker compose logs >> "$DEBUG_DIR/compose_before_exit.log"
+    journalctl -exu docker >> "$DEBUG_DIR/docker.log"
+    journalctl -exu containerd >> "$DEBUG_DIR/containerd.log"
   fi
 } ; trap trap_exit EXIT
 
@@ -66,7 +66,7 @@ if [ -z "$GROUP" ] ; then # Variable GROUP required
   exit 1
 fi
 
-[ -n "$DEBUG" ] && mkdir -p "$LOG_DIR" || true
+[ -n "$DEBUG" ] && mkdir -p "$DEBUG_DIR" || true
 
 # shellcheck disable=SC2155
 export TYPE=$([ -n "$USE_FDW" ] && echo -n "fdw" || echo -n "external-table")
@@ -74,7 +74,7 @@ echo -en "-----\n----- Start running '$GROUP' tests with $TYPE\n-----\n"
 
 bash compose.sh up
 
-[ -n "$DEBUG" ] && echo "Run 'docker compose exec \"$TEST_SERVICE\" sudo -H -u gpadmin bash -l -c \"make -C \$TEST_HOME GROUP=$GROUP USE_FDW=$USE_FDW\"'" | tee -a "$LOG_DIR/compose_before_down.log" || true
+[ -n "$DEBUG" ] && echo "Run 'docker compose exec \"$TEST_SERVICE\" sudo -H -u gpadmin bash -l -c \"make -C \$TEST_HOME GROUP=$GROUP USE_FDW=$USE_FDW\"'" | tee -a "$DEBUG_DIR/compose_before_down.log" || true
 docker compose exec "$TEST_SERVICE" sudo -H -u gpadmin bash -l -c "make -C \$TEST_HOME GROUP=$GROUP USE_FDW=$USE_FDW"
 check_test_result $? "$GROUP" "$$TYPE"
 start_copy_artifacts "$GROUP" "$$TYPE"
