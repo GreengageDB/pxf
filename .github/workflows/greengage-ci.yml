@@ -109,7 +109,7 @@ jobs:
   #         path: build/*.deb
 
   integration:
-    name: Run Integration Tests
+    name: Run '${{ matrix.test }}' group tests with ${{ matrix.fdw && 'FDW' || 'external table' }}${{ matrix.ssl && ' and SSL' || '' }}
     runs-on: ubuntu-latest
     # needs: [build, prepare-cache]
 
