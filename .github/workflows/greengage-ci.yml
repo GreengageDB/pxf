@@ -198,65 +198,65 @@ jobs:
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
 
-  # regression:
-  #   name: Run Regression Tests
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 180
+  regression:
+    name: Run ${{ github.job }} tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
 
-  #   strategy:
-  #     matrix:
-  #       include:
-  #         - image: greengagedb/ggdb6_ubuntu:6.29.1
-  #           dev_home: /home/gpadmin
-  #           version: dh-6.29.1
-  #         - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
-  #           dev_home: /home/gpadmin
-  #           version: ghcr-latest
+    strategy:
+      matrix:
+        include:
+          - image: greengagedb/ggdb6_ubuntu:6.29.1
+            dev_home: /home/gpadmin
+            version: dh-6.29.1
+          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
+            dev_home: /home/gpadmin
+            version: ghcr-latest
 
-  #   env:
-  #     PXF_HOME: ${{ vars.PXF_HOME }}
-  #     GPHOME: ${{ vars.GPHOME }}
-  #     PATH: ${{ vars.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin
-  #     JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
-  #     DEBIAN_FRONTEND: noninteractive
+    env:
+      PXF_HOME: ${{ vars.PXF_HOME }}
+      GPHOME: ${{ vars.GPHOME }}
+      PATH: ${{ vars.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin
+      JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
+      DEBIAN_FRONTEND: noninteractive
 
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Build PXF ${{ github.job }} image
-  #       uses: docker/build-push-action@v6
-  #       with:
-  #         context: .
-  #         file: ./ci/Dockerfile
-  #         push: false
-  #         tags: greengagedb/ggdb6_pxf_${{ github.job }}:${{ env.IT_TAG }}
-  #         build-args: GGDB_IMAGE=${{ env.GGDB_IMAGE }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build PXF ${{ github.job }} image ${{ matrix.version }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./ci/Dockerfile
+          push: false
+          tags: greengagedb/ggdb6_pxf_${{ github.job }}:${{ matrix.version }}
+          build-args: GGDB_IMAGE=${{ matrix.image }}
 
-  #     # Run Regression tests
-  #     - name: Regression test
-  #       shell: bash
-  #       run: |
-  #         mkdir logs
-  #         docker run --user root:root \
-  #           -v ./logs:/logs \
-  #           --sysctl 'kernel.sem=500 1024000 200 4096' \
-  #           --privileged \
-  #           greengagedb/ggdb6_pxf_${{ github.job }}:${{ env.IT_TAG }} \
-  #           bash -c "
-  #             set +e
-  #             cd /tmp/build || status=1
-  #             pxf_src/ci/test_in_docker.sh
-  #             status=\$?
-  #             find /tmp/build/pxf_src/fdw -type f -name *.diffs -exec mv -f {} /logs \;
-  #             echo \">>> STATUS \$status\"
-  #             exit \${status:-1}
-  #           "
+      # Run Regression tests
+      - name: Regression tests
+        shell: bash
+        run: |
+          mkdir logs
+          docker run --user root:root \
+            -v ./logs:/logs \
+            --sysctl 'kernel.sem=500 1024000 200 4096' \
+            --privileged \
+            greengagedb/ggdb6_pxf_${{ github.job }}:${{ matrix.version }} \
+            bash -c "
+              set +e
+              cd /tmp/build || status=1
+              pxf_src/ci/test_in_docker.sh
+              status=\$?
+              find /tmp/build/pxf_src/fdw -type f -name *.diffs -exec mv -f {} /logs \;
+              echo \">>> STATUS \$status\"
+              exit \${status:-1}
+            "
 
-  #     # Upload regression tests artifacts
-  #     - name: Upload ${{ github.job }} artifacts
-  #       if: always()
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: logs_${{ env.IMAGE_NAME }}-${{ matrix.test }}
-  #         path: logs
-  #         retention-days: 7
-  #         if-no-files-found: warn  # Warning if no artifacts are found
+      # Upload regression tests artifacts
+      - name: Upload ${{ github.job }} artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs_${{ github.job }-${{ matrix.version }}
+          path: logs
+          retention-days: 7
+          if-no-files-found: warn  # Warning if no artifacts are found
