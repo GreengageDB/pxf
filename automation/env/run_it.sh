@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-set -eux
+[ -n "$DEBUG" ] && set -x || true
+set -eu
 
+# GGDB_IMAGE is from https://github.com/GreengageDB/greengage/tree/main/ci
+export GGDB_IMAGE=${GGDB_IMAGE:-greengagedb/ggdb6_ubuntu:6.29.1}
 export IT_TAG=${IT_TAG:-it}
+
 export TESTS='smoke gpdb jdbc'
 export LOG_DIR='artifacts/docker_logs'
 
@@ -13,7 +17,7 @@ trap_exit() {
     journalctl -exu docker >> "$LOG_DIR/docker.log"
     journalctl -exu containerd >> "$LOG_DIR/containerd.log"
   fi
-  compose_down
+  bash compose.sh down
 } ; trap trap_exit EXIT
 
 if [ "$BUILD_IMAGES" == "true" ]; then
@@ -40,4 +44,3 @@ export USE_FDW=true
 for test in $TESTS ; do
   GROUP=$test bash it.sh
 done
-bash compose.sh down

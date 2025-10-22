@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+[ -n "$DEBUG" ] && set -x || true
 set -e
 
 # --- Declarations ---

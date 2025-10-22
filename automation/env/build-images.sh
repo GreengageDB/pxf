@@ -1,4 +1,7 @@
 #!/bin/bash
+# GGDB_IMAGE is from https://github.com/GreengageDB/greengage/tree/main/ci
+export GGDB_IMAGE=${GGDB_IMAGE:-greengagedb/ggdb6_ubuntu:6.29.1}
+export IT_TAG=${IT_TAG:-it}
 
 echo "=============================="
 echo "      Clean the project       "
@@ -24,8 +27,7 @@ popd
 echo "=============================="
 echo "Build PXF image for automation"
 echo "=============================="
-# GGDB_IMAGE is from https://github.com/GreengageDB/greengage/tree/main/ci
 pushd ../..
 mkdir -p .cache
-docker build -t greengagedb/ggdb6_pxf_automation --build-arg "GGDB_IMAGE=${GGDB_IMAGE:-greengagedb/ggdb6_ubuntu:6.29.1}" -f automation/env/Dockerfile .
+docker build --no-cache -t "greengagedb/ggdb6_pxf_automation:$IT_TAG" --build-arg GGDB_IMAGE -f automation/env/Dockerfile .
 popd
