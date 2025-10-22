@@ -41,72 +41,72 @@ jobs:
   #         path: ~/.cache/greengage
   #         key: env-cache-${{ github.sha }}
 
-  # build:
-  #   name: Build PXF Packages
-  #   runs-on: ubuntu-latest
-  #   # needs: [prepare-cache]
+  build:
+    name: Build PXF Packages
+    runs-on: ubuntu-latest
+    # needs: [prepare-cache]
 
-  #   strategy:
-  #     matrix:
-  #       include:
-  #         - image: greengagedb/ggdb6_ubuntu:6.29.1
-  #           dev_home: /home/gpadmin
-  #           version: dh-6.29.1
-  #         - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
-  #           dev_home: /home/gpadmin
-  #           version: ghcr-latest
+    strategy:
+      matrix:
+        include:
+          - image: greengagedb/ggdb6_ubuntu:6.29.1
+            dev_home: /home/gpadmin
+            version: dh-6.29.1
+          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+            dev_home: /home/gpadmin
+            version: ghcr-latest
 
-  #   # Build in developer's Greengage image from GHCR
-  #   container:
-  #     image: ${{ matrix.image }}
-  #     volumes:
-  #       - ${{ github.workspace }}:${{ matrix.dev_home }}/pxf
-  #     env:
-  #       PXF_HOME: ${{ env.PXF_HOME }}
-  #       DEV_HOME: ${{ matrix.dev_home }}
-  #       GPHOME: ${{ env.GPHOME }}
-  #       PATH: ${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin
-  #       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
-  #       DEBIAN_FRONTEND: noninteractive
+    # Build in developer's Greengage image from GHCR
+    container:
+      image: ${{ matrix.image }}
+      volumes:
+        - ${{ github.workspace }}:${{ matrix.dev_home }}/pxf
+      env:
+        PXF_HOME: ${{ env.PXF_HOME }}
+        DEV_HOME: ${{ matrix.dev_home }}
+        GPHOME: ${{ env.GPHOME }}
+        PATH: ${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin
+        JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
+        DEBIAN_FRONTEND: noninteractive
 
-  #   steps:
-  #     - uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-  #     - name: Install Java and Go
-  #       shell: bash
-  #       run: |
-  #         set -eux
-  #         apt  update
-  #         apt  install -y openjdk-17-jdk
-  #         go_version=$(grep -E '^go [0-9]+\.[0-9]+\.[0-9]+' cli/go.mod | cut -d' ' -f2)
-  #         curl -L https://go.dev/dl/go$go_version.linux-amd64.tar.gz -o go.tar.gz
-  #         tar -C /usr/local -xzf go.tar.gz
-  #         go version
+      - name: Install Java and Go
+        shell: bash
+        run: |
+          set -eux
+          apt  update
+          apt  install -y openjdk-17-jdk
+          go_version=$(grep -E '^go [0-9]+\.[0-9]+\.[0-9]+' cli/go.mod | cut -d' ' -f2)
+          curl -L https://go.dev/dl/go$go_version.linux-amd64.tar.gz -o go.tar.gz
+          tar -C /usr/local -xzf go.tar.gz
+          go version
 
-  #     - name: Build and package
-  #       working-directory: ${{ matrix.dev_home }}/pxf
-  #       shell: bash
-  #       run: |
-  #         set -eux
-  #         git config --global --add safe.directory $(pwd)
-  #         localedef -c -i ru_RU -f CP1251 ru_RU.CP1251
-  #         mkdir -p $GPHOME
-  #         tar -xzf $DEV_HOME/bin_gpdb/bin_gpdb.tar.gz -C $GPHOME/
-  #         source $GPHOME/greengage_path.sh
-  #         make all install deb
+      - name: Build and package
+        working-directory: ${{ matrix.dev_home }}/pxf
+        shell: bash
+        run: |
+          set -eux
+          git config --global --add safe.directory $(pwd)
+          localedef -c -i ru_RU -f CP1251 ru_RU.CP1251
+          mkdir -p $GPHOME
+          tar -xzf $DEV_HOME/bin_gpdb/bin_gpdb.tar.gz -C $GPHOME/
+          source $GPHOME/greengage_path.sh
+          make all install deb
 
-  #     - name: Cache deb packages
-  #       uses: actions/cache@v4
-  #       with:
-  #         path: build/*.deb
-  #         key: pxf-deb-${{ github.sha }}-${{ matrix.version }}
+      - name: Cache deb packages
+        uses: actions/cache@v4
+        with:
+          path: build/*.deb
+          key: pxf-deb-${{ github.sha }}-${{ matrix.version }}
 
-  #     - name: Upload ${{ github.job }} artifacts
-  #       if: always()
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: pxf-deb-${{ matrix.version }}
-  #         path: build/*.deb
+      - name: Upload ${{ github.job }} artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pxf-deb-${{ matrix.version }}
+          path: build/*.deb
 
   integration:
     name: Run '${{ matrix.test }}' group with ${{ matrix.fdw && 'FDW' || 'external table' }}${{ matrix.ssl && ' and SSL' || '' }}
