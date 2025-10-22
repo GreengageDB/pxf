@@ -116,10 +116,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test: [smoke, gpdb, jdbc]
+        include:
+          -
+            test: smoke
+          -
+            test: gpdb
+          -
+            test: jdbc
+          -
+            test: smoke
+            fdw: 'true'
+          -
+            test: gpdb
+            fdw: 'true'
+          -
+            test: jdbc
+            fdw: 'true'
+          -
+            test: ggdbssl
+            fdw: 'true'
+            ssl: 'true'
 
     env:
       GROUP: ${{ matrix.test }}
+      USE_FDW: ${{ matrix.fdw }}
+      USE_SSL: ${{ matrix.ssl }}
       PXF_HOME: ${{ vars.PXF_HOME }}
       GPHOME: ${{ vars.GPHOME }}
       PATH: ${{ vars.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin
@@ -172,7 +193,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts_${{ github.job }}-${{ matrix.test }}
+          name: artifacts_${{ github.job }}-${{ matrix.test }}${{ matrix.fdw && '-fdw' || '' }}${{ matrix.ssl && '-ssl' || '' }}
           path: automation/env/artifacts/
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
