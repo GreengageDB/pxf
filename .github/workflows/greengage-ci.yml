@@ -101,7 +101,7 @@ jobs:
           path: build/*.deb
           key: pxf-deb-${{ github.sha }}-${{ matrix.version }}
 
-      - name: Upload ${{ github.job }} artifacts
+      - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -194,13 +194,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts-${{ github.job }}-${{ matrix.test }}${{ matrix.fdw && '-fdw' || '' }}${{ matrix.ssl && '-ssl' || '' }}
+          name: artifacts-integration-${{ matrix.test }}${{ matrix.fdw && '-fdw' || '' }}${{ matrix.ssl && '-ssl' || '' }}
           path: automation/env/artifacts/
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
 
   regression:
-    name: Run ${{ github.job }} tests
+    name: Run regression on ${{ matrix.version }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
 
@@ -223,13 +223,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Build PXF ${{ github.job }} image ${{ matrix.version }}
+      - name: Build PXF regression image ${{ matrix.version }}
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./ci/Dockerfile
           push: false
-          tags: greengagedb/ggdb6_pxf_${{ github.job }}:${{ matrix.version }}
+          tags: greengagedb/ggdb6_pxf_regression:${{ matrix.version }}
           build-args: GGDB_IMAGE=${{ matrix.image }}
 
       # Run Regression tests
@@ -241,7 +241,7 @@ jobs:
             -v ./logs:/logs \
             --sysctl 'kernel.sem=500 1024000 200 4096' \
             --privileged \
-            greengagedb/ggdb6_pxf_${{ github.job }}:${{ matrix.version }} \
+            greengagedb/ggdb6_pxf_regression:${{ matrix.version }} \
             bash -c "
               set +e
               cd /tmp/build || status=1
@@ -253,11 +253,11 @@ jobs:
             "
 
       # Upload regression tests artifacts
-      - name: Upload ${{ github.job }} artifacts
+      - name: Upload regression artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: logs_${{ github.job }}-${{ matrix.version }}
+          name: logs_regression-${{ matrix.version }}
           path: logs
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
