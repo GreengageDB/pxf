@@ -23,7 +23,7 @@ trap_exit() {
     journalctl -exu docker >> "$LOG_DIR/docker.log"
     journalctl -exu containerd >> "$LOG_DIR/containerd.log"
   fi
-  compose_down
+  bash compose.sh down
 } ; trap trap_exit EXIT
 
 start_copy_artifacts() {
@@ -72,6 +72,8 @@ fi
 # shellcheck disable=SC2155
 export TYPE=$([ -n "$USE_FDW" ] && echo -n "fdw" || echo -n "external-table")
 echo -en "-----\n----- Start running '$GROUP' tests with $TYPE\n-----\n"
+
+bash compose.sh up
 
 [ -n "$DEBUG" ] && echo "Run 'docker compose exec $TEST_SERVICE -u gpadmin -e GROUP=\"$GROUP\" -e USE_FDW=\"$USE_FDW\" \"make -C \$TEST_HOME\"'" | tee -a "$LOG_DIR/compose_before_down.log" || true
 docker compose exec "$TEST_SERVICE" -u gpadmin -e GROUP="$GROUP" -e USE_FDW="$USE_FDW" "make -C \$TEST_HOME"
