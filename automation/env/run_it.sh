@@ -28,19 +28,43 @@ if [ "$BUILD_IMAGES" == "true" ]; then
 fi
 
 echo "----------------"
-echo "Start containers"
+echo "Start containers without SSL"
 echo "----------------"
-
 bash compose.sh up
+
+echo "----------------"
+echo "Run tests '$TESTS' without FDW"
+echo "----------------"
 
 for test in $TESTS ; do
   GROUP=$test bash it.sh
 done
 
 bash compose.sh down
+
+echo "----------------"
+echo "Start containers without SSL"
+echo "----------------"
 bash compose.sh up
+
+echo "----------------"
+echo "Run tests '$TESTS' with FDW"
+echo "----------------"
 
 export USE_FDW=true
 for test in $TESTS ; do
   GROUP=$test bash it.sh
 done
+
+bash compose.sh down
+
+echo "----------------"
+echo "Start containers with SSL"
+echo "----------------"
+bash compose.sh up docker-compose-ssl.yaml
+
+echo "----------------"
+echo "Run test 'ggdbssl' with FDW"
+echo "----------------"
+
+GROUP=ggdbssl bash it.sh
