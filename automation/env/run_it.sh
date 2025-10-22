@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-[ -n "$DEBUG" ] && set -x || true
 set -eu
 
 # GGDB_IMAGE is from https://github.com/GreengageDB/greengage/tree/main/ci

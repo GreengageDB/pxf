@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-[ -n "$DEBUG" ] && set -x || true
-
 # --- Declarations ---
 export GROUP=${1:-$GROUP}
 export USE_FDW=${2:-$USE_FDW}
