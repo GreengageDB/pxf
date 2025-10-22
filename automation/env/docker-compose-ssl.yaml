@@ -205,42 +205,42 @@ services:
       timeout: 5s
       retries: 12 # Three minutes
 
-  oracle:
-    image: "haoyu233/oracle-12c-ee"
-    restart: unless-stopped
-    container_name: oracle
-    hostname: oracle
-    privileged: true
-    ports:
-      - '1521:1521'
-      - '8080:8080'
-    environment:
-      - INIT_MEM_PST=10
-    healthcheck:
-      test: echo "SELECT 333 from dual;" | sqlplus -L system/oracle@ORCL | grep 333 > /dev/null; if [ 0 != $$? ]; then exit 1; fi;
-      interval: 10s
-      timeout: 5s
-      retries: 12 # Three minutes
-    # mem_limit: 6gb
+  # oracle:
+  #   image: "haoyu233/oracle-12c-ee"
+  #   restart: unless-stopped
+  #   container_name: oracle
+  #   hostname: oracle
+  #   privileged: true
+  #   ports:
+  #     - '1521:1521'
+  #     - '8080:8080'
+  #   environment:
+  #     - INIT_MEM_PST=10
+  #   healthcheck:
+  #     test: echo "SELECT 333 from dual;" | sqlplus -L system/oracle@ORCL | grep 333 > /dev/null; if [ 0 != $$? ]; then exit 1; fi;
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 12 # Three minutes
+  #   # mem_limit: 6gb
 
-  mysql:
-    image: "library/mysql:8.3.0"
-    restart: unless-stopped
-    container_name: mysql
-    hostname: mysql
-    privileged: true
-    environment:
-      MYSQL_ROOT_PASSWORD: mysqlpwd
-      MYSQL_DATABASE: gpexternal
-      MYSQL_USER: mysqluser
-      MYSQL_PASSWORD: mysqlpwd
-    ports:
-      - '3306:3306'
-    healthcheck:
-      test: "mysql $$MYSQL_DATABASE -u$$MYSQL_USER -p$$MYSQL_PASSWORD -e 'SELECT 1;'"
-      interval: 10s
-      timeout: 5s
-      retries: 12 # Three minutes
+  # mysql:
+  #   image: "library/mysql:8.3.0"
+  #   restart: unless-stopped
+  #   container_name: mysql
+  #   hostname: mysql
+  #   privileged: true
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: mysqlpwd
+  #     MYSQL_DATABASE: gpexternal
+  #     MYSQL_USER: mysqluser
+  #     MYSQL_PASSWORD: mysqlpwd
+  #   ports:
+  #     - '3306:3306'
+  #   healthcheck:
+  #     test: "mysql $$MYSQL_DATABASE -u$$MYSQL_USER -p$$MYSQL_PASSWORD -e 'SELECT 1;'"
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 12 # Three minutes
 
   minio:
     image: minio/minio:RELEASE.2024-07-15T19-02-30Z

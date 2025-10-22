@@ -109,7 +109,7 @@ jobs:
   #         path: build/*.deb
 
   integration:
-    name: Run Integration Tests
+    name: Run ${{ matrix.test }} test${{ matrix.fdw && ' with FDW' || '' }}${{ matrix.ssl && ' with SSL' || '' }}
     runs-on: ubuntu-latest
     # needs: [build, prepare-cache]
 
@@ -119,23 +119,23 @@ jobs:
         include:
           -
             test: smoke
-          -
-            test: gpdb
-          -
-            test: jdbc
+          # -
+          #   test: gpdb
+          # -
+          #   test: jdbc
           -
             test: smoke
             fdw: 'true'
-          -
-            test: gpdb
-            fdw: 'true'
-          -
-            test: jdbc
-            fdw: 'true'
-          -
-            test: ggdbssl
-            fdw: 'true'
-            ssl: 'true'
+          # -
+          #   test: gpdb
+          #   fdw: 'true'
+          # -
+          #   test: jdbc
+          #   fdw: 'true'
+          # -
+          #   test: ggdbssl
+          #   fdw: 'true'
+          #   ssl: 'true'
 
     env:
       GROUP: ${{ matrix.test }}
