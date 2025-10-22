@@ -116,21 +116,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - image: greengagedb/ggdb6_ubuntu:6.29.1
-            dev_home: /home/gpadmin
-            version: dh-6.29.1
-          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
-            dev_home: /home/gpadmin
-            version: ghcr-latest
+        test: [smoke, gpdb, jdbc]
 
     env:
+      GROUP: ${{ matrix.test }}
       PXF_HOME: ${{ vars.PXF_HOME }}
       GPHOME: ${{ vars.GPHOME }}
       PATH: ${{ vars.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
-      IT_TAG: ${{ matrix.version }}
+      GGDB_IMAGE: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
+      IT_TAG: ghcr-latest
       DEBUG: 'true'
 
     steps:
@@ -162,21 +158,21 @@ jobs:
           context: .
           file: ./automation/env/Dockerfile
           push: false
-          tags: greengagedb/ggdb6_pxf_automation:${{ matrix.version }}
-          build-args: GGDB_IMAGE=${{ matrix.image }}
+          tags: greengagedb/ggdb6_pxf_automation:$IT_TAG
+          build-args: GGDB_IMAGE
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v1
       - name: Run integration tests
         run: |
           set -ex
           cd automation/env
-          bash run_it.sh
+          bash it.sh
 
       - name: Upload ${{ github.job }} artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: artifacts_${{ github.job }}-${{ matrix.version }}
+          name: artifacts_${{ github.job }}-${{ matrix.test }}
           path: automation/env/artifacts/
           retention-days: 7
           if-no-files-found: warn  # Warning if no artifacts are found
@@ -211,7 +207,7 @@ jobs:
   #         context: .
   #         file: ./ci/Dockerfile
   #         push: false
-  #         tags: greengagedb/ggdb6_pxf_${{ github.job }}:${{ matrix.version }}
+  #         tags: greengagedb/ggdb6_pxf_${{ github.job }}:$IT_TAG
   #         build-args: GGDB_IMAGE=${{ matrix.image }}
 
   #     # Run Regression tests
@@ -223,7 +219,7 @@ jobs:
   #           -v ./logs:/logs \
   #           --sysctl 'kernel.sem=500 1024000 200 4096' \
   #           --privileged \
-  #           greengagedb/ggdb6_pxf_${{ github.job }}:${{ matrix.version }} \
+  #           greengagedb/ggdb6_pxf_${{ github.job }}:$IT_TAG \
   #           bash -c "
   #             set +e
   #             cd /tmp/build || status=1
@@ -239,7 +235,7 @@ jobs:
   #       if: always()
   #       uses: actions/upload-artifact@v4
   #       with:
-  #         name: logs_${{ env.IMAGE_NAME }}-${{ matrix.version }}
+  #         name: logs_${{ env.IMAGE_NAME }}-${{ matrix.test }}
   #         path: logs
   #         retention-days: 7
   #         if-no-files-found: warn  # Warning if no artifacts are found
