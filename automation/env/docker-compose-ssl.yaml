@@ -210,6 +210,8 @@ services:
     ports:
       - '1521:1521'
       - '8080:8080'
+    environment:
+      - INIT_MEM_PST=10
     healthcheck:
       test: echo "SELECT 333 from dual;" | sqlplus -L system/oracle@ORCL | grep 333 > /dev/null; if [ 0 != $$? ]; then exit 1; fi;
       interval: 10s

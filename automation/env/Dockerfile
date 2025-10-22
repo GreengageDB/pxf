@@ -79,8 +79,9 @@ RUN localedef -c -i ru_RU -f CP1251 ru_RU.CP1251
 RUN cp $PXF_HOME/templates/{hbase-site.xml,hdfs-site.xml,hive-site.xml,core-site.xml,mapred-site.xml,pxf-site.xml,jdbc-site.xml} \
        $PXF_HOME/servers/default/
 
-# --- Copy configuration files ---
-COPY $BUILD_CONTEXT/automation/env/conf/pxf-application.properties $PXF_HOME/conf/pxf-application.properties
+# Copy pxf-application.properties
+COPY ./automation/env/conf/pxf-application.properties $PXF_HOME/conf/pxf-application.properties
+COPY ./automation/env/conf/pxf-env.sh $PXF_HOME/conf/pxf-env.sh
 
 RUN mkdir -p $PXF_HOME/servers/oracle $PXF_HOME/servers/mysql $PXF_HOME/servers/parquet_config
 COPY $BUILD_CONTEXT/automation/env/conf/oracle/jdbc-site.xml $PXF_HOME/servers/oracle/jdbc-site.xml

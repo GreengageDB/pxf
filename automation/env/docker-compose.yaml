@@ -153,6 +153,8 @@ services:
     container_name: oracle
     hostname: oracle
     privileged: true
+    environment:
+      - INIT_MEM_PST=10
     ports:
       - '1521:1521'
       - '8080:8080'
