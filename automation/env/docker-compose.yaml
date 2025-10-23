@@ -123,6 +123,8 @@ services:
       - "9864:9864"
     volumes:
       - "share-lib:/share:rw"
+      - "./hadoop/hadoop-env.sh:/etc/hadoop/hadoop-env.sh:ro"
+      - "./hadoop/yarn-env.sh:/etc/hadoop/yarn-env.sh:ro"
       - "./hadoop/hive-env.sh:/opt/hive/conf/hive-env.sh:ro"
       - "./hadoop/hbase-site.xml:/opt/hbase/conf/hbase-site.xml:ro"
     healthcheck:
