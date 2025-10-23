@@ -29,10 +29,6 @@ public class FailOverTest extends BaseFeature {
     @Override
     protected void afterClass() throws Exception {
         super.afterClass();
-        // We need to restore the service after it has been stopped
-        if (cluster != null) {
-            cluster.start(PhdCluster.EnumClusterServices.pxf);
-        }
     }
 
     /**
@@ -61,5 +57,14 @@ public class FailOverTest extends BaseFeature {
         gpdb.createTableAndVerify(pxfExternalTable);
 
         runSqlTest("features/general/outOfMemory");
+
+        // We need to restore the service after it has been stopped
+        restartCluster();
+    }
+
+    private void restartCluster() throws Exception {
+        if (cluster != null) {
+            cluster.restart(PhdCluster.EnumClusterServices.pxf);
+        }
     }
 }
