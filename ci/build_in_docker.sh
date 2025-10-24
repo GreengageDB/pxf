@@ -1,0 +1,41 @@
+#!/bin/bash
+# Fot build in docker using developer's Greengage image
+# image=greengagedb/ggdb6_ubuntu:6.29.1
+# version=dh-6.29.1
+# or
+# image=ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
+# version=ghcr-latest
+
+set -eux
+
+export JAVA_TOOL_OPTIONS='-Dfile.encoding=UTF8'
+export DEBIAN_FRONTEND='noninteractive'
+
+apt-get -y update
+apt-get -y install --no-install-recommends openjdk-17-jdk # unzip vim nano ksh locales
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+
+update-locale LANG=en_US.UTF-8
+
+go_version=$(grep -E '^go [0-9]+\.[0-9]+\.[0-9]+' cli/go.mod | cut -d' ' -f2)
+curl -L https://go.dev/dl/go$go_version.linux-amd64.tar.gz -o /tmp/go.tar.gz
+tar -C /usr/local -xzf /tmp/go.tar.gz
+rm /tmp/go.tar.gz
+
+echo '---------------- DEBUG --------------------'
+env
+pwd
+ls -lah
+
+go version
+
+git config --global --add safe.directory "$(pwd)"
+localedef -c -i ru_RU -f CP1251 ru_RU.CP1251
+mkdir -p "$GPHOME"
+tar -xzf "$DEV_HOME/bin_gpdb/bin_gpdb.tar.gz" -C "$GPHOME/"
+rm -rf "$DEV_HOME/bin_gpdb/"
+
+# shellcheck source=/dev/null
+source "$GPHOME/greengage_path.sh"
+make all install

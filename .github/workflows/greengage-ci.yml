@@ -76,24 +76,9 @@ jobs:
         shell: bash
         run: |
           set -eux
-          apt  update
-          apt  install -y openjdk-17-jdk
-          go_version=$(grep -E '^go [0-9]+\.[0-9]+\.[0-9]+' cli/go.mod | cut -d' ' -f2)
-          curl -L https://go.dev/dl/go$go_version.linux-amd64.tar.gz -o go.tar.gz
-          tar -C /usr/local -xzf go.tar.gz
-          go version
-
-      - name: Build and package
-        working-directory: ${{ matrix.dev_home }}/pxf
-        shell: bash
-        run: |
-          set -eux
-          git config --global --add safe.directory $(pwd)
-          localedef -c -i ru_RU -f CP1251 ru_RU.CP1251
-          mkdir -p $GPHOME
-          tar -xzf $DEV_HOME/bin_gpdb/bin_gpdb.tar.gz -C $GPHOME/
-          source $GPHOME/greengage_path.sh
-          make all install deb
+          cd $DEV_HOME/pxf
+          bash ci/build_in_docker.sh
+          make deb
 
       - name: Cache deb packages
         uses: actions/cache@v4

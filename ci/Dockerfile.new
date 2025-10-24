@@ -1,0 +1,18 @@
+# https://github.com/GreengageDB/greengage/tree/main/ci
+ARG GGDB_IMAGE=ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
+FROM $GGDB_IMAGE
+
+SHELL ["/bin/bash","-c"]
+
+ARG PATH PXF_HOME DEV_HOME GPHOME
+
+ENV PATH=$PATH
+ENV PXF_HOME=$PXF_HOME
+ENV DEV_HOME=$DEV_HOME
+ENV GPHOME=$GPHOME
+
+WORKDIR $DEV_HOME
+
+COPY . ./pxf
+
+RUN cd pxf && bash ci/build_in_docker.sh
