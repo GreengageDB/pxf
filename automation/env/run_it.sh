@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 build_images=$1
+profile=${2:-${PROFILE:-all}}
 run_test_service_name=mdw
 
 # Set a variable to check the results of all tests at the end of the script
@@ -16,7 +17,7 @@ fi
 echo "----------------"
 echo "Start containers"
 echo "----------------"
-docker-compose up -d
+docker-compose --profile ${profile} up -d
 
 function check_docker_container_status() {
   local check_oracle_service_health=$1 # Whether the oracle service should be healthy immediately or not
@@ -25,7 +26,7 @@ function check_docker_container_status() {
     echo "-----------------------------------"
     echo "Check docker containers status: $i"
     echo "-----------------------------------"
-    container_ids=$(docker-compose ps -q)
+    container_ids=$(docker-compose --profile ${profile} ps -q)
     for container_id in $container_ids
     do
       status=$(docker inspect $container_id --format "{{.State.Health.Status}}")
@@ -56,7 +57,7 @@ function check_docker_container_status() {
       echo "--------------------------------------------"
       echo "Some containers are not in the healthy state"
       echo "--------------------------------------------"
-      docker-compose ps
+      docker-compose --profile ${profile} ps
       exit 1
   fi
 }
@@ -125,8 +126,8 @@ start_copy_artifacts jdbc external-table
 echo "------------------"
 echo "Restart containers"
 echo "------------------"
-docker-compose down
-docker-compose up -d
+docker-compose --profile ${profile} down
+docker-compose --profile ${profile} up -d
 check_docker_container_status false # We don't need oracle service for FDW tests
 
 echo "----------------------------------"
@@ -153,7 +154,7 @@ start_copy_artifacts jdbc fdw
 echo "------------------"
 echo "Stop containers and start containers with ssl"
 echo "------------------"
-docker-compose down
+docker-compose --profile ${profile} down
 docker-compose -f docker-compose-ssl.yaml up -d
 check_docker_container_status false # We don't need oracle service ssl tests
 
