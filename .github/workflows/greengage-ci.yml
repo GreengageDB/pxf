@@ -113,15 +113,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
       - name: Build PXF automation image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./automation/env/Dockerfile
-          push: true
+          push: false
           tags: greengagedb/ggdb6_pxf_automation:${{ env.IT_TAG }}
           build-args: GGDB_IMAGE=${{ env.GGDB_IMAGE }}
+      - name: Save SHA image
+        run: docker save greengagedb/ggdb6_pxf_automation:${{ env.IT_TAG }} > ggdb6_pxf_automation_${{ github.sha }}.tar
+      - name: Cache SHA image
+        uses: actions/cache@v4
+        with:
+          path: ggdb6_pxf_automation_${{ github.sha }}.tar
+          key:  ggdb6_pxf_automation_${{ github.sha }}
 
 
   integration:
@@ -170,6 +176,17 @@ jobs:
       DEBUG: 'true'
 
     steps:
+      # Restore SHA image from cache
+      - name: Restore SHA image
+        uses: actions/cache@v4
+        with:
+          path: ggdb6_pxf_automation_${{ github.sha }}.tar
+          key:  ggdb6_pxf_automation_${{ github.sha }}
+      - name: Load SHA image
+        run: |
+          docker load < ggdb6_pxf_automation_${{ github.sha }}.tar
+          rm -f ggdb6_pxf_automation_${{ github.sha }}.tar
+
       # Maximize build space for Docker
       - name: Move /var/lib/docker/
         run: sudo mv /var/lib/docker/ "${GITHUB_WORKSPACE}/docker"
