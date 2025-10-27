@@ -67,7 +67,7 @@ jobs:
         DEV_HOME: ${{ matrix.dev_home }}
         GPHOME: ${{ env.GPHOME }}
         GOPATH: ${{ env.GOPATH }}
-        PATH: ${{ env.GPHOME }/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
+        PATH: ${{ env.GPHOME }}/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
         JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
         DEBIAN_FRONTEND: noninteractive
 
@@ -132,7 +132,7 @@ jobs:
       PXF_HOME: ${{ vars.PXF_HOME }}
       GPHOME: ${{ vars.GPHOME }}
       GOPATH: ${{ env.GOPATH }}
-      PATH: ${{ env.GPHOME }/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
+      PATH: ${{ env.GPHOME }}/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
       GGDB_IMAGE: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
@@ -206,7 +206,7 @@ jobs:
       PXF_HOME: ${{ vars.PXF_HOME }}
       GPHOME: ${{ vars.GPHOME }}
       GOPATH: ${{ env.GOPATH }}
-      PATH: ${{ env.GPHOME }/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
+      PATH: ${{ env.GPHOME }}/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
 
