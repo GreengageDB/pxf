@@ -1,74 +1,65 @@
 # automation/env/Dockerfile
-ARG GGDB_IMAGE=greengagedb/ggdb6_ubuntu:6.29.1
-FROM ghcr.io/linuxcontainers/alpine AS download
+ARG GGDB_IMAGE=ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
+FROM $GGDB_IMAGE
 
-ARG GO_URL=https://go.dev/dl/go1.21.3.linux-amd64.tar.gz
-ARG MAVEN_URL=https://archive.apache.org/dist/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz
-ARG JAR_ENCR_URL=https://repo1.maven.org/maven2/io/arenadata/security/encryption/1.0.0/encryption-1.0.0-exec.jar
-ARG JAR_OJDBC_URL=https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc8/12.2.0.1/ojdbc8-12.2.0.1.jar
-ARG JAR_MYSQL_URL=https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar
-
-RUN apk add --no-cache curl tar
-
-# --- ATTENTION! folder .cache must be exists ---
-RUN --mount=type=bind,source=.cache,target=.cache,rw \
-    (curl -fSL --continue-at - $GO_URL        -o .cache/go.tar.gz           || true) ; \
-    (curl -fSL --continue-at - $MAVEN_URL     -o .cache/maven.tar.gz        || true) ; \
-    (curl -fSL --continue-at - $JAR_ENCR_URL  -o .cache/encryption.jar      || true) ; \
-    (curl -fSL --continue-at - $JAR_OJDBC_URL -o .cache/ojdbc8.jar          || true) ; \
-    (curl -fSL --continue-at - $JAR_MYSQL_URL -o .cache/mysql-connector.jar || true) ; \
-    tar -xf .cache/maven.tar.gz -C /opt && mv /opt/apache-maven-* /opt/maven/ ; \
-    tar -xf .cache/go.tar.gz -C /opt ; \
-    mkdir -p /opt/lib && mv .cache/*.jar /opt/lib/
-
-FROM $GGDB_IMAGE AS build
-
-# For local build without cache from root of repo
-ARG BUILD_CONTEXT=.
-
-ARG GPHOME=/usr/local/greengage-db-devel
-
-SHELL ["/bin/bash", "-c"]
+SHELL ["/bin/bash","-c"]
 
 # --- Environment ---
-ENV GPHOME=$GPHOME \
-    GOPATH=/root/go \
+ARG GPHOME=/usr/local/greengage-db-devel \
+    DEV_HOME=/home/gpadmin \
+    GOPATH=/opt/go \
     JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8 \
-    PXF_HOME=$GPHOME/pxf \
-    SKIP_FDW_BUILD_REASON=0 \
+    SKIP_FDW_BUILD_REASON='test builds'
+ARG PXF_HOME=$GPHOME/pxf
+ARG PATH="$GPHOME/bin:$PXF_HOME/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/maven/bin:/usr/local/go/bin:$GOPATH/bin"
+
+ENV PATH=$PATH \
+    GOPATH=$GOPATH \
+    GPHOME=$GPHOME \
+    PXF_HOME=$PXF_HOME \
+    DEV_HOME=$DEV_HOME \
+    JAVA_TOOL_OPTIONS=$JAVA_TOOL_OPTIONS \
+    SKIP_FDW_BUILD_REASON=$SKIP_FDW_BUILD_REASON \
     DEBIAN_FRONTEND=noninteractive
-ENV PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/go/bin:/opt/maven/bin:$GOPATH/bin"
+
+WORKDIR $DEV_HOME
+COPY . ./pxf
+
+RUN cd pxf && bash ci/build_in_docker.sh
 
 WORKDIR /
 
-# --- Go and Maven ---
-COPY --from=download /opt /opt
-
 # --- System ---
 RUN apt-get update  -y \
- && apt-get install -y --no-install-recommends unzip vim nano openjdk-17-jdk ksh locales \
- && apt-get clean && rm -rf /var/lib/apt/lists/* \
- && update-locale LANG=en_US.UTF-8
+ && apt-get install -y --no-install-recommends unzip vim nano openjdk-17-jdk ksh locales
+#  && apt-get clean && rm -rf /var/lib/apt/lists/*
        
-
 # --- ginkgo ---
 RUN go install github.com/onsi/ginkgo/ginkgo@latest
 
 # --- Setup GPDB directories ---
 WORKDIR /home/gpadmin
-RUN mkdir -p /data1/{master,primary,mirror} && chmod -R 755 /data1 && \
-    gpdb_src/concourse/scripts/setup_gpadmin_user.bash && \
-    source gpdb_src/concourse/scripts/common.bash && \
-    chown -R gpadmin:gpadmin /data1 /home/gpadmin && \
-    install_gpdb
+RUN mkdir -p /data1/{master,primary,mirror} && chmod -R 755 /data1 \
+ && chown -R gpadmin:gpadmin /data1 /home/gpadmin
 
-# --- JAR libraries ---
-# RUN mkdir -p $PXF_HOME/lib/ && mv /opt/lib $PXF_HOME/
-RUN mkdir -p $PXF_HOME && ln -s /opt/lib $PXF_HOME/
+# --- Maven and JAR libraries ---
+
+ARG MAVEN_VER=3.9.11
+ARG MAVEN_URL=https://archive.apache.org/dist/maven/maven-3/$MAVEN_VER/binaries/apache-maven-$MAVEN_VER-bin.tar.gz
+ARG JAR_ENCR_URL=https://repo1.maven.org/maven2/io/arenadata/security/encryption/1.0.0/encryption-1.0.0-exec.jar
+ARG JAR_OJDBC_URL=https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc8/12.2.0.1/ojdbc8-12.2.0.1.jar
+ARG JAR_MYSQL_URL=https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar
+
+RUN curl -fSL $MAVEN_URL /tmp/maven.tar.gz \
+ && curl -fSL $JAR_ENCR_URL  -o /tmp/encryption.jar \
+ && curl -fSL $JAR_OJDBC_URL -o /tmp/ojdbc8.jar \
+ && curl -fSL $JAR_MYSQL_URL -o /tmp/mysql-connector.jar \
+ && tar -xf /tar/maven.tar.gz -C /opt && mv /opt/apache-maven-$MAVEN_VER /opt/maven && rm -f /tmp/*.tar.gz \
+ && mkdir -p $PXF_HOME/lib && mv /tmp/*.jar /opt/lib/
 
 # --- Build PXF ---
-COPY $BUILD_CONTEXT/ /home/gpadmin/pxf_src
-COPY $BUILD_CONTEXT/automation/env/scripts/compile_pxf_without_test.sh /home/gpadmin/pxf_src/concourse/scripts/compile_pxf_without_test.sh
+COPY . /home/gpadmin/pxf_src
+COPY ./automation/env/scripts/compile_pxf_without_test.sh /home/gpadmin/pxf_src/concourse/scripts/compile_pxf_without_test.sh
 RUN chmod +x /home/gpadmin/pxf_src/concourse/scripts/compile_pxf_without_test.sh
 
 RUN source gpdb_src/concourse/scripts/common.bash && \
@@ -85,15 +76,15 @@ RUN localedef -c -i ru_RU -f CP1251 ru_RU.CP1251 ; \
     $PXF_HOME/servers/default/
 
 # Copy pxf-application.properties
-COPY $BUILD_CONTEXT/automation/env/conf/pxf-application.properties $PXF_HOME/conf/pxf-application.properties
-COPY $BUILD_CONTEXT/automation/env/conf/pxf-env.sh $PXF_HOME/conf/pxf-env.sh
+COPY ./automation/env/conf/pxf-application.properties $PXF_HOME/conf/pxf-application.properties
+COPY ./automation/env/conf/pxf-env.sh $PXF_HOME/conf/pxf-env.sh
 
 # RUN  mkdir -p $PXF_HOME/servers/{oracle,mysql,parquet_config}
-# COPY $BUILD_CONTEXT/automation/env/conf/oracle/jdbc-site.xml $PXF_HOME/servers/oracle/jdbc-site.xml
-# COPY $BUILD_CONTEXT/automation/env/conf/mysql/jdbc-site.xml $PXF_HOME/servers/mysql/jdbc-site.xml
-# COPY $BUILD_CONTEXT/automation/env/conf/parquet/pxf-site.xml $PXF_HOME/servers/parquet_config/pxf-site.xml
+# COPY ./automation/env/conf/oracle/jdbc-site.xml $PXF_HOME/servers/oracle/jdbc-site.xml
+# COPY ./automation/env/conf/mysql/jdbc-site.xml $PXF_HOME/servers/mysql/jdbc-site.xml
+# COPY ./automation/env/conf/parquet/pxf-site.xml $PXF_HOME/servers/parquet_config/pxf-site.xml
 RUN  mkdir -p $PXF_HOME/servers/
-COPY $BUILD_CONTEXT/automation/env/conf/* $PXF_HOME/servers/
+COPY ./automation/env/conf/* $PXF_HOME/servers/
 
 # --- SSH key compatibility for Ubuntu automation ---
 RUN set -eux; \
