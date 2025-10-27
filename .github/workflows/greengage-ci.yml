@@ -14,8 +14,9 @@ concurrency:
 
 env:
   DEV_HOME: /home/gpadmin
-  PXF_HOME: /usr/local/pxf
-  GPHOME: /usr/local/greengage-db-devel
+  PXF_HOME: /usr/local/greengage-db-devel/pxf
+  GPHOME:   /usr/local/greengage-db-devel
+  GOPATH:   /opt/go
 
 jobs:
   # prepare-cache:
@@ -65,7 +66,8 @@ jobs:
         PXF_HOME: ${{ env.PXF_HOME }}
         DEV_HOME: ${{ matrix.dev_home }}
         GPHOME: ${{ env.GPHOME }}
-        PATH: ${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin
+        GOPATH: ${{ env.GOPATH }}
+        PATH: ${{ env.GPHOME }/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
         JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
         DEBIAN_FRONTEND: noninteractive
 
@@ -129,7 +131,8 @@ jobs:
       USE_SSL: ${{ matrix.ssl }}
       PXF_HOME: ${{ vars.PXF_HOME }}
       GPHOME: ${{ vars.GPHOME }}
-      PATH: ${{ vars.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin
+      GOPATH: ${{ env.GOPATH }}
+      PATH: ${{ env.GPHOME }/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
       GGDB_IMAGE: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
@@ -202,7 +205,8 @@ jobs:
     env:
       PXF_HOME: ${{ vars.PXF_HOME }}
       GPHOME: ${{ vars.GPHOME }}
-      PATH: ${{ vars.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin
+      GOPATH: ${{ env.GOPATH }}
+      PATH: ${{ env.GPHOME }/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
 
