@@ -13,8 +13,8 @@ export DEBIAN_FRONTEND='noninteractive'
 
 apt-get -y update
 apt-get -y install --no-install-recommends openjdk-17-jdk # unzip vim nano ksh locales
-apt-get clean
-rm -rf /var/lib/apt/lists/*
+# apt-get clean
+# rm -rf /var/lib/apt/lists/*
 
 update-locale LANG=en_US.UTF-8
 
@@ -23,19 +23,20 @@ curl -L https://go.dev/dl/go$go_version.linux-amd64.tar.gz -o /tmp/go.tar.gz
 tar -C /usr/local -xzf /tmp/go.tar.gz
 rm /tmp/go.tar.gz
 
-echo '---------------- DEBUG --------------------'
-env
-pwd
-ls -lah
-
-go version
+# echo '---------------- DEBUG --------------------'
+# env
+# pwd
+# ls -lah
+# go version
 
 git config --global --add safe.directory "$(pwd)"
 localedef -c -i ru_RU -f CP1251 ru_RU.CP1251
 mkdir -p "$GPHOME"
 tar -xzf "$DEV_HOME/bin_gpdb/bin_gpdb.tar.gz" -C "$GPHOME/"
-rm -rf "$DEV_HOME/bin_gpdb/"
 
 # shellcheck source=/dev/null
 source "$GPHOME/greengage_path.sh"
 make all install
+
+rm "$HOME/.cache" -rf
+rm "$HOME/.gradle" -rf
