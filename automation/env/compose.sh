@@ -2,7 +2,7 @@
 set -e
 
 # --- Declarations ---
-export DOCKERCOMPOSEBIN='docker compose'
+export DOCKERCOMPOSEBIN="docker compose --profile ${PROFILE:-'all'}"
 export DEBUG_DIR=${DEBUG_DIR:-artifacts/docker_logs}
 
 # --- Functions ---
@@ -33,20 +33,20 @@ check_docker_container_status() {
     echo "-----------------------------------"
     echo "Check docker containers status (attempt $i)"
     echo "-----------------------------------"
-    container_ids=$(docker compose ps -q)
+    container_ids=$($DOCKERCOMPOSEBIN ps -q)
     for container_id in $container_ids
     do
       status=$(docker inspect "$container_id" --format "{{.State.Health.Status}}")
       if [ "$status" != "healthy" ]; then
         docker_name=$(docker container ls --all --no-trunc --filter "id=$container_id" --format "{{.Names}}")
         [ -n "$DEBUG" ] && echo "Container $docker_name unhealty after $i attempt(s)" > "$DEBUG_DIR/compose_unhealthy_$docker_name.log" || true
-        [ -n "$DEBUG" ] && docker compose logs "$docker_name" >> "$DEBUG_DIR/compose_unhealthy_$docker_name.log" || true
+        [ -n "$DEBUG" ] && $DOCKERCOMPOSEBIN logs "$docker_name" >> "$DEBUG_DIR/compose_unhealthy_$docker_name.log" || true
         if [[ "$docker_name" != "oracle" && "$docker_name" != "mysql" ]]; then
           unhealthy_present="true"
           echo "Container '$docker_name' is not in a healthy status yet. Current status is '$status'."
         else
           [ -n "$DEBUG" ] && echo "Container $docker_name healty after $i attempt(s)" > "$DEBUG_DIR/compose_healthy_$docker_name.log" || true
-          [ -n "$DEBUG" ] && docker compose logs "$docker_name" >> "$DEBUG_DIR/compose_healthy_$docker_name.log" || true
+          [ -n "$DEBUG" ] && $DOCKERCOMPOSEBIN logs "$docker_name" >> "$DEBUG_DIR/compose_healthy_$docker_name.log" || true
           if [ "$check_oracle_service_health" == "true" ]; then
             unhealthy_present="true"
             echo "Container '$docker_name' is not in a healthy status yet. Current status is '$status'."
@@ -59,7 +59,7 @@ check_docker_container_status() {
       Check docker containers status (attempt $i)
       -----------------------------------
 EOF
-      docker compose logs >> "$DEBUG_DIR/compose_status_attempt_$i.log"
+      $DOCKERCOMPOSEBIN logs >> "$DEBUG_DIR/compose_status_attempt_$i.log"
       journalctl -exu docker > $DEBUG_DIR/docker_status.log
     fi
     done
@@ -77,7 +77,7 @@ EOF
       echo "--------------------------------------------"
       echo "Some containers are not in the healthy state"
       echo "--------------------------------------------"
-      docker compose ps
+      $DOCKERCOMPOSEBIN ps
       exit 1
   fi
 }
@@ -89,7 +89,7 @@ case $1 in
         ;;
     down)
         [ -n "$DEBUG" ] && mkdir -p "$DEBUG_DIR"
-        [ -n "$DEBUG" ] && docker compose logs >> "$DEBUG_DIR/compose_before_down.log" || true
+        [ -n "$DEBUG" ] && $DOCKERCOMPOSEBIN logs >> "$DEBUG_DIR/compose_before_down.log" || true
         compose_down
         ;;
     *)

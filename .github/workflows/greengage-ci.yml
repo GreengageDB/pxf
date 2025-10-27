@@ -17,6 +17,7 @@ env:
   PXF_HOME: /usr/local/greengage-db-devel/pxf
   GPHOME:   /usr/local/greengage-db-devel
   GOPATH:   /opt/go
+  IT_TAG:   ${{ github.sha }}
 
 jobs:
   # prepare-cache:
@@ -42,7 +43,7 @@ jobs:
   #         path: ~/.cache/greengage
   #         key: env-cache-${{ github.sha }}
 
-  build:
+  build-prod:
     name: Build PXF Packages
     runs-on: ubuntu-latest
     # needs: [prepare-cache]
@@ -95,11 +96,40 @@ jobs:
           name: pxf-deb-${{ matrix.version }}
           path: build/*.deb
 
+  build-it:
+    name: Build Integration tests Image
+    runs-on: ubuntu-latest
+    # needs: [prepare-cache]
+
+    env:
+      PXF_HOME: ${{ vars.PXF_HOME }}
+      GPHOME: ${{ vars.GPHOME }}
+      GOPATH: ${{ vars.GOPATH }}
+      PATH: ${{ vars.GPHOME }}/bin:${{ vars.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ vars.GOPATH }}/bin
+      JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
+      DEBIAN_FRONTEND: noninteractive
+      GGDB_IMAGE: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
+      IT_TAG: ${{ vars.IT_TAG }}
+      DEBUG: 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: Build PXF automation image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./automation/env/Dockerfile
+          push: true
+          tags: greengagedb/ggdb6_pxf_automation:${{ env.IT_TAG }}
+          build-args: GGDB_IMAGE=${{ env.GGDB_IMAGE }}
+
+
   integration:
     name: Run '${{ matrix.test }}' group with ${{ matrix.fdw && 'FDW' || 'external table' }}${{ matrix.ssl && ' and SSL' || '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    # needs: [build, prepare-cache]
+    needs: [build-it]
 
     strategy:
       fail-fast: false
@@ -126,6 +156,7 @@ jobs:
             ssl: 'true'
 
     env:
+      PROFILE: ${{ matrix.test }}
       GROUP: ${{ matrix.test }}
       USE_FDW: ${{ matrix.fdw }}
       USE_SSL: ${{ matrix.ssl }}
@@ -136,7 +167,7 @@ jobs:
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
       GGDB_IMAGE: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
-      IT_TAG: ghcr-latest
+      IT_TAG: ${{ vars.IT_TAG }}
       DEBUG: 'true'
 
     steps:
@@ -160,16 +191,6 @@ jobs:
       - name: Restore /var/lib/docker/
         run: sudo sh -c "mv ${GITHUB_WORKSPACE}/docker/* /var/lib/docker"
 
-      - uses: actions/checkout@v4
-      - run: mkdir .cache # Directory .cache/ required for docker build
-      - name: Build PXF automation image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./automation/env/Dockerfile
-          push: false
-          tags: greengagedb/ggdb6_pxf_automation:${{ env.IT_TAG }}
-          build-args: GGDB_IMAGE=${{ env.GGDB_IMAGE }}
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v1
       - name: Run ${{ matrix.test }} test ${{ matrix.fdw && ' with fdw' || '' }}

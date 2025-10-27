@@ -1,5 +1,6 @@
 services:
   vault:
+    profiles: [all]
     image: "greengagedb/pxf-vault-test"
     restart: on-failure
     ports:
@@ -19,6 +20,7 @@ services:
     entrypoint: [ "bash", "-c", "/scripts/workflow-vault.sh" ]
 
   mdw:
+    profiles: [all]
     image: "greengagedb/ggdb6_pxf_automation:${IT_TAG:-it}"
     restart: unless-stopped
     working_dir: /home/gpadmin
@@ -75,6 +77,7 @@ services:
     # mem_limit: 2gb
 
   sdw1:
+    profiles: [all]
     image: "greengagedb/ggdb6_pxf_automation:${IT_TAG:-it}"
     restart: unless-stopped
     privileged: true
@@ -117,6 +120,7 @@ services:
     # mem_limit: 2gb
 
   sdw2:
+    profiles: [all]
     image: "greengagedb/ggdb6_pxf_automation:${IT_TAG:-it}"
     restart: unless-stopped
     privileged: true
