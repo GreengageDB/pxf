@@ -53,11 +53,11 @@ ARG JAR_ENCR_URL=https://repo1.maven.org/maven2/io/arenadata/security/encryption
 ARG JAR_OJDBC_URL=https://repo1.maven.org/maven2/com/oracle/database/jdbc/ojdbc8/12.2.0.1/ojdbc8-12.2.0.1.jar
 ARG JAR_MYSQL_URL=https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.3.0/mysql-connector-j-8.3.0.jar
 
-RUN curl -fSL $MAVEN_URL /tmp/maven.tar.gz \
- && curl -fSL $JAR_ENCR_URL  -o /tmp/encryption.jar \
- && curl -fSL $JAR_OJDBC_URL -o /tmp/ojdbc8.jar \
- && curl -fSL $JAR_MYSQL_URL -o /tmp/mysql-connector.jar \
- && tar -xf /tar/maven.tar.gz -C /opt && mv /opt/apache-maven-$MAVEN_VER /opt/maven && rm -f /tmp/*.tar.gz \
+RUN curl -fSL $MAVEN_URL      -o /tmp/maven.tar.gz \
+ && curl -fSL $JAR_ENCR_URL   -o /tmp/encryption.jar \
+ && curl -fSL $JAR_OJDBC_URL  -o /tmp/ojdbc8.jar \
+ && curl -fSL $JAR_MYSQL_URL  -o /tmp/mysql-connector.jar \
+ && tar -xf /tmp/maven.tar.gz -C /opt && mv /opt/apache-maven-$MAVEN_VER /opt/maven && rm -f /tmp/*.tar.gz \
  && mkdir -p $PXF_HOME/lib && mv /tmp/*.jar /opt/lib/
 
 # --- Build PXF ---
