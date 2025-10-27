@@ -17,7 +17,6 @@ env:
   PXF_HOME: /usr/local/greengage-db-devel/pxf
   GPHOME:   /usr/local/greengage-db-devel
   GOPATH:   /opt/go
-  IT_TAG:   ${{ github.sha }}
 
 jobs:
   # prepare-cache:
@@ -109,7 +108,7 @@ jobs:
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
       GGDB_IMAGE: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
-      IT_TAG: ${{ vars.IT_TAG }}
+      IT_TAG: ${{ github.sha }}
       DEBUG: 'true'
 
     steps:
@@ -167,7 +166,7 @@ jobs:
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
       GGDB_IMAGE: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
-      IT_TAG: ${{ vars.IT_TAG }}
+      IT_TAG: ${{ github.sha }}
       DEBUG: 'true'
 
     steps:
