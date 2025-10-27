@@ -66,7 +66,7 @@ jobs:
         PXF_HOME: ${{ env.PXF_HOME }}
         DEV_HOME: ${{ matrix.dev_home }}
         GPHOME: ${{ env.GPHOME }}
-        GOPATH: ${{ env.GOPATH }}
+        GOPATH: ${{ vars.GOPATH }}
         PATH: ${{ env.GPHOME }}/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
         JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
         DEBIAN_FRONTEND: noninteractive
@@ -131,7 +131,7 @@ jobs:
       USE_SSL: ${{ matrix.ssl }}
       PXF_HOME: ${{ vars.PXF_HOME }}
       GPHOME: ${{ vars.GPHOME }}
-      GOPATH: ${{ env.GOPATH }}
+      GOPATH: ${{ vars.GOPATH }}
       PATH: ${{ env.GPHOME }}/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
@@ -205,7 +205,7 @@ jobs:
     env:
       PXF_HOME: ${{ vars.PXF_HOME }}
       GPHOME: ${{ vars.GPHOME }}
-      GOPATH: ${{ env.GOPATH }}
+      GOPATH: ${{ vars.GOPATH }}
       PATH: ${{ env.GPHOME }}/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
