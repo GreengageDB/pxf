@@ -58,7 +58,7 @@ RUN curl -fSL $MAVEN_URL      -o /tmp/maven.tar.gz \
  && curl -fSL $JAR_OJDBC_URL  -o /tmp/ojdbc8.jar \
  && curl -fSL $JAR_MYSQL_URL  -o /tmp/mysql-connector.jar \
  && tar -xf /tmp/maven.tar.gz -C /opt && mv /opt/apache-maven-$MAVEN_VER /opt/maven && rm -f /tmp/*.tar.gz \
- && mkdir -p $PXF_HOME/lib && mv /tmp/*.jar /opt/lib/
+ && mkdir -p $PXF_HOME/lib && mv /tmp/*.jar $PXF_HOME/lib/
 
 # --- Build PXF ---
 COPY . /home/gpadmin/pxf_src
