@@ -39,8 +39,11 @@ RUN go install github.com/onsi/ginkgo/ginkgo@latest
 
 # --- Setup GPDB directories ---
 WORKDIR /home/gpadmin
-RUN mkdir -p /data1/{master,primary,mirror} && chmod -R 755 /data1 \
- && chown -R gpadmin:gpadmin /data1 /home/gpadmin
+RUN mkdir -p /data1/{master,primary,mirror} && chmod -R 755 /data1 && \
+    gpdb_src/concourse/scripts/setup_gpadmin_user.bash && \
+    source gpdb_src/concourse/scripts/common.bash && \
+    chown -R gpadmin:gpadmin /data1 /home/gpadmin && \
+    install_gpdb
 
 # --- Maven and JAR libraries ---
 
