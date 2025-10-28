@@ -220,7 +220,14 @@ jobs:
           file: ci/Dockerfile.${{ github.job }}
           push: false
           tags: greengagedb/ggdb6_pxf_regression:${{ matrix.version }}
-          build-args: GGDB_IMAGE=${{ matrix.image }}
+          build-args:
+          - GGDB_IMAGE=${{ matrix.image }}
+          - PXF_HOME
+          - GPHOME
+          - GOPATH
+          - PATH
+          - JAVA_TOOL_OPTIONS
+          - DEBIAN_FRONTEND
 
       # Run Regression tests
       - name: Regression tests
