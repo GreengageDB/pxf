@@ -62,6 +62,7 @@ jobs:
       image: ${{ matrix.image }}
       volumes:
         - ${{ github.workspace }}:${{ matrix.dev_home }}/pxf
+        - /etc/apt/sources.list:/etc/apt/sources.list:ro
       env:
         PXF_HOME: ${{ env.PXF_HOME }}
         DEV_HOME: ${{ matrix.dev_home }}
@@ -162,7 +163,7 @@ jobs:
         run: sudo sh -c "mv ${GITHUB_WORKSPACE}/docker/* /var/lib/docker"
 
       - uses: actions/checkout@v4
-      - run: mkdir .cache # Directory .cache/ required for docker build
+      - run: cp /etc/apt/sources.list ./
       - name: Build PXF automation image
         uses: docker/build-push-action@v6
         with:

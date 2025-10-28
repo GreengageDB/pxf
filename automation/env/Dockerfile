@@ -30,6 +30,7 @@ RUN cd pxf && bash ci/build_in_docker.sh
 WORKDIR /
 
 # --- System ---
+RUN [ -n sources.list ] && cp -f sources.list /etc/apt/sources.list || true
 RUN apt-get update  -y \
  && apt-get install -y --no-install-recommends unzip vim nano openjdk-17-jdk ksh locales
 #  && apt-get clean && rm -rf /var/lib/apt/lists/*
