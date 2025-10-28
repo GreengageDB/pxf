@@ -222,13 +222,13 @@ jobs:
           push: false
           tags: greengagedb/ggdb6_pxf_regression:${{ matrix.version }}
           build-args: |
-            GGDB_IMAGE
-            PXF_HOME
-            GPHOME
-            GOPATH
-            PATH
-            JAVA_TOOL_OPTIONS
-            DEBIAN_FRONTEND
+            GGDB_IMAGE=${{ env.GGDB_IMAGE }}
+            PXF_HOME=${{ env.PXF_HOME }}
+            GPHOME=${{ env.GPHOME }}
+            GOPATH=${{ env.GOPATH }}
+            PATH=${{ env.PATH }}
+            JAVA_TOOL_OPTIONS=${{ env.JAVA_TOOL_OPTIONS }}
+            DEBIAN_FRONTEND=${{ env.DEBIAN_FRONTEND }}
 
       # Run Regression tests
       - name: Regression tests
