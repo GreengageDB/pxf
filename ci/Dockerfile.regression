@@ -10,20 +10,19 @@ ARG GPHOME=/usr/local/greengage-db-devel \
     GOPATH=/opt/go \
     JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8 \
     SKIP_FDW_BUILD_REASON=
-
 ARG PXF_HOME=$GPHOME/pxf
-
-ARG PATH="$GPHOME/bin:$PXF_HOME/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:$GOPATH/bin"
+ARG PATH="$GPHOME/bin:$PXF_HOME/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/maven/bin:/usr/local/go/bin:$GOPATH/bin"
 
 ENV PATH=$PATH \
+    GOPATH=$GOPATH \
+    GPHOME=$GPHOME \
     PXF_HOME=$PXF_HOME \
     DEV_HOME=$DEV_HOME \
-    GPHOME=$GPHOME \
+    JAVA_TOOL_OPTIONS=$JAVA_TOOL_OPTIONS \
     SKIP_FDW_BUILD_REASON=$SKIP_FDW_BUILD_REASON \
     DEBIAN_FRONTEND=noninteractive
 
 WORKDIR $DEV_HOME
-
 COPY . ./pxf
 
 RUN cd pxf && bash ci/build_in_docker.sh
