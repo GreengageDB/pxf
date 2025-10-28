@@ -41,5 +41,5 @@ tar -xzf "$DEV_HOME/bin_gpdb/bin_gpdb.tar.gz" -C "$GPHOME/"
 source "$GPHOME/greengage_path.sh"
 make all install
 
-rm "$HOME/.cache" -rf
-rm "$HOME/.gradle" -rf
+# rm "$HOME/.cache" -rf
+# rm "$HOME/.gradle" -rf
