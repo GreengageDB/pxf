@@ -10,14 +10,13 @@ pushd ../../server
 ./gradlew clean
 popd
 
-# # Uncomment this section if image is not available in the docker registry
-# echo "===================================="
-# echo "      Build Hadoop 3.3.6 image      "
-# echo "===================================="
-# pushd hadoop
-# mkdir -p .cache
-# docker build -f Dockerfile -t greengagedb/pxf-hadoop:3.3.6 .
-# popd
+# Uncomment this section if image is not available in the docker registry
+echo "===================================="
+echo "      Build Hadoop 3.3.6 image      "
+echo "===================================="
+#pushd hadoop
+#docker build -f Dockerfile -t pxf-hadoop:3.3.6 .
+#popd
 
 # #echo "===================================="
 # #echo "      Build Vault image      "

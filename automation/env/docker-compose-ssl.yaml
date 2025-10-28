@@ -160,7 +160,6 @@ services:
     sysctls:
       kernel.sem: 500 1024000 200 4096
       net.unix.max_dgram_qlen: 4096
-    # mem_limit: 2gb
 
 networks:
   default:

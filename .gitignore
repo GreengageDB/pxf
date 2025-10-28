@@ -5,11 +5,6 @@
 .vscode/
 *.pyc
 *.log
-*.out
-*.rpm
-*.deb
-*.o
-*.so
 build/
 server/*/out
 server/tmp
