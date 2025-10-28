@@ -1,11 +1,11 @@
 ## How to build PXF Docker image
 From the root pxf folder run:
 ```bash
-docker build --target test -t ggdb6_pxf_regress:latest -f ci/Dockerfile .
+docker build --target test -t ggdb6_pxf_regress:latest -f ci/Dockerfile.regression .
 ```
 For default Docker will use image "ggdb6_u22:latest" (see ARG GGDB_IMAGE in the Dockerfile). It may be changed by the `--build-arg` param:
 ```bash
-docker build --target test -t ggdb7_pxf_regress:latest --build-arg GGDB_IMAGE="ggdb7_u22:latest" -f ci/Dockerfile .
+docker build --target test -t ggdb7_pxf_regress:latest --build-arg GGDB_IMAGE="ggdb7_u22:latest" -f ci/Dockerfile.regression .
 ```
 This will build an image called `ggdb6_pxf_regress` with the tag `latest`. This image is based on `ggdb6_pxf_regress:latest`, which additionally contains pxf sources and pxf artifacts tarball in `/tmp/build/pxf_src` and `/tmp/build/pxf_tarball` folders respectively.
 
@@ -31,7 +31,7 @@ To test PXF with TLS we build PXF with Dockerfile which has PXF set up with SSL 
 For adb 6.x images:
 
 ```bash
-docker build -t ggdb6_pxf_regress_ssl:latest -f ci/Dockerfile .
+docker build -t ggdb6_pxf_regress_ssl:latest -f ci/Dockerfile.regression .
 ```
 
 To additionally test `fdw` and `external-table` parts you may call:
@@ -44,7 +44,7 @@ docker run --rm -it \
 For adb 7.x images:
 
 ```bash
-docker build -t ggdb7_pxf_regress_ssl:latest --build-arg GGDB_IMAGE="ggdb7_u22:latest" -f ci/Dockerfile .
+docker build -t ggdb7_pxf_regress_ssl:latest --build-arg GGDB_IMAGE="ggdb7_u22:latest" -f ci/Dockerfile.regression .
 ```
 
 To additionally test `fdw` and `external-table` parts you may call:

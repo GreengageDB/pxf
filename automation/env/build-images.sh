@@ -28,5 +28,5 @@ echo "Build PXF image for automation"
 echo "=============================="
 pushd ../..
 mkdir -p .cache
-docker build --no-cache -t "greengagedb/ggdb6_pxf_automation:$IT_TAG" --build-arg GGDB_IMAGE -f automation/env/Dockerfile .
+docker build --no-cache -t "greengagedb/ggdb6_pxf_automation:$IT_TAG" --build-arg GGDB_IMAGE -f ci/Dockerfile.integration .
 popd

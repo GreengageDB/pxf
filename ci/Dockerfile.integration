@@ -1,4 +1,4 @@
-# automation/env/Dockerfile
+# ci/Dockerfile.integration
 ARG GGDB_IMAGE=ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
 FROM $GGDB_IMAGE
 
