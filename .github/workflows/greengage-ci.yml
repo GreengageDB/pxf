@@ -167,7 +167,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./automation/env/Dockerfile
+          file: ci/Dockerfile.${{ github.job }}
           push: false
           tags: greengagedb/ggdb6_pxf_automation:${{ env.IT_TAG }}
           build-args: GGDB_IMAGE=${{ env.GGDB_IMAGE }}
@@ -217,7 +217,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./ci/Dockerfile
+          file: ci/Dockerfile.${{ github.job }}
           push: false
           tags: greengagedb/ggdb6_pxf_regression:${{ matrix.version }}
           build-args: GGDB_IMAGE=${{ matrix.image }}
