@@ -11,6 +11,9 @@ set -eux
 export JAVA_TOOL_OPTIONS='-Dfile.encoding=UTF8'
 export DEBIAN_FRONTEND='noninteractive'
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$SCRIPT_DIR/set_azure_sources_list.sh"
+
 apt-get -y update
 apt-get -y install --no-install-recommends openjdk-17-jdk # unzip vim nano ksh locales
 # apt-get clean

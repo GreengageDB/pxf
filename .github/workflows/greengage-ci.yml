@@ -62,7 +62,6 @@ jobs:
       image: ${{ matrix.image }}
       volumes:
         - ${{ github.workspace }}:${{ matrix.dev_home }}/pxf
-        - /etc/apt/sources.list:/etc/apt/sources.list:ro
       env:
         PXF_HOME: ${{ env.PXF_HOME }}
         DEV_HOME: ${{ matrix.dev_home }}
