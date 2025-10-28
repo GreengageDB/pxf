@@ -36,17 +36,15 @@ check_docker_container_status() {
     container_ids=$($DOCKERCOMPOSEBIN ps -q)
     for container_id in $container_ids
     do
+      [ -n "$DEBUG" ] && echo "Container $docker_name $status after $i attempt(s)" > "$DEBUG_DIR/compose_${status}_$docker_name.log" || true
+      [ -n "$DEBUG" ] && $DOCKERCOMPOSEBIN logs "$docker_name" >> "$DEBUG_DIR/compose_${status}_$docker_name.log" || true
       status=$(docker inspect "$container_id" --format "{{.State.Health.Status}}")
       if [ "$status" != "healthy" ]; then
         docker_name=$(docker container ls --all --no-trunc --filter "id=$container_id" --format "{{.Names}}")
-        [ -n "$DEBUG" ] && echo "Container $docker_name unhealty after $i attempt(s)" > "$DEBUG_DIR/compose_unhealthy_$docker_name.log" || true
-        [ -n "$DEBUG" ] && $DOCKERCOMPOSEBIN logs "$docker_name" >> "$DEBUG_DIR/compose_unhealthy_$docker_name.log" || true
-        if [[ "$docker_name" != "oracle" && "$docker_name" != "mysql" ]]; then
+        if [[ "$docker_name" != "oracle" ]]; then
           unhealthy_present="true"
           echo "Container '$docker_name' is not in a healthy status yet. Current status is '$status'."
         else
-          [ -n "$DEBUG" ] && echo "Container $docker_name healty after $i attempt(s)" > "$DEBUG_DIR/compose_healthy_$docker_name.log" || true
-          [ -n "$DEBUG" ] && $DOCKERCOMPOSEBIN logs "$docker_name" >> "$DEBUG_DIR/compose_healthy_$docker_name.log" || true
           if [ "$check_oracle_service_health" == "true" ]; then
             unhealthy_present="true"
             echo "Container '$docker_name' is not in a healthy status yet. Current status is '$status'."
@@ -85,7 +83,7 @@ EOF
 case $1 in
     up)
         compose_up "$2"
-        check_docker_container_status false
+        check_docker_container_status true # we need to check oracle
         ;;
     down)
         [ -n "$DEBUG" ] && mkdir -p "$DEBUG_DIR"
