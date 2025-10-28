@@ -42,7 +42,7 @@ jobs:
   #         path: ~/.cache/greengage
   #         key: env-cache-${{ github.sha }}
 
-  build-prod:
+  build:
     name: Build PXF Packages
     runs-on: ubuntu-latest
     # needs: [prepare-cache]
@@ -95,46 +95,11 @@ jobs:
           name: pxf-deb-${{ matrix.version }}
           path: build/*.deb
 
-  build-it:
-    name: Build Integration tests Image
-    runs-on: ubuntu-latest
-    # needs: [prepare-cache]
-
-    env:
-      PXF_HOME: ${{ vars.PXF_HOME }}
-      GPHOME: ${{ vars.GPHOME }}
-      GOPATH: ${{ vars.GOPATH }}
-      PATH: ${{ vars.GPHOME }}/bin:${{ vars.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ vars.GOPATH }}/bin
-      JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
-      DEBIAN_FRONTEND: noninteractive
-      GGDB_IMAGE: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
-      IT_TAG: ${{ github.sha }}
-      DEBUG: 'true'
-
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build PXF automation image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./automation/env/Dockerfile
-          push: false
-          tags: greengagedb/ggdb6_pxf_automation:${{ env.IT_TAG }}
-          build-args: GGDB_IMAGE=${{ env.GGDB_IMAGE }}
-      - name: Save SHA image
-        run: docker save greengagedb/ggdb6_pxf_automation:${{ env.IT_TAG }} > ggdb6_pxf_automation_${{ github.sha }}.tar
-      - name: Cache SHA image
-        uses: actions/cache@v4
-        with:
-          path: ggdb6_pxf_automation_${{ github.sha }}.tar
-          key:  ggdb6_pxf_automation_${{ github.sha }}
-
-
   integration:
     name: Run '${{ matrix.test }}' group with ${{ matrix.fdw && 'FDW' || 'external table' }}${{ matrix.ssl && ' and SSL' || '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    needs: [build-it]
+    # needs: [build, prepare-cache]
 
     strategy:
       fail-fast: false
@@ -172,21 +137,10 @@ jobs:
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
       GGDB_IMAGE: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
-      IT_TAG: ${{ github.sha }}
+      IT_TAG: ghcr-latest
       DEBUG: 'true'
 
     steps:
-      # Restore SHA image from cache
-      - name: Restore SHA image
-        uses: actions/cache@v4
-        with:
-          path: ggdb6_pxf_automation_${{ github.sha }}.tar
-          key:  ggdb6_pxf_automation_${{ github.sha }}
-      - name: Load SHA image
-        run: |
-          docker load < ggdb6_pxf_automation_${{ github.sha }}.tar
-          rm -f ggdb6_pxf_automation_${{ github.sha }}.tar
-
       # Maximize build space for Docker
       - name: Move /var/lib/docker/
         run: sudo mv /var/lib/docker/ "${GITHUB_WORKSPACE}/docker"
@@ -207,6 +161,16 @@ jobs:
       - name: Restore /var/lib/docker/
         run: sudo sh -c "mv ${GITHUB_WORKSPACE}/docker/* /var/lib/docker"
 
+      - uses: actions/checkout@v4
+      - run: mkdir .cache # Directory .cache/ required for docker build
+      - name: Build PXF automation image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./automation/env/Dockerfile
+          push: false
+          tags: greengagedb/ggdb6_pxf_automation:${{ env.IT_TAG }}
+          build-args: GGDB_IMAGE=${{ env.GGDB_IMAGE }}
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v1
       - name: Run ${{ matrix.test }} test ${{ matrix.fdw && ' with fdw' || '' }}
