@@ -58,7 +58,7 @@ check_docker_container_status() {
       -----------------------------------
 EOF
       $DOCKERCOMPOSEBIN logs >> "$DEBUG_DIR/compose_status_attempt_$i.log"
-      journalctl -exu docker > $DEBUG_DIR/docker_status.log
+      journalctl -exu docker > "$DEBUG_DIR/docker_status.log"
     fi
     done
     if [ "$unhealthy_present" == "true" ]; then
