@@ -210,6 +210,7 @@ jobs:
       PATH: ${{ vars.GPHOME }}/bin:${{ vars.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ vars.GOPATH }}/bin
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
+      GGDB_IMAGE: ${{ matrix.image }}
 
     steps:
       - uses: actions/checkout@v4
@@ -221,7 +222,7 @@ jobs:
           push: false
           tags: greengagedb/ggdb6_pxf_regression:${{ matrix.version }}
           build-args: |
-            GGDB_IMAGE=${{ matrix.image }}
+            GGDB_IMAGE
             PXF_HOME
             GPHOME
             GOPATH
