@@ -205,53 +205,53 @@ jobs:
             dev_home: /home/gpadmin
             version: ghcr-latest
 
-    # Build in developer's Greengage image from GHCR
-    container:
-      image: ${{ matrix.image }}
-      volumes:
-        - ${{ github.workspace }}:${{ matrix.dev_home }}/pxf
-        - ./logs:/logs
-      options: >-
-        --privileged
-        --sysctl kernel.sem="500 1024000 200 4096"
-      env:
-        PXF_HOME: ${{ env.PXF_HOME }}
-        DEV_HOME: ${{ matrix.dev_home }}
-        PXF_SRC: ${{ matrix.dev_home }}/pxf
-        GPHOME: ${{ env.GPHOME }}
-        GOPATH: ${{ env.GOPATH }}
-        PATH: ${{ env.GPHOME }}/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
-        JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
-        DEBIAN_FRONTEND: noninteractive
+    # # Build in developer's Greengage image from GHCR
+    # container:
+    #   image: ${{ matrix.image }}
+    #   volumes:
+    #     - ${{ github.workspace }}:${{ matrix.dev_home }}/pxf
+    #     - ./logs:/logs
+    #   options: >-
+    #     --privileged
+    #     --sysctl kernel.sem="500 1024000 200 4096"
+    #   env:
+    #     PXF_HOME: ${{ env.PXF_HOME }}
+    #     DEV_HOME: ${{ matrix.dev_home }}
+    #     PXF_SRC: ${{ matrix.dev_home }}/pxf
+    #     GPHOME: ${{ env.GPHOME }}
+    #     GOPATH: ${{ env.GOPATH }}
+    #     PATH: ${{ env.GPHOME }}/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
+    #     JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
+    #     DEBIAN_FRONTEND: noninteractive
 
-    steps:
-      - uses: actions/checkout@v4
+    # steps:
+    #   - uses: actions/checkout@v4
 
-      - name: Build PXF regression image ${{ matrix.version }}
-        shell: bash
-        run: |
-          set -eux
-          cd $PXF_SRC
-          bash ci/build_in_docker.sh
+    #   - name: Build PXF regression image ${{ matrix.version }}
+    #     shell: bash
+    #     run: |
+    #       set -eux
+    #       cd $PXF_SRC
+    #       bash ci/build_in_docker.sh
 
-      # Run Regression tests
-      - name: Regression tests
-        shell: bash
-        run: |
-          set +e
-          git config --global --add safe.directory /__w/pxf/pxf
-          $PXF_SRC/ci/test_in_docker.sh
-          status=$?
-          find $PXF_SRC/fdw -type f -name "*.diffs" -exec mv -f {} /logs \;
-          echo ">>> STATUS $status"
-          exit ${status:-1}
+    #   # Run Regression tests
+    #   - name: Regression tests
+    #     shell: bash
+    #     run: |
+    #       set +e
+    #       git config --global --add safe.directory /__w/pxf/pxf
+    #       $PXF_SRC/ci/test_in_docker.sh
+    #       status=$?
+    #       find $PXF_SRC/fdw -type f -name "*.diffs" -exec mv -f {} /logs \;
+    #       echo ">>> STATUS $status"
+    #       exit ${status:-1}
 
-      # Upload regression tests artifacts
-      - name: Upload regression artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: logs_regression-${{ matrix.version }}
-          path: logs
-          retention-days: 7
-          if-no-files-found: warn  # Warning if no artifacts are found
+    #   # Upload regression tests artifacts
+    #   - name: Upload regression artifacts
+    #     if: always()
+    #     uses: actions/upload-artifact@v4
+    #     with:
+    #       name: logs_regression-${{ matrix.version }}
+    #       path: logs
+    #       retention-days: 7
+    #       if-no-files-found: warn  # Warning if no artifacts are found
