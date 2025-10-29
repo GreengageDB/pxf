@@ -241,7 +241,7 @@ jobs:
             --build-arg DEV_HOME \
             --build-arg GPHOME \
             --build-arg GOPATH \
-            --build-arg PATH" \
+            --build-arg PATH \
             --build-arg JAVA_TOOL_OPTIONS \
             --build-arg DEBIAN_FRONTEND \
             -f "ci/Dockerfile.${{ github.job }}" \
