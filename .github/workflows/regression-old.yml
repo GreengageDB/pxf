@@ -1,5 +1,4 @@
-# Main CI pipeline orchestrating build, test, and upload stages
-name: Greengage CI
+name: Old regression tests
 
 on:
   push:
