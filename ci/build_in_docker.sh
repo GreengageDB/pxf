@@ -16,8 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 apt-get -y update
 apt-get -y install --no-install-recommends openjdk-17-jdk # unzip vim nano ksh locales
-# apt-get clean
-# rm -rf /var/lib/apt/lists/*
+apt-get clean
 
 update-locale LANG=en_US.UTF-8
 
@@ -41,5 +40,9 @@ tar -xzf "$DEV_HOME/bin_gpdb/bin_gpdb.tar.gz" -C "$GPHOME/"
 source "$GPHOME/greengage_path.sh"
 make all install
 
-# rm "$HOME/.cache" -rf
-# rm "$HOME/.gradle" -rf
+rm "$HOME/.cache" -rf
+rm "$HOME/.gitconfig" -rf
+rm "$HOME/.gradle" -rf
+
+rm -rf /var/lib/apt/lists/*
+rm -rf /tmp/*
