@@ -205,6 +205,7 @@ jobs:
 
     env:
       PXF_HOME: ${{ vars.PXF_HOME }}
+      DEV_HOME: ${{ matrix.dev_home }}
       GPHOME: ${{ vars.GPHOME }}
       GOPATH: ${{ vars.GOPATH }}
       PATH: ${{ vars.GPHOME }}/bin:${{ vars.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ vars.GOPATH }}/bin
@@ -214,21 +215,38 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      # - name: Build PXF regression image ${{ matrix.version }}
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     context: .
+      #     file: ci/Dockerfile.${{ github.job }}
+      #     push: false
+      #     tags: greengagedb/ggdb6_pxf_regression:${{ matrix.version }}
+      #     build-args: |
+      #       GGDB_IMAGE=${{ env.GGDB_IMAGE }}
+      #       PXF_HOME=${{ env.PXF_HOME }}
+      #       GPHOME=${{ env.GPHOME }}
+      #       GOPATH=${{ env.GOPATH }}
+      #       PATH=${{ env.PATH }}
+      #       JAVA_TOOL_OPTIONS=${{ env.JAVA_TOOL_OPTIONS }}
+      #       DEBIAN_FRONTEND=${{ env.DEBIAN_FRONTEND }}
+
+      # Use native docker build instead of docker/build-push-action because troubles with send env vrs
       - name: Build PXF regression image ${{ matrix.version }}
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ci/Dockerfile.${{ github.job }}
-          push: false
-          tags: greengagedb/ggdb6_pxf_regression:${{ matrix.version }}
-          build-args: |
-            GGDB_IMAGE=${{ env.GGDB_IMAGE }}
-            PXF_HOME=${{ env.PXF_HOME }}
-            GPHOME=${{ env.GPHOME }}
-            GOPATH=${{ env.GOPATH }}
-            PATH=${{ env.PATH }}
-            JAVA_TOOL_OPTIONS=${{ env.JAVA_TOOL_OPTIONS }}
-            DEBIAN_FRONTEND=${{ env.DEBIAN_FRONTEND }}
+        run: |
+          docker build \
+            --build-arg GGDB_IMAGE \
+            --build-arg PXF_HOME \
+            --build-arg DEV_HOME \
+            --build-arg GPHOME \
+            --build-arg GOPATH \
+            --build-arg PATH" \
+            --build-arg JAVA_TOOL_OPTIONS \
+            --build-arg DEBIAN_FRONTEND \
+            -f "ci/Dockerfile.${{ github.job }}" \
+            -t "greengagedb/ggdb6_pxf_regression:${{ matrix.version }}" \
+            .
 
       # Run Regression tests
       - name: Regression tests
