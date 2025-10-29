@@ -205,11 +205,11 @@ jobs:
             version: ghcr-latest
 
     env:
-      PXF_HOME: ${{ vars.PXF_HOME }}
+      PXF_HOME: ${{ env.PXF_HOME }}
       DEV_HOME: ${{ matrix.dev_home }}
-      GPHOME: ${{ vars.GPHOME }}
-      GOPATH: ${{ vars.GOPATH }}
-      PATH: ${{ vars.GPHOME }}/bin:${{ vars.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ vars.GOPATH }}/bin
+      GPHOME: ${{ env.GPHOME }}
+      GOPATH: ${{ env.GOPATH }}
+      PATH: ${{ env.GPHOME }}/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
       GGDB_IMAGE: ${{ matrix.image }}
