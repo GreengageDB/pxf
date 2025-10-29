@@ -8,8 +8,8 @@
 
 set -eux
 
-export JAVA_TOOL_OPTIONS='-Dfile.encoding=UTF8'
-export DEBIAN_FRONTEND='noninteractive'
+export JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:'-Dfile.encoding=UTF8'}
+export DEBIAN_FRONTEND=${DEBIAN_FRONTEND:-'noninteractive'}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$SCRIPT_DIR/set_azure_sources_list.sh"
@@ -26,11 +26,11 @@ curl -L https://go.dev/dl/go$go_version.linux-amd64.tar.gz -o /tmp/go.tar.gz
 tar -C /usr/local -xzf /tmp/go.tar.gz
 rm /tmp/go.tar.gz
 
-# echo '---------------- DEBUG --------------------'
-# env
-# pwd
-# ls -lah
-# go version
+echo '---------------- DEBUG --------------------'
+env
+pwd
+ls -lah
+go version
 
 git config --global --add safe.directory "$(pwd)"
 localedef -c -i ru_RU -f CP1251 ru_RU.CP1251
