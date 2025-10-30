@@ -18,5 +18,5 @@ docker build \
   --build-arg GOPATH \
   --build-arg PATH \
   -f "ci/Dockerfile.$type" \
-  -t "pxf_test:$type" \
+  -t "ggdb6_pxf_$type:latest" \
   .

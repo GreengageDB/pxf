@@ -1,4 +1,5 @@
 # https://github.com/GreengageDB/greengage/tree/main/ci
+# OLD version
 ARG GGDB_IMAGE=greengagedb/ggdb6_ubuntu:6.29.1
 FROM $GGDB_IMAGE
 
