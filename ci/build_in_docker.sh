@@ -25,12 +25,6 @@ curl -L https://go.dev/dl/go$go_version.linux-amd64.tar.gz -o /tmp/go.tar.gz
 tar -C /usr/local -xzf /tmp/go.tar.gz
 rm /tmp/go.tar.gz
 
-echo '---------------- DEBUG --------------------'
-env
-pwd
-ls -lah
-go version
-
 git config --global --add safe.directory "$(pwd)"
 localedef -c -i ru_RU -f CP1251 ru_RU.CP1251
 mkdir -p "$GPHOME"
