@@ -1,0 +1,97 @@
+name: Build PXF
+
+on:
+  push:
+    branches: ['main']  # Trigger on push to main (after merged PR)
+  pull_request:
+    branches: ['*'] # Trigger on pull requests for all branches
+
+# Concurrency control to cancel previous runs on new push to same PR/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true  # Automatically cancel any previous runs for the same group
+
+env:
+  DEV_HOME: /home/gpadmin
+  PXF_HOME: /usr/local/greengage-db-devel/pxf
+  GPHOME:   /usr/local/greengage-db-devel
+  GOPATH:   /opt/go
+
+jobs:
+  # prepare-cache:
+  #   name: Prepare Environment Cache
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - uses: actions/checkout@v4
+
+  #     - name: Install dependencies
+  #       run: |
+  #         sudo apt-get update
+  #         sudo apt-get install -y curl rsync yq docker.io
+
+  #     - name: Build environment cache
+  #       run: |
+  #         chmod +x ci/build_environment.sh
+  #         ci/build_environment.sh
+
+  #     - name: Cache artifacts
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: ~/.cache/greengage
+  #         key: env-cache-${{ github.sha }}
+
+  build:
+    name: Build PXF Packages
+    runs-on: ubuntu-latest
+    # needs: [prepare-cache]
+
+    strategy:
+      matrix:
+        include:
+          - image: greengagedb/ggdb6_ubuntu:6.29.1
+            dev_home: /home/gpadmin
+            version: dh-6.29.1
+          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+            dev_home: /home/gpadmin
+            version: ghcr-latest
+
+    # Build in developer's Greengage image from GHCR
+    container:
+      image: ${{ matrix.image }}
+      volumes:
+        - ${{ github.workspace }}:${{ matrix.dev_home }}/pxf
+      env:
+        PXF_HOME: ${{ env.PXF_HOME }}
+        DEV_HOME: ${{ matrix.dev_home }}
+        PXF_SRC: ${{ matrix.dev_home }}/pxf
+        GPHOME: ${{ env.GPHOME }}
+        GOPATH: ${{ env.GOPATH }}
+        PATH: ${{ env.GPHOME }}/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
+        JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
+        DEBIAN_FRONTEND: noninteractive
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build in Docker
+        shell: bash
+        run: |
+          set -eux
+          cd $PXF_SRC
+          bash ci/build_in_docker.sh
+          git config --global --add safe.directory $PXF_SRC
+          make deb
+
+      - name: Cache deb packages
+        uses: actions/cache@v4
+        with:
+          path: build/*.deb
+          key: pxf-deb-${{ github.sha }}-${{ matrix.version }}
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pxf-deb-${{ matrix.version }}
+          path: build/*.deb
