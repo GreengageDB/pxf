@@ -116,7 +116,7 @@ public class JdbcBackPressureTest extends BaseFeature {
         // External writable table to run query when BATCH_TIMEOUT = 2 seconds
         createGpdbWritableTable("jdbc_bp_write_batch_timeout_error", "POOL_SIZE=1,BATCH_SIZE=500000,BATCH_TIMEOUT=2");
         // External writable table to run query when BATCH_TIMEOUT = 120 seconds
-        createGpdbWritableTable("jdbc_bp_write_batch_timeout_success", "POOL_SIZE=1,BATCH_SIZE=500000,BATCH_TIMEOUT=120");
+        createGpdbWritableTable("jdbc_bp_write_batch_timeout_success", "POOL_SIZE=1,BATCH_SIZE=200000,BATCH_TIMEOUT=120");
     }
 
     @Step("Create GPDB source table")
