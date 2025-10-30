@@ -1,0 +1,28 @@
+# https://github.com/GreengageDB/greengage/tree/main/ci
+ARG GGDB_IMAGE=ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
+FROM $GGDB_IMAGE
+
+SHELL ["/bin/bash","-c"]
+
+# --- Environment ---
+ARG GPHOME=/usr/local/greengage-db-devel \
+    DEV_HOME=/home/gpadmin \
+    GOPATH=/opt/go \
+    JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8 \
+    SKIP_FDW_BUILD_REASON=
+ARG PXF_HOME=$GPHOME/pxf
+ARG PATH="$GPHOME/bin:$PXF_HOME/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/maven/bin:/usr/local/go/bin:$GOPATH/bin"
+
+ENV PATH=$PATH \
+    GOPATH=$GOPATH \
+    GPHOME=$GPHOME \
+    PXF_HOME=$PXF_HOME \
+    DEV_HOME=$DEV_HOME \
+    JAVA_TOOL_OPTIONS=$JAVA_TOOL_OPTIONS \
+    SKIP_FDW_BUILD_REASON=$SKIP_FDW_BUILD_REASON \
+    DEBIAN_FRONTEND=noninteractive
+
+WORKDIR $DEV_HOME
+COPY . ./pxf
+
+RUN cd pxf && bash ci/build_in_docker.sh

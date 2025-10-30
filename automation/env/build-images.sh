@@ -1,4 +1,7 @@
 #!/bin/bash
+# GGDB_IMAGE is from https://github.com/GreengageDB/greengage/tree/main/ci
+export GGDB_IMAGE=${GGDB_IMAGE:-greengagedb/ggdb6_ubuntu:6.29.1}
+export IT_TAG=${IT_TAG:-it}
 
 echo "=============================="
 echo "      Clean the project       "
@@ -15,15 +18,15 @@ echo "===================================="
 #docker build -f Dockerfile -t pxf-hadoop:3.3.6 .
 #popd
 
-#echo "===================================="
-#echo "      Build Vault image      "
-#echo "===================================="
-docker build -f ./vault/Dockerfile -t pxf-vault-test:it .
+# #echo "===================================="
+# #echo "      Build Vault image      "
+# #echo "===================================="
+# docker build -f ./vault/Dockerfile -t greengagedb/pxf-vault-test .
 
 echo "=============================="
 echo "Build PXF image for automation"
 echo "=============================="
-# GGDB_IMAGE is from https://github.com/GreengageDB/greengage/tree/main/ci
 pushd ../..
-docker build -t ggdb6_pxf_automation:it --build-arg "GGDB_IMAGE=${GGDB_IMAGE:-greengagedb/ggdb6_ubuntu:6.29.1}" -f automation/env/Dockerfile .
+mkdir -p .cache
+docker build --no-cache -t "greengagedb/ggdb6_pxf_automation:$IT_TAG" --build-arg GGDB_IMAGE -f ci/Dockerfile.integration .
 popd

@@ -1,8 +1,7 @@
-version: "3"
 services:
   mdw:
     profiles: [all, gpdb, smoke, jdbc]
-    image: "ggdb6_pxf_automation:it"
+    image: "greengagedb/ggdb6_pxf_automation:${IT_TAG:-it}"
     restart: unless-stopped
     working_dir: /home/gpadmin
     hostname: mdw
@@ -34,19 +33,20 @@ services:
       - "./conf/pxf-reload/jdbc-site.xml:/usr/local/greengage-db-devel/pxf/templates/pxf-reload/jdbc-site.xml:ro"
     healthcheck:
       test:  sudo -H -u gpadmin bash -l -c "psql -d postgres -U gpadmin -Atc 'SELECT 1;'"
-      interval: 30s
-      timeout: 15s
-      retries: 3
+      interval: 10s
+      timeout: 5s
+      retries: 12 # Three minutes
     depends_on:
       - sdw1
     privileged: true
     sysctls:
       kernel.sem: 500 1024000 200 4096
       net.unix.max_dgram_qlen: 4096
+    # mem_limit: 1gb
 
   sdw1:
     profiles: [all, gpdb, smoke, jdbc]
-    image: "ggdb6_pxf_automation:it"
+    image: "greengagedb/ggdb6_pxf_automation:${IT_TAG:-it}"
     restart: unless-stopped
     privileged: true
     hostname: sdw1
@@ -68,16 +68,17 @@ services:
       - "./conf/encryption/pxfkeystore.jks:/usr/local/greengage-db-devel/pxf/conf/pxfkeystore.jks:ro"
     healthcheck:
       test:  netstat -an | grep 5888 > /dev/null; if [ 0 != $$? ]; then exit 1; fi;
-      interval: 30s
-      timeout: 15s
-      retries: 3
+      interval: 10s
+      timeout: 5s
+      retries: 12 # Three minutes
     sysctls:
       kernel.sem: 500 1024000 200 4096
       net.unix.max_dgram_qlen: 4096
+    # mem_limit: 2gb
 
   sdw2:
     profiles: [all, gpdb, smoke, jdbc]
-    image: "ggdb6_pxf_automation:it"
+    image: "greengagedb/ggdb6_pxf_automation:${IT_TAG:-it}"
     restart: unless-stopped
     privileged: true
     hostname: sdw2
@@ -99,16 +100,17 @@ services:
       - "./conf/encryption/pxfkeystore.jks:/usr/local/greengage-db-devel/pxf/conf/pxfkeystore.jks:ro"
     healthcheck:
       test: netstat -an | grep 5888 > /dev/null; if [ 0 != $$? ]; then exit 1; fi;
-      interval: 30s
-      timeout: 15s
-      retries: 3
+      interval: 10s
+      timeout: 5s
+      retries: 12 # Three minutes
     sysctls:
       kernel.sem: 500 1024000 200 4096
       net.unix.max_dgram_qlen: 4096
+    # mem_limit: 2gb
 
   hadoop:
     profiles: [all, gpdb, smoke]
-    image: greengagedb/pxf-hadoop:3.3.6
+    image: "greengagedb/pxf-hadoop:3.3.6"
     restart: unless-stopped
     container_name: hadoop
     environment:
@@ -131,15 +133,16 @@ services:
       - "./hadoop/hbase-site.xml:/opt/hbase/conf/hbase-site.xml:ro"
     healthcheck:
       test: bash /healthcheck_hadoop.sh
-      interval: 30s
-      timeout: 15s
+      interval: 10s
+      timeout: 5s
       retries: 5
     depends_on:
       - hive-metastore-db
+    # mem_limit: 3gb
 
   hive-metastore-db:
     profiles: [all, gpdb, smoke]
-    image: "docker.io/library/postgres:12.0"
+    image: "library/postgres:12.0"
     restart: unless-stopped
     container_name: hive-metastore-db
     hostname: hive-metastore-db
@@ -151,9 +154,9 @@ services:
       - '5432:5432'
     healthcheck:
       test: psql -d metastore -U hive -Atc 'SELECT 1;'
-      interval: 30s
-      timeout: 15s
-      retries: 3
+      interval: 10s
+      timeout: 5s
+      retries: 12 # Three minutes
 
   oracle:
     profiles: [all, jdbc]
@@ -169,13 +172,14 @@ services:
       - '8080:8080'
     healthcheck:
       test: echo "SELECT 333 from dual;" | sqlplus -L system/oracle@ORCL | grep 333 > /dev/null; if [ 0 != $$? ]; then exit 1; fi;
-      interval: 30s
-      timeout: 15s
-      retries: 3
+      interval: 10s
+      timeout: 5s
+      retries: 12 # Three minutes
+    # mem_limit: 6gb
 
   mysql:
     profiles: [all, jdbc]
-    image: "mysql:8.3.0"
+    image: "library/mysql:8.3.0"
     restart: unless-stopped
     container_name: mysql
     hostname: mysql
@@ -188,10 +192,10 @@ services:
     ports:
       - '3306:3306'
     healthcheck:
-      test: mysql -u mysqluser -pmysqlpwd --disable-column-names -e 'select 111' | grep 111 > /dev/null; if [ 0 != $$? ]; then exit 1; fi
-      interval: 30s
-      timeout: 15s
-      retries: 3
+      test: "mysql $$MYSQL_DATABASE -u$$MYSQL_USER -p$$MYSQL_PASSWORD -e 'SELECT 1;'"
+      interval: 10s
+      timeout: 5s
+      retries: 12 # Three minutes
 
   minio:
     profiles: [all, gpdb]
@@ -224,3 +228,4 @@ networks:
 volumes:
   m2:
   share-lib:
+  test-data:

@@ -1,7 +1,7 @@
-version: "3"
 services:
   vault:
-    image: "pxf-vault-test:it"
+    profiles: [ggdbssl]
+    image: "greengagedb/pxf-vault-test"
     restart: on-failure
     ports:
       - "8200:8200"
@@ -9,9 +9,9 @@ services:
       - IPC_LOCK
     healthcheck:
       test:  curl -k --silent --fail https://localhost:8200/v1/sys/health || exit 1
-      interval: 30s
-      timeout: 15s
-      retries: 3
+      interval: 10s
+      timeout: 5s
+      retries: 12 # Three minutes
     volumes:
       - ./vault/certs:/certs:ro
       - ./vault/scripts:/scripts:ro
@@ -20,7 +20,8 @@ services:
     entrypoint: [ "bash", "-c", "/scripts/workflow-vault.sh" ]
 
   mdw:
-    image: "ggdb6_pxf_automation:it"
+    profiles: [ggdbssl]
+    image: "greengagedb/ggdb6_pxf_automation:${IT_TAG:-it}"
     restart: unless-stopped
     working_dir: /home/gpadmin
     hostname: mdw
@@ -64,18 +65,20 @@ services:
       - "test-data:/home/gpadmin/pxf_src/automation/src/test/resources/data"
     healthcheck:
       test:  sudo -H -u gpadmin bash -l -c "psql -d postgres -U gpadmin -Atc 'SELECT 1;'"
-      interval: 30s
-      timeout: 15s
-      retries: 3
+      interval: 10s
+      timeout: 5s
+      retries: 12 # Three minutes
     depends_on:
       - sdw1
     privileged: true
     sysctls:
       kernel.sem: 500 1024000 200 4096
       net.unix.max_dgram_qlen: 4096
+    # mem_limit: 2gb
 
   sdw1:
-    image: "ggdb6_pxf_automation:it"
+    profiles: [ggdbssl]
+    image: "greengagedb/ggdb6_pxf_automation:${IT_TAG:-it}"
     restart: unless-stopped
     privileged: true
     hostname: sdw1
@@ -108,15 +111,17 @@ services:
       - "./conf/encryption/pxfkeystore.jks:/usr/local/greengage-db-devel/pxf/conf/pxfkeystore.jks:ro"
     healthcheck:
       test:  netstat -an | grep 5888 > /dev/null; if [ 0 != $$? ]; then exit 1; fi;
-      interval: 30s
-      timeout: 15s
-      retries: 3
+      interval: 10s
+      timeout: 5s
+      retries: 12 # Three minutes
     sysctls:
       kernel.sem: 500 1024000 200 4096
       net.unix.max_dgram_qlen: 4096
+    # mem_limit: 2gb
 
   sdw2:
-    image: "ggdb6_pxf_automation:it"
+    profiles: [ggdbssl]
+    image: "greengagedb/ggdb6_pxf_automation:${IT_TAG:-it}"
     restart: unless-stopped
     privileged: true
     hostname: sdw2
@@ -149,9 +154,9 @@ services:
       - "./conf/encryption/pxfkeystore.jks:/usr/local/greengage-db-devel/pxf/conf/pxfkeystore.jks:ro"
     healthcheck:
       test: netstat -an | grep 5888 > /dev/null; if [ 0 != $$? ]; then exit 1; fi;
-      interval: 30s
-      timeout: 15s
-      retries: 3
+      interval: 10s
+      timeout: 5s
+      retries: 12 # Three minutes
     sysctls:
       kernel.sem: 500 1024000 200 4096
       net.unix.max_dgram_qlen: 4096

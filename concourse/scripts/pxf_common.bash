@@ -9,7 +9,7 @@ PXF_VERSION=${PXF_VERSION:=6}
 PROXY_USER=${PROXY_USER:-pxfuser}
 PROTOCOL=${PROTOCOL:-}
 GOOGLE_PROJECT_ID=${GOOGLE_PROJECT_ID:-data-gpdb-ud}
-PXF_SRC=$(find /tmp/build -name pxf_src -type d)
+PXF_SRC=${PXF_SRC:-$(find /tmp/build -name pxf_src -type d)}
 CCP_OS_USER=""
 
 # on purpose do not call this PXF_CONF|PXF_BASE so that it is not set during pxf operations
