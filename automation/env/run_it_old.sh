@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eu
 
-build_images=$1
+BUILD_IMAGES=$1
 profile=${2:-${PROFILE:-all}}
 run_test_service_name=mdw
 
