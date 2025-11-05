@@ -7,7 +7,6 @@ export USE_SSL=${3:-$USE_SSL} # used in compose.sh
 export TEST_SERVICE=${TEST_SERVICE:-mdw}
 export ARTIFACTS=${ARTIFACTS:-artifacts}
 export DEBUG_DIR=${DEBUG_DIR:-$ARTIFACTS/docker_logs}
-export DOCKERCOMPOSEBIN=${DOCKERCOMPOSEBIN:-"docker compose --profile ${PROFILE:=all}"}
 
 # Set a variable to check the results of all tests at the end of the script
 test_result_status=0
