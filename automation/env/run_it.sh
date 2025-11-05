@@ -16,7 +16,7 @@ trap_exit() {
     journalctl -exu docker >> "$LOG_DIR/docker.log"
     journalctl -exu containerd >> "$LOG_DIR/containerd.log"
   fi
-  bash compose.sh down
+  bash compose.sh down # must be down if exit
 } ; trap trap_exit EXIT
 
 if [ "$BUILD_IMAGES" == "true" ]; then
@@ -27,24 +27,15 @@ if [ "$BUILD_IMAGES" == "true" ]; then
 fi
 
 echo "----------------"
-echo "Start containers without SSL"
-echo "----------------"
-bash compose.sh up
-
-echo "----------------"
 echo "Run tests '$TESTS' without FDW"
 echo "----------------"
 
+unset USE_FDW
 for test in $TESTS ; do
   GROUP=$test bash it.sh || was_failed=${was_failed:+$was_failed, }$test
 done
 
-bash compose.sh down
-
-echo "----------------"
-echo "Start containers without SSL"
-echo "----------------"
-bash compose.sh up
+bash compose.sh down # must be down before new next run
 
 echo "----------------"
 echo "Run tests '$TESTS' with FDW"
@@ -55,18 +46,13 @@ for test in $TESTS ; do
   GROUP=$test bash it.sh || was_failed=${was_failed:+$was_failed, }$test'(FDW)'
 done
 
-bash compose.sh down
-
-echo "----------------"
-echo "Start containers with SSL"
-echo "----------------"
-export USE_SSL=true
-bash compose.sh up
+bash compose.sh down # must be down before new next run
 
 echo "----------------"
 echo "Run test 'ggdbssl' with FDW"
 echo "----------------"
 
+export USE_SSL=true
 GROUP=$test bash it.sh || was_failed=${was_failed:+$was_failed, }${test}'(FDW, SSL)'
 
 echo "-------------------------"
