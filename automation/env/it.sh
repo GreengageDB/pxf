@@ -71,6 +71,8 @@ fi
 export TYPE=$([ -n "$USE_FDW" ] && echo -n "fdw" || echo -n "external-table")
 echo -en "-----\n----- Start running '$GROUP' tests with $TYPE\n-----\n"
 
+bash compose.sh up
+
 [ -n "$DEBUG" ] && echo "Run 'docker compose exec \"$TEST_SERVICE\" sudo -H -u gpadmin bash -l -c \"make -C \$TEST_HOME GROUP=$GROUP USE_FDW=$USE_FDW\"'" | tee -a "$DEBUG_DIR/compose_before_down.log" || true
 docker compose exec "$TEST_SERVICE" sudo -H -u gpadmin bash -l -c "make -C \$TEST_HOME GROUP=$GROUP USE_FDW=$USE_FDW"
 check_test_result $? "$GROUP" "$$TYPE"
