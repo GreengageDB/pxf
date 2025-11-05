@@ -36,7 +36,7 @@ echo "Run tests '$TESTS' without FDW"
 echo "----------------"
 
 for test in $TESTS ; do
-  GROUP=$test bash it.sh
+  GROUP=$test bash it.sh || was_failed=${was_failed:+"$was_failed, $GROUP"}
 done
 
 bash compose.sh down
@@ -52,7 +52,7 @@ echo "----------------"
 
 export USE_FDW=true
 for test in $TESTS ; do
-  GROUP=$test bash it.sh
+  GROUP=$test bash it.sh || was_failed=${was_failed:+"$was_failed, $GROUP(FDW)"}
 done
 
 bash compose.sh down
@@ -60,10 +60,26 @@ bash compose.sh down
 echo "----------------"
 echo "Start containers with SSL"
 echo "----------------"
-bash compose.sh up docker-compose-ssl.yaml
+export USE_SSL=true
+bash compose.sh up
 
 echo "----------------"
 echo "Run test 'ggdbssl' with FDW"
 echo "----------------"
 
-GROUP=ggdbssl bash it.sh
+GROUP=ggdbssl bash it.sh || was_failed=${was_failed:+"$was_failed, $GROUP(FDW, SSL)"}
+
+echo "-------------------------"
+echo "TOTAL Check tests result status"
+echo "-------------------------"
+if [ -z "$was_failed" ]; then
+  echo "----------------"
+  echo "Grand TOTAL tests passed"
+  echo "----------------"
+  exit 0
+else
+  echo "----------------------------------------------"
+  echo "Some tests from this groups was failed: $was_failed. Check logs and reports"
+  echo "----------------------------------------------"
+  exit 1
+fi
