@@ -8,6 +8,9 @@ export TEST_SERVICE=${TEST_SERVICE:-mdw}
 export ARTIFACTS=${ARTIFACTS:-artifacts}
 export DEBUG_DIR=${DEBUG_DIR:-$ARTIFACTS/docker_logs}
 
+# --- Prepare ---
+[ -n "$DEBUG" ] && mkdir -p "$DEBUG_DIR" || true
+
 # Set a variable to check the results of all tests at the end of the script
 test_result_status=0
 
@@ -15,6 +18,7 @@ test_result_status=0
 # shellcheck disable=SC2329
 trap_exit() {
   if [ -n "$DEBUG" ]; then
+    DEBUG_DIR=${DEBUG_DIR:-'/tmp'} # if EXIT early when definitions completed
     mkdir -p "$DEBUG_DIR"
     docker compose logs >> "$DEBUG_DIR/compose_before_exit.log"
     journalctl -exu docker >> "$DEBUG_DIR/docker.log"
@@ -62,8 +66,6 @@ if [ -z "$GROUP" ] ; then # Variable GROUP required
   echo -en "GROUP required.\nUse shell environment variable or first parameter.\nExample: '$0 smoke' or 'GROUP=smoke $0'\n"
   exit 1
 fi
-
-[ -n "$DEBUG" ] && mkdir -p "$DEBUG_DIR" || true
 
 # shellcheck disable=SC2155
 export TYPE=$([ -n "$USE_FDW" ] && echo -n "fdw" || echo -n "external-table")
