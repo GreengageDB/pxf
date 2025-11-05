@@ -30,6 +30,7 @@ compose_down() {
 } ; export -f compose_down
 
 check_docker_container_status() {
+  set -x
   local i unhealthy_present container_ids container_id docker_name status
   for i in {01..20}; do
     unhealthy_present="false"
