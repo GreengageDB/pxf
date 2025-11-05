@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 # --- Declarations ---
-export GROUP=${1:-$GROUP}
-export USE_FDW=${2:-$USE_FDW}
-export USE_SSL=${3:-$USE_SSL}
-export BUILD_IMAGES=${4:-$BUILD_IMAGES}
+export GROUP=${1:-$GROUP}     # Required. Checking below
+export USE_FDW=${2:-$USE_FDW} # use `external-table` if not defined
+export USE_SSL=${3:-$USE_SSL} # used in compose.sh
 
-export IT_TAG=${IT_TAG:-it}
 export TEST_SERVICE=${TEST_SERVICE:-mdw}
 export ARTIFACTS=${ARTIFACTS:-artifacts}
 export DEBUG_DIR=${DEBUG_DIR:-$ARTIFACTS/docker_logs}
