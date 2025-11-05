@@ -2,7 +2,7 @@
 set -e
 
 # --- Declarations ---
-export DOCKERCOMPOSEBIN="docker compose --profile ${PROFILE:-'all'}"
+export DOCKERCOMPOSEBIN="docker compose --profile ${PROFILE:-all}"
 export DEBUG_DIR=${DEBUG_DIR:-artifacts/docker_logs}
 
 # --- Functions ---

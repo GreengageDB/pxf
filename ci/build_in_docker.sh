@@ -9,7 +9,7 @@
 set -eux
 
 export JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:-'-Dfile.encoding=UTF8'}
-export DEBIAN_FRONTEND=${DEBIAN_FRONTEND:-'noninteractive'}
+export DEBIAN_FRONTEND=${DEBIAN_FRONTEND:-noninteractive}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "$SCRIPT_DIR/set_azure_sources_list.sh"

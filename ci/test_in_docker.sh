@@ -2,9 +2,9 @@
 # This script depends on ggdb6_pxf_regress
 set -exo pipefail
 
-export PXF_SRC=${PXF_SRC:-'/tmp/build/pxf_src'}
-export DEV_HOME=${DEV_HOME:-'/home/gpadmin'}
-export GPHOME=${GPHOME:-'/usr/local/greengage-db-devel'}
+export PXF_SRC=${PXF_SRC:-/tmp/build/pxf_src}
+export DEV_HOME=${DEV_HOME:-/home/gpadmin}
+export GPHOME=${GPHOME:-/usr/local/greengage-db-devel}
 export PXF_HOME=${PXF_HOME:-"$GPHOME/pxf"}
 
 # Set hostname to make certificate valid and PXF server accessible
