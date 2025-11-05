@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -eu
+set -e
 
 # GGDB_IMAGE is from https://github.com/GreengageDB/greengage/tree/main/ci
 export GGDB_IMAGE=${GGDB_IMAGE:-greengagedb/ggdb6_ubuntu:6.29.1}
