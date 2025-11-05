@@ -46,7 +46,7 @@ check_docker_container_status() {
       [ -n "$DEBUG" ] && echo -n "--- DEBUG --- " && echo "Processing Name: '$container_name'" | tee -a "$log_file" || true
       if [[ "$container_name" == 'oracle' ]]; then continue ; fi # skip oracle
       status=$(docker inspect "$container_id" --format "{{.State.Health.Status}}")
-      [ -n "$DEBUG" ] && echo "--- DEBUG --- " && echo "Status: '$status'" | tee -a "$log_file" || true
+      [ -n "$DEBUG" ] && echo -n "--- DEBUG --- " && echo "Status: '$status'" | tee -a "$log_file" || true
       if [[ "$status" != 'healthy' ]]; then unhealthy_containers=${unhealthy_containers:+$unhealthy_containers, }$container_name ; fi
     done
     $DOCKERCOMPOSEBIN logs >> "$log_file"
