@@ -36,7 +36,7 @@ echo "Run tests '$TESTS' without FDW"
 echo "----------------"
 
 for test in $TESTS ; do
-  GROUP=$test bash it.sh || was_failed=${was_failed:+"$was_failed, $GROUP"}
+  GROUP=$test bash it.sh || was_failed=${was_failed:+$was_failed, }$test
 done
 
 bash compose.sh down
@@ -52,7 +52,7 @@ echo "----------------"
 
 export USE_FDW=true
 for test in $TESTS ; do
-  GROUP=$test bash it.sh || was_failed=${was_failed:+"$was_failed, $GROUP(FDW)"}
+  GROUP=$test bash it.sh || was_failed=${was_failed:+$was_failed, }$test'(FDW)'
 done
 
 bash compose.sh down
@@ -67,7 +67,7 @@ echo "----------------"
 echo "Run test 'ggdbssl' with FDW"
 echo "----------------"
 
-GROUP=ggdbssl bash it.sh || was_failed=${was_failed:+"$was_failed, $GROUP(FDW, SSL)"}
+GROUP=$test bash it.sh || was_failed=${was_failed:+$was_failed, }${test}'(FDW, SSL)'
 
 echo "-------------------------"
 echo "TOTAL Check tests result status"
