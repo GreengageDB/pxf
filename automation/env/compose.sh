@@ -38,7 +38,7 @@ check_docker_container_status() {
     echo "Check docker containers status (attempt $i)"
     echo "-------------------------------------------"
     container_ids=$($DOCKERCOMPOSEBIN ps -q)
-    [ -n "$DEBUG" ] && echo -n "--- DEBUG --- " && echo "Attempt $i -- found containers: '$container_ids'" | tee "$log_file" || true
+    [ -n "$DEBUG" ] && echo -n "--- DEBUG --- " && echo -e "Attempt $i --- Found container(s) ---\n$container_ids\n" | tee "$log_file" || true
     for container_id in $container_ids
     do
       [ -n "$DEBUG" ] && echo -n "--- DEBUG --- " && echo "Processing ID: '$container_id'" | tee -a "$log_file" || true
