@@ -32,7 +32,7 @@ echo "----------------"
 
 unset USE_FDW
 for test in $TESTS ; do
-  GROUP=$test bash it.sh || was_failed=${was_failed:+$was_failed, }$test
+  GROUP=$test PROFILE=$test bash it.sh || was_failed=${was_failed:+$was_failed, }$test
 done
 
 bash compose.sh down # must be down before new next run
@@ -43,7 +43,7 @@ echo "----------------"
 
 export USE_FDW=true
 for test in $TESTS ; do
-  GROUP=$test bash it.sh || was_failed=${was_failed:+$was_failed, }$test'(FDW)'
+  GROUP=$test PROFILE=$test bash it.sh || was_failed=${was_failed:+$was_failed, }$test'(FDW)'
 done
 
 bash compose.sh down # must be down before new next run
@@ -53,7 +53,7 @@ echo "Run test 'ggdbssl' with FDW"
 echo "----------------"
 
 export USE_SSL=true
-GROUP=$test bash it.sh || was_failed=${was_failed:+$was_failed, }${test}'(FDW, SSL)'
+GROUP=$test PROFILE=$test bash it.sh || was_failed=${was_failed:+$was_failed, }${test}'(FDW, SSL)'
 
 echo "-------------------------"
 echo "TOTAL Check tests result status"
