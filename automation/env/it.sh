@@ -5,6 +5,8 @@ export GROUP=${1:-$GROUP}     # Required. Checking below
 export USE_FDW=${2:-$USE_FDW} # use `external-table` if not defined
 export USE_SSL=${3:-$USE_SSL} # used in compose.sh
 
+export PROFILE=${PROFILE:-$GROUP}
+
 export TEST_SERVICE=${TEST_SERVICE:-mdw}
 export ARTIFACTS=${ARTIFACTS:-artifacts}
 export DEBUG_DIR=${DEBUG_DIR:-$ARTIFACTS/docker_logs}
