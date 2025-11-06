@@ -48,8 +48,9 @@ done
 
 bash compose.sh down # must be down before new next run
 
+test='ggdbssl'
 echo "----------------"
-echo "Run test 'ggdbssl' with FDW"
+echo "Run test $test with FDW"
 echo "----------------"
 
 export USE_SSL=true
