@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 # --- Declarations ---
 export GROUP=${1:-$GROUP}     # Required. Checking below
 export USE_FDW=${2:-$USE_FDW} # use `external-table` if not defined
