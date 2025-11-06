@@ -10,7 +10,7 @@ export ARTIFACTS=${ARTIFACTS:-artifacts}
 export DEBUG_DIR=${DEBUG_DIR:-$ARTIFACTS/docker_logs}
 
 # --- Prepare ---
-[ -n "$DEBUG" ] && mkdir -p "$DEBUG_DIR" || true
+mkdir -p "$DEBUG_DIR"
 
 # Set a variable to check the results of all tests at the end of the script
 test_result_status=0
