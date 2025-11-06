@@ -31,7 +31,7 @@ compose_down() {
 
 check_docker_container_status() {
   local i unhealthy_containers container_ids container_id container_name status
-  for i in {01..20}; do
+  for i in {01..99}; do
     local log_file="$DEBUG_DIR/compose_status_attempt_$i.log"
     unset unhealthy_containers
     echo "-------------------------------------------"
@@ -44,15 +44,14 @@ check_docker_container_status() {
       [ -n "$DEBUG" ] && echo -n "--- DEBUG --- " && echo "Processing ID: '$container_id'" | tee -a "$log_file" || true
       container_name=$(docker container ls --all --no-trunc --filter "id=$container_id" --format "{{.Names}}")
       [ -n "$DEBUG" ] && echo -n "--- DEBUG --- " && echo "Processing Name: '$container_name'" | tee -a "$log_file" || true
-      if [[ "$container_name" == 'oracle' ]]; then continue ; fi # skip oracle
       status=$(docker inspect "$container_id" --format "{{.State.Health.Status}}")
       [ -n "$DEBUG" ] && echo -n "--- DEBUG --- " && echo "Status: '$status'" | tee -a "$log_file" || true
       if [[ "$status" != 'healthy' ]]; then unhealthy_containers=${unhealthy_containers:+$unhealthy_containers, }$container_name ; fi
     done
-    $DOCKERCOMPOSEBIN logs >> "$log_file"
+    [ -n "$DEBUG" ] && $DOCKERCOMPOSEBIN logs >> "$log_file" || true
     if [ -n "$unhealthy_containers" ]; then
       echo "Conatainer(s) $unhealthy_containers still unhealthy. Waiting..."
-      sleep 10
+      sleep 15
     else
       echo "---------------------------------------------------------"
       echo "All containers are in the healthy state after $i attempts"
@@ -70,42 +69,10 @@ check_docker_container_status() {
   fi
 }
 
-check_oracle_status() {
-  local i unhealthy_oracle status
-  local container_name='oracle'
-  for i in {01..20}; do
-    unset unhealthy_oracle
-    echo "-----------------------------------"
-    echo "Check $container_name containers status (attempt $i)"
-    echo "-----------------------------------"
-    status=$(docker inspect "$container_name" --format "{{.State.Health.Status}}")
-    if [ "$status" != 'healthy' ]; then
-      unhealthy_oracle="$container_name"
-      echo "Container '$container_name' is not in a healthy status yet. Current status is '$status'."
-      sleep 30
-    else
-      echo "---------------------------------------"
-      echo "$container_name is in the healthy state"
-      echo "---------------------------------------"
-      break;
-    fi
-  done
-
-  if [ -n "$unhealthy_oracle" ]; then
-      echo "--------------------------------------------"
-      echo "$container_name is not in the healthy state after $i attempts"
-      echo "--------------------------------------------"
-      $DOCKERCOMPOSEBIN ps
-      exit 1
-  fi
-}
-
-
 case $1 in
     up)
         compose_up "$2"
         check_docker_container_status
-        [[ "$PROFILE" == 'all' || "$PROFILE" == 'jdbc' ]] && check_oracle_status || true # Additionally check Oracle for specific profiles
         ;;
     down)
         [ -n "$DEBUG" ] && $DOCKERCOMPOSEBIN logs >> "$DEBUG_DIR/compose_before_down.log" || true
