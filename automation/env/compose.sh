@@ -4,13 +4,14 @@ set -e
 # --- Declarations ---
 export DOCKERCOMPOSEBIN="docker compose --profile ${PROFILE:=all}"
 export DEBUG_DIR=${DEBUG_DIR:-artifacts/docker_logs}
+export SCRIPT_DIR=${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
 
 # --- Prepare ---
 mkdir -p "$DEBUG_DIR"
 
 # --- Functions ---
 compose_up() {
-  local compose_file="${1:-docker-compose${USE_SSL:+-ssl}.yaml}"
+  local compose_file="$SCRIPT_DIR/${1:-docker-compose${USE_SSL:+-ssl}.yaml}"
   [ -n "$DEBUG" ] && echo "Starting Docker compose with '$compose_file'" || true
    COMPOSE_HTTP_TIMEOUT=300 $DOCKERCOMPOSEBIN -f "$compose_file" up  --quiet-pull --no-deps -d --remove-orphans
 }

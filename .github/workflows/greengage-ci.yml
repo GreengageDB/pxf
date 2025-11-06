@@ -97,9 +97,10 @@ jobs:
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
       GGDB_IMAGE: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
-      IT_IMAGE: greengagedb/ggdb6_pxf_automation:ghcr-latest
+      IT_IMAGE: greengagedb/ggdb6_pxf_automation
       IT_TAG: ghcr-latest
       DEBUG: 'true'
+      DEBUG_DIR: 'artifacts/docker_logs'
 
     steps:
       # Maximize build space for Docker
@@ -122,14 +123,14 @@ jobs:
       - run: sudo sh -c "mv ${GITHUB_WORKSPACE}/docker/* /var/lib/docker"
       - uses: actions/checkout@v4
       - run: cp /etc/apt/sources.list ./
-      - name: Build '${{ env.IT_IMAGE }}' image
+      - name: Build '${{ env.IT_IMAGE }}:${{ env.IT_TAG }}' image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ci/Dockerfile.${{ github.job }}
           no-cache: true
           push: false
-          tags: ${{ env.IT_IMAGE }}
+          tags: ${{ env.IT_IMAGE }}:${{ env.IT_TAG }}
           build-args: GGDB_IMAGE=${{ env.GGDB_IMAGE }}
       - name: Set up Docker Compose
         uses: docker/setup-compose-action@v1

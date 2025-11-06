@@ -1,7 +1,7 @@
 services:
   mdw:
     profiles: [all, gpdb, smoke, jdbc]
-    image: "greengagedb/ggdb6_pxf_automation:${IT_TAG:-it}"
+    image: "${IT_IMAGE:-greengagedb/ggdb6_pxf_automation}:${IT_TAG:-it}"
     restart: unless-stopped
     working_dir: /home/gpadmin
     hostname: mdw
@@ -46,7 +46,7 @@ services:
 
   sdw1:
     profiles: [all, gpdb, smoke, jdbc]
-    image: "greengagedb/ggdb6_pxf_automation:${IT_TAG:-it}"
+    image: "${IT_IMAGE:-greengagedb/ggdb6_pxf_automation}:${IT_TAG:-it}"
     restart: unless-stopped
     privileged: true
     hostname: sdw1
@@ -78,7 +78,7 @@ services:
 
   sdw2:
     profiles: [all, gpdb, smoke, jdbc]
-    image: "greengagedb/ggdb6_pxf_automation:${IT_TAG:-it}"
+    image: "${IT_IMAGE:-greengagedb/ggdb6_pxf_automation}:${IT_TAG:-it}"
     restart: unless-stopped
     privileged: true
     hostname: sdw2
