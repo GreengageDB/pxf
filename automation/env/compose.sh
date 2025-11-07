@@ -2,7 +2,7 @@
 set -e
 
 # --- Declarations ---
-export DOCKERCOMPOSEBIN="docker compose --project-name ${PROJECT:=pxf-it} --profile ${PROFILE:=all}"
+export DOCKER_COMPOSE="docker compose --project-name ${PROJECT:=pxf-it} --profile ${PROFILE:=all}"
 export DEBUG_DIR=${DEBUG_DIR:-artifacts/docker_logs}
 export SCRIPT_DIR=${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
 
@@ -13,12 +13,12 @@ mkdir -p "$DEBUG_DIR"
 compose_up() {
   local compose_file="$SCRIPT_DIR/${1:-docker-compose${USE_SSL:+-ssl}.yaml}"
   [ -n "$DEBUG" ] && echo "Starting Docker compose with '$compose_file'" || true
-   COMPOSE_HTTP_TIMEOUT=300 $DOCKERCOMPOSEBIN -f "$compose_file" up  --quiet-pull --no-deps -d --remove-orphans
+   COMPOSE_HTTP_TIMEOUT=300 $DOCKER_COMPOSE -f "$compose_file" up  --quiet-pull --no-deps -d --remove-orphans
 }
 
 compose_down() {
   [ -n "$DEBUG" ] && echo -en "Try to stop Docker Composes project '$PROJECT'... " || true
-  COMPOSE_HTTP_TIMEOUT=300 $DOCKERCOMPOSEBIN down || true
+  COMPOSE_HTTP_TIMEOUT=300 $DOCKER_COMPOSE down || true
 } ; export -f compose_down
 
 check_docker_container_status() {
@@ -29,7 +29,7 @@ check_docker_container_status() {
     echo "-------------------------------------------"
     echo "Check docker containers status (attempt $i)"
     echo "-------------------------------------------"
-    container_ids=$($DOCKERCOMPOSEBIN ps -q)
+    container_ids=$($DOCKER_COMPOSE ps -q)
     [ -n "$DEBUG" ] && echo -n "--- DEBUG --- " && echo -e "Attempt $i --- Found container(s) ---\n$container_ids\n" | tee "$log_file" || true
     for container_id in $container_ids
     do
@@ -40,7 +40,7 @@ check_docker_container_status() {
       [ -n "$DEBUG" ] && echo -n "--- DEBUG --- " && echo "Status: '$status'" | tee -a "$log_file" || true
       if [[ "$status" != 'healthy' ]]; then unhealthy_containers=${unhealthy_containers:+$unhealthy_containers, }$container_name ; fi
     done
-    [ -n "$DEBUG" ] && $DOCKERCOMPOSEBIN logs >> "$log_file" || true
+    [ -n "$DEBUG" ] && $DOCKER_COMPOSE logs >> "$log_file" || true
     if [ -n "$unhealthy_containers" ]; then
       echo "Conatainer(s) $unhealthy_containers still unhealthy. Waiting..."
       sleep 15
@@ -56,7 +56,7 @@ check_docker_container_status() {
       echo "--------------------------------------------"
       echo "Conatainer(s) $unhealthy_containers are not in the healthy state after $i attempts"
       echo "--------------------------------------------"
-      $DOCKERCOMPOSEBIN ps
+      $DOCKER_COMPOSE ps
       exit 1
   fi
 }
