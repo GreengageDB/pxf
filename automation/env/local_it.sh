@@ -31,11 +31,6 @@ export IT_TAG=$(yq "${KEY_ENV}.IT_TAG // \"it\"" "$CONFIG")
 export DEBUG_DIR=$(yq "${KEY_ENV}.DEBUG_DIR // \"artifacts/docker_logs\"" "$CONFIG")
 export DEBUG=$(yq "${KEY_ENV}.DEBUG // \"\"" "$CONFIG")
 
-# shellcheck disable=SC2329
-trap_exit() {
-  bash "$SCRIPT_DIR"/compose.sh down # must be down if exit
-} ; trap trap_exit EXIT
-
 # --- Begin ---
 set -e
 if [ "$BUILD_IMAGES" == "true" ]; then

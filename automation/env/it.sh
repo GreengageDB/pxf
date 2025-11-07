@@ -22,6 +22,11 @@ mkdir -p "$DEBUG_DIR"
 test_result_status=0
 
 # --- Functions ---
+# shellcheck disable=SC2329
+trap_exit() {
+  bash "$SCRIPT_DIR"/compose.sh down # must be down if exit
+} ; trap trap_exit EXIT
+
 start_copy_artifacts() {
   local test=$1
   local table_type=$2
@@ -67,6 +72,7 @@ fi
 export TYPE=$([ -n "$USE_FDW" ] && echo -n "FDW" || echo -n "external-table")
 echo -en "-----\n----- Start running '${$GROUP^^}' tests with $TYPE\n-----\n"
 
+bash "$SCRIPT_DIR"/compose.sh down # try down before up. must be clear run
 bash "$SCRIPT_DIR"/compose.sh up
 
 [ -n "$DEBUG" ] && echo "Run '$DOCKER_COMPOSE exec \"$TEST_SERVICE\" sudo -H -u gpadmin bash -l -c \"make -C \$TEST_HOME GROUP=$GROUP USE_FDW=$USE_FDW\"'" | tee -a "$DEBUG_DIR/compose_before_down.log" || true
