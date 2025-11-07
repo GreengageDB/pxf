@@ -70,7 +70,7 @@ fi
 
 # shellcheck disable=SC2155
 export TYPE=$([ -n "$USE_FDW" ] && echo -n "FDW" || echo -n "external-table")
-echo -en "-----\n----- Start running '${$GROUP^^}' tests with $TYPE\n-----\n"
+echo -en "-----\n----- Start running '${GROUP^^}' tests with $TYPE\n-----\n"
 
 bash "$SCRIPT_DIR"/compose.sh down # try down before up. must be clear run
 bash "$SCRIPT_DIR"/compose.sh up
