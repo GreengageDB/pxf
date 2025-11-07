@@ -17,8 +17,9 @@ compose_up() {
 }
 
 compose_down() {
-  [ -n "$DEBUG" ] && echo -en 'Find working Docker Composes... ' || true
-  COMPOSES=$($DOCKERCOMPOSEBIN ls -q)
+  local compose_name='env'
+  [ -n "$DEBUG" ] && echo -en "Find '$compose_name' Docker Composes... " || true
+  COMPOSES=$($DOCKERCOMPOSEBIN ls -q | grep -o "$compose_name")
   if [ -n "$COMPOSES" ]; then
     [ -n "$DEBUG" ] && echo "found: '$COMPOSES'" || true
     for COMPOSE in $COMPOSES; do
