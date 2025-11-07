@@ -33,12 +33,6 @@ export DEBUG=$(yq "${KEY_ENV}.DEBUG // \"\"" "$CONFIG")
 
 # shellcheck disable=SC2329
 trap_exit() {
-  if [ -n "$DEBUG" ]; then
-    mkdir -p "$DEBUG_DIR"
-    docker compose logs >> "$DEBUG_DIR/compose_before_exit.log"
-    journalctl -exu docker >> "$DEBUG_DIR/docker.log"
-    journalctl -exu containerd >> "$DEBUG_DIR/containerd.log"
-  fi
   bash "$SCRIPT_DIR"/compose.sh down # must be down if exit
 } ; trap trap_exit EXIT
 

@@ -20,16 +20,6 @@ mkdir -p "$DEBUG_DIR"
 test_result_status=0
 
 # --- Functions ---
-# shellcheck disable=SC2329
-trap_exit() {
-  if [ -n "$DEBUG" ]; then
-    DEBUG_DIR=${DEBUG_DIR:-'/tmp'} # if EXIT early when definitions completed
-    mkdir -p "$DEBUG_DIR"
-    docker compose logs >> "$DEBUG_DIR/compose_before_exit.log"
-    journalctl -exu docker >> "$DEBUG_DIR/docker.log"
-    journalctl -exu containerd >> "$DEBUG_DIR/containerd.log"
-  fi
-} ; trap trap_exit EXIT
 
 start_copy_artifacts() {
   local test=$1
