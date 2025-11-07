@@ -64,23 +64,23 @@ if [ -z "$GROUP" ] ; then # Variable GROUP required
 fi
 
 # shellcheck disable=SC2155
-export TYPE=$([ -n "$USE_FDW" ] && echo -n "fdw" || echo -n "external-table")
-echo -en "-----\n----- Start running '$GROUP' tests with $TYPE\n-----\n"
+export TYPE=$([ -n "$USE_FDW" ] && echo -n "FDW" || echo -n "external-table")
+echo -en "-----\n----- Start running '${$GROUP^^}' tests with $TYPE\n-----\n"
 
 bash "$SCRIPT_DIR"/compose.sh up
 
 [ -n "$DEBUG" ] && echo "Run '$DOCKER_COMPOSE exec \"$TEST_SERVICE\" sudo -H -u gpadmin bash -l -c \"make -C \$TEST_HOME GROUP=$GROUP USE_FDW=$USE_FDW\"'" | tee -a "$DEBUG_DIR/compose_before_down.log" || true
 $DOCKER_COMPOSE exec "$TEST_SERVICE" sudo -H -u gpadmin bash -l -c "make -C \$TEST_HOME GROUP=$GROUP USE_FDW=$USE_FDW"
-check_test_result $? "$GROUP" "$TYPE"
-start_copy_artifacts "$GROUP" "$TYPE"
+check_test_result $? "${GROUP^^}" "$TYPE"
+start_copy_artifacts "${GROUP,,}" "${TYPE,,}"
 
 echo "-------------------------"
 echo "Check tests result status"
 echo "-------------------------"
 if [ "$test_result_status" -eq "0" ]; then
-  echo "----------------"
-  echo "All tests passed"
-  echo "----------------"
+  echo "-------------------------"
+  echo "Group ${GROUP^^} tests passed"
+  echo "-------------------------"
   exit 0
 else
   echo "----------------------------------------------"
