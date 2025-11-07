@@ -96,9 +96,9 @@ jobs:
       USE_SSL: ${{ matrix.ssl }}
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
-      GGDB_IMAGE: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
+      GGDB_IMAGE: greengagedb/ggdb6_ubuntu:6.29.1
       IT_IMAGE: greengagedb/ggdb6_pxf_automation
-      IT_TAG: ghcr-latest
+      IT_TAG: it
       DEBUG: 'true'
       DEBUG_DIR: 'artifacts/docker_logs'
 
