@@ -1,25 +1,13 @@
 #!/usr/bin/env bash
-set -eu
 
-BUILD_IMAGES=$1
+build_images=$1
 profile=${2:-${PROFILE:-all}}
 run_test_service_name=mdw
 
-export TESTS='smoke gpdb jdbc'
-export LOG_DIR='artifacts/docker_logs'
+# Set a variable to check the results of all tests at the end of the script
+test_result_status=0
 
-# shellcheck disable=SC2329
-trap_exit() {
-  if [ -n "$DEBUG" ]; then
-    mkdir -p "$LOG_DIR"
-    docker compose logs >> "$LOG_DIR/compose_before_exit.log"
-    journalctl -exu docker >> "$LOG_DIR/docker.log"
-    journalctl -exu containerd >> "$LOG_DIR/containerd.log"
-  fi
-  bash compose.sh down
-} ; trap trap_exit EXIT
-
-if [ "$BUILD_IMAGES" == "true" ]; then
+if [ "$build_images" == "true" ]; then
   echo "------------"
   echo "Build images"
   echo "------------"
@@ -27,7 +15,7 @@ if [ "$BUILD_IMAGES" == "true" ]; then
 fi
 
 echo "----------------"
-echo "Start containers without SSL"
+echo "Start containers"
 echo "----------------"
 docker-compose --profile ${profile} up -d
 
@@ -74,28 +62,66 @@ function check_docker_container_status() {
   fi
 }
 
-bash compose.sh down
+start_copy_artifacts() {
+  local test=$1
+  local table_type=$2
+  echo "-------------------------------------"
+  echo "Start copy artifacts for $test ($table_type)"
+  echo "-------------------------------------"
+  CI_PROJECT_DIR=/home/zoro/j/pxf/automation/env/artifacts
+  test_dir=artifacts/$test/$table_type
+  allure_dir=${CI_PROJECT_DIR}/allure-results
+  mkdir -p $test_dir
+  mkdir -p $allure_dir
+  docker-compose cp $run_test_service_name:/home/gpadmin/workspace/pxf/automation/target/surefire-reports ./$test_dir
+  docker-compose cp $run_test_service_name:/home/gpadmin/workspace/pxf/automation/sqlrepo ./$test_dir
+  docker-compose cp $run_test_service_name:/home/gpadmin/workspace/pxf/automation/automation_logs ./$test_dir
+  docker-compose cp $run_test_service_name:/home/gpadmin/workspace/pxf/automation/target/allure-results $allure_dir
+  pxf_log_count=$(docker-compose exec -it $run_test_service_name ls  /tmp/pxf 2> /dev/null | wc -l)
+  if [ "$pxf_log_count" -ge 1 ]; then
+    docker-compose cp $run_test_service_name:/tmp/pxf ./$test_dir
+  fi
+}
 
-echo "----------------"
-echo "Start containers without SSL"
-echo "----------------"
-bash compose.sh up
+check_test_result() {
+  local exit_code=$1
+  local test_group=$2
+  local table_type=$3
+  if [ "$exit_code" -eq "0" ]; then
+    echo "------------------------------------------------------"
+    echo "Test for the group '$test_group' ($table_type) finished with SUCCESS"
+    echo "------------------------------------------------------"
+  else
+    echo "----------------------------------------------------"
+    echo "Test for the group '$test_group' ($table_type) finished with ERROR"
+    echo "----------------------------------------------------"
+    test_result_status=1
+  fi
+}
 
-echo "----------------"
-echo "Run tests '$TESTS' with FDW"
-echo "----------------"
+check_docker_container_status false # We don't need oracle service immediately
 
-export USE_FDW=true
-for test in $TESTS ; do
-  GROUP=$test bash it.sh
-done
+echo "---------------------------------------------"
+echo "Start running smoke tests with external table"
+echo "---------------------------------------------"
+docker-compose exec $run_test_service_name sudo -H -u gpadmin bash -l -c 'pushd $TEST_HOME && make GROUP=smoke'
+check_test_result $? smoke external-table
+start_copy_artifacts smoke external-table
 
-bash compose.sh down
+echo "-------------------------------------------------------------------"
+echo "Start running integration tests in 'gpdb' group with external table"
+echo "-------------------------------------------------------------------"
+docker-compose exec $run_test_service_name sudo -H -u gpadmin bash -l -c 'pushd $TEST_HOME && make GROUP=gpdb'
+check_test_result $? gpdb external-table
+start_copy_artifacts gpdb external-table
 
-echo "----------------"
-echo "Start containers with SSL"
-echo "----------------"
-bash compose.sh up docker-compose-ssl.yaml
+echo "------------------------------------------------------------------------"
+echo "Start running integration tests in 'jdbc' group with external table"
+echo "------------------------------------------------------------------------"
+check_docker_container_status true # We need oracle service to be healthy for this group of tests
+docker-compose exec $run_test_service_name sudo -H -u gpadmin bash -l -c 'pushd $TEST_HOME && make GROUP=jdbc'
+check_test_result $? jdbc external-table
+start_copy_artifacts jdbc external-table
 
 echo "------------------"
 echo "Restart containers"
