@@ -2,7 +2,7 @@
 set -e
 
 # --- Declarations ---
-export DOCKERCOMPOSEBIN="docker compose --profile ${PROFILE:=all}"
+export DOCKERCOMPOSEBIN="docker compose --project-name ${PROJECT:=env} --profile ${PROFILE:=all}"
 export DEBUG_DIR=${DEBUG_DIR:-artifacts/docker_logs}
 export SCRIPT_DIR=${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
 
@@ -17,18 +17,8 @@ compose_up() {
 }
 
 compose_down() {
-  local compose_name='env'
-  [ -n "$DEBUG" ] && echo -en "Find '$compose_name' Docker Composes... " || true
-  COMPOSES=$($DOCKERCOMPOSEBIN ls -q | grep -o "$compose_name")
-  if [ -n "$COMPOSES" ]; then
-    [ -n "$DEBUG" ] && echo "found: '$COMPOSES'" || true
-    for COMPOSE in $COMPOSES; do
-      [ -n "$DEBUG" ] && echo "Stopping $COMPOSE" || true
-      COMPOSE_HTTP_TIMEOUT=300 $DOCKERCOMPOSEBIN -p $COMPOSE down
-    done
-  else
-      [ -n "$DEBUG" ] && echo 'found nothing' || true
-  fi
+  [ -n "$DEBUG" ] && echo -en "Try to stop Docker Composes project '$PROJECT'... " || true
+  COMPOSE_HTTP_TIMEOUT=300 $DOCKERCOMPOSEBIN down || true
 } ; export -f compose_down
 
 check_docker_container_status() {
@@ -77,7 +67,6 @@ case $1 in
         check_docker_container_status
         ;;
     down)
-        [ -n "$DEBUG" ] && $DOCKERCOMPOSEBIN logs >> "$DEBUG_DIR/compose_before_down.log" || true
         compose_down
         ;;
     *)
