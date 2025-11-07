@@ -13,6 +13,7 @@ export ARTIFACTS=${ARTIFACTS:-artifacts}
 export DEBUG_DIR=${DEBUG_DIR:-$ARTIFACTS/docker_logs}
 
 export SCRIPT_DIR=${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
+export DOCKER_COMPOSE="docker compose --project-name $PROJECT --profile $PROFILE"
 
 # --- Prepare ---
 mkdir -p "$DEBUG_DIR"
@@ -30,13 +31,13 @@ start_copy_artifacts() {
   echo "-------------------------------------"
   test_dir="$ARTIFACTS/$test/$table_type"
   mkdir -p "$test_dir"
-  docker compose cp "$TEST_SERVICE:/home/gpadmin/workspace/pxf/automation/target/surefire-reports" "./$test_dir"
-  docker compose cp "$TEST_SERVICE:/home/gpadmin/workspace/pxf/automation/sqlrepo" "./$test_dir"
-  docker compose cp "$TEST_SERVICE:/home/gpadmin/workspace/pxf/automation/automation_logs" "./$test_dir"
-  docker compose cp "$TEST_SERVICE:/home/gpadmin/workspace/pxf/automation/target/allure-results" "./$test_dir"
-  pxf_log_count=$(docker compose exec -it "$TEST_SERVICE" ls  /tmp/pxf 2> /dev/null | wc -l)
+  $DOCKER_COMPOSE cp "$TEST_SERVICE:/home/gpadmin/workspace/pxf/automation/target/surefire-reports" "./$test_dir"
+  $DOCKER_COMPOSE cp "$TEST_SERVICE:/home/gpadmin/workspace/pxf/automation/sqlrepo" "./$test_dir"
+  $DOCKER_COMPOSE cp "$TEST_SERVICE:/home/gpadmin/workspace/pxf/automation/automation_logs" "./$test_dir"
+  $DOCKER_COMPOSE cp "$TEST_SERVICE:/home/gpadmin/workspace/pxf/automation/target/allure-results" "./$test_dir"
+  pxf_log_count=$($DOCKER_COMPOSE exec -it "$TEST_SERVICE" ls  /tmp/pxf 2> /dev/null | wc -l)
   if [ "$pxf_log_count" -ge 1 ]; then
-    docker compose cp "$TEST_SERVICE:/tmp/pxf" ./$test_dir
+    $DOCKER_COMPOSE cp "$TEST_SERVICE:/tmp/pxf" ./$test_dir
   fi
 }
 
@@ -68,8 +69,8 @@ echo -en "-----\n----- Start running '$GROUP' tests with $TYPE\n-----\n"
 
 bash "$SCRIPT_DIR"/compose.sh up
 
-[ -n "$DEBUG" ] && echo "Run 'docker compose exec \"$TEST_SERVICE\" sudo -H -u gpadmin bash -l -c \"make -C \$TEST_HOME GROUP=$GROUP USE_FDW=$USE_FDW\"'" | tee -a "$DEBUG_DIR/compose_before_down.log" || true
-docker compose exec "$TEST_SERVICE" sudo -H -u gpadmin bash -l -c "make -C \$TEST_HOME GROUP=$GROUP USE_FDW=$USE_FDW"
+[ -n "$DEBUG" ] && echo "Run '$DOCKER_COMPOSE exec \"$TEST_SERVICE\" sudo -H -u gpadmin bash -l -c \"make -C \$TEST_HOME GROUP=$GROUP USE_FDW=$USE_FDW\"'" | tee -a "$DEBUG_DIR/compose_before_down.log" || true
+$DOCKER_COMPOSE exec "$TEST_SERVICE" sudo -H -u gpadmin bash -l -c "make -C \$TEST_HOME GROUP=$GROUP USE_FDW=$USE_FDW"
 check_test_result $? "$GROUP" "$TYPE"
 start_copy_artifacts "$GROUP" "$TYPE"
 

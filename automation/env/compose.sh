@@ -2,7 +2,7 @@
 set -e
 
 # --- Declarations ---
-export DOCKER_COMPOSE="docker compose --project-name ${PROJECT:=pxf-it} --profile ${PROFILE:=all}"
+export DOCKER_COMPOSE=${DOCKER_COMPOSE:-"docker compose --project-name ${PROJECT:=pxf-it} --profile ${PROFILE:=all}"}
 export DEBUG_DIR=${DEBUG_DIR:-artifacts/docker_logs}
 export SCRIPT_DIR=${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
 
