@@ -72,6 +72,7 @@ for n in $(seq 0 $(($tests_num-1))) ; do
   echo "---------------------------------------------------------------------------------"
   echo "Run test #$(($n+1)) of $tests_num with: GROUP='$GROUP', FDW='${USE_FDW:-false}', SSL='${USE_SSL:-false}', PROFILE='${PROFILE:-$GROUP}'"
   echo "---------------------------------------------------------------------------------"
+  bash "$SCRIPT_DIR"/compose.sh down # must be down before new run
   pushd "$SCRIPT_DIR"
   if ! bash "$SCRIPT_DIR"/it.sh ; then  # Collect failed tests
     unset opts
