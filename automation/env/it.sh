@@ -5,7 +5,8 @@ export GROUP=${1:-$GROUP}     # Required. Checking below
 export USE_FDW=${2:-$USE_FDW} # use `external-table` if not defined
 export USE_SSL=${3:-$USE_SSL} # used in compose.sh
 
-export PROFILE=${PROFILE:-$GROUP}
+export PROFILE=${PROFILE:-$GROUP} # docker compose profile same as group if not defined
+export PROJECT=${PROJECT:-pxf-it} # docker compose project default name 'pxf-it'
 
 export TEST_SERVICE=${TEST_SERVICE:-mdw}
 export ARTIFACTS=${ARTIFACTS:-artifacts}
@@ -20,7 +21,6 @@ mkdir -p "$DEBUG_DIR"
 test_result_status=0
 
 # --- Functions ---
-
 start_copy_artifacts() {
   local test=$1
   local table_type=$2
