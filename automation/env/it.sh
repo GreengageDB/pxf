@@ -80,8 +80,8 @@ bash "$SCRIPT_DIR"/compose.sh up
 
 [ -n "$DEBUG" ] && echo "Run 'docker compose exec \"$TEST_SERVICE\" sudo -H -u gpadmin bash -l -c \"make -C \$TEST_HOME GROUP=$GROUP USE_FDW=$USE_FDW\"'" | tee -a "$DEBUG_DIR/compose_before_down.log" || true
 docker compose exec "$TEST_SERVICE" sudo -H -u gpadmin bash -l -c "make -C \$TEST_HOME GROUP=$GROUP USE_FDW=$USE_FDW"
-check_test_result $? "$GROUP" "$$TYPE"
-start_copy_artifacts "$GROUP" "$$TYPE"
+check_test_result $? "$GROUP" "$TYPE"
+start_copy_artifacts "$GROUP" "$TYPE"
 
 echo "-------------------------"
 echo "Check tests result status"
