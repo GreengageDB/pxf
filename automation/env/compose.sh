@@ -17,7 +17,7 @@ compose_up() {
 }
 
 compose_down() {
-  [ -n "$DEBUG" ] && echo -en "Try to stop Docker Composes project '$PROJECT'... " || true
+  [ -n "$DEBUG" ] && echo -en "Try to stop '$PROJECT'... " || true
   COMPOSE_HTTP_TIMEOUT=300 $DOCKER_COMPOSE down || true
 } ; export -f compose_down
 
