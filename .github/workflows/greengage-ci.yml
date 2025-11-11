@@ -27,19 +27,26 @@ jobs:
       matrix:
         include:
           - image: greengagedb/ggdb6_ubuntu:6.29.1
-            dev_home: /home/gpadmin
-            version: dh-6.29.1
+            release: stable
+            version: '6'
           - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
-            dev_home: /home/gpadmin
-            version: ghcr-latest
+            release: devel
+            version: '6'
+          - image: greengagedb/ggdb7_ubuntu:7.4.0
+            release: stable
+            version: '7'
+          - image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
+            release: devel
+            version: '7'
+
     container:
       image: ${{ matrix.image }}
       volumes:
-        - ${{ github.workspace }}:${{ matrix.dev_home }}/pxf
+        - ${{ github.workspace }}:/home/gpadmin/pxf
       env:
         PXF_HOME: ${{ env.PXF_HOME }}
-        DEV_HOME: ${{ matrix.dev_home }}
-        PXF_SRC: ${{ matrix.dev_home }}/pxf
+        DEV_HOME: /home/gpadmin
+        PXF_SRC: /home/gpadmin/pxf
         GPHOME: ${{ env.GPHOME }}
         GOPATH: ${{ env.GOPATH }}
         PATH: ${{ env.GPHOME }}/bin:${{ env.PXF_HOME }}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:${{ env.GOPATH }}/bin
@@ -59,21 +66,19 @@ jobs:
         uses: actions/cache@v4
         with:
           path: build/*.deb
-          key: pxf-deb-${{ github.sha }}-${{ matrix.version }}
+          key: pxf-deb-${{ github.sha }}-${{ matrix.version }}-${{ matrix.release }}
       - name: Upload build artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pxf-deb-${{ matrix.version }}
+          name: pxf-deb-${{ matrix.version }}-${{ matrix.release }}
           path: build/*.deb
 
+  # This job holds the list of tests
   integration:
-    name: IT '${{ matrix.test }}' with ${{ matrix.fdw && 'FDW' || 'external table' }}${{ matrix.ssl && ' and SSL' || '' }}
+    if: false # fake job for configuration multi-matrix tests
     runs-on: ubuntu-latest
-    timeout-minutes: 180
-
     strategy:
-      fail-fast: false
       matrix:
         include:
           - test: smoke
@@ -89,6 +94,50 @@ jobs:
             fdw: 'true'
             ssl: 'true'
 
+  # Job to generate the combined matrix
+  integration-matrix-gen:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.generate-matrix.outputs.matrix_output }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install yq and jq (usually pre-installed on GitHub runners)
+        # Ensure yq v4+ is available (e.g., using a setup action if needed)
+        run: |
+          echo "yq version: $(yq --version)"
+          echo "jq version: $(jq --version)"
+
+      - name: Generate combined matrix configurations
+        id: generate-matrix
+        run: |
+          YAML_FILE="${GITHUB_WORKSPACE}/${GITHUB_WORKFLOW_REF#*/}"
+          IMAGES_JSON=$(yq eval '.jobs.build.strategy.matrix.include' "$YAML_FILE" -o=json)
+          TESTS_JSON=$(yq eval '.jobs.integration.strategy.matrix.include' "$YAML_FILE" -o=json)
+          COMBINED_MATRIX=$(echo "$IMAGES_JSON" "$TESTS_JSON" | jq -s '
+            .[0] as $images |
+            .[1] as $tests |
+            [
+              $images[] as $image |
+              $tests[] as $test |
+              $image + $test
+            ]
+          ')
+          echo "matrix_output=$COMBINED_MATRIX" >> "$GITHUB_OUTPUT"
+
+  # Job that runs based on the dynamically generated matrix
+  integration-matrix:
+    needs: integration-matrix-gen
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ needs.integration-matrix-gen.outputs.matrix }}
+    timeout-minutes: 180
+    
+    name: IT '${{ matrix.test }}' with ${{ matrix.fdw && 'FDW' || 'external table' }}${{ matrix.ssl && ' and SSL' || '' }} on ${{ matrix.image }}
+    
     env:
       PROFILE: ${{ matrix.test }}
       GROUP: ${{ matrix.test }}
@@ -96,13 +145,24 @@ jobs:
       USE_SSL: ${{ matrix.ssl }}
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
-      GGDB_IMAGE: greengagedb/ggdb6_ubuntu:6.29.1
-      IT_IMAGE: greengagedb/ggdb6_pxf_automation
+      GGDB_IMAGE: ${{ matrix.image }}
+      IT_IMAGE: greengagedb/ggdb${{ matrix.version }}_pxf_automation_${{ matrix.release }}
       IT_TAG: it
       DEBUG: 'true'
       DEBUG_DIR: 'artifacts/docker_logs'
 
     steps:
+      - name: Debug works message
+        run: |
+          echo "Running test: ${{ matrix.test }}"
+          echo "Using image: ${{ matrix.image }}"
+          if [ "${{ matrix.fdw }}" == "true" ]; then
+            echo "FDW is enabled."
+          fi
+          if [ "${{ matrix.ssl }}" == "true" ]; then
+            echo "SSL is enabled."
+          fi
+
       # Maximize build space for Docker
       - name: Move /var/lib/docker/
         run: sudo mv /var/lib/docker/ "${GITHUB_WORKSPACE}/docker"
@@ -150,7 +210,7 @@ jobs:
           if-no-files-found: warn
 
   regression:
-    name: Regression on ${{ matrix.version }} image
+    name: Regression on ${{ matrix.release }} v${{ matrix.version }} image
     runs-on: ubuntu-latest
     timeout-minutes: 180
 
@@ -166,16 +226,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Build PXF regression image ${{ matrix.version }}
+      - name: Build PXF regression image ${{ matrix.release }} v${{ matrix.version }} 
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./ci/Dockerfile.${{ github.job }}
           push: false
-          tags: greengagedb/ggdb6_pxf_regression:${{ matrix.version }}
+          tags: greengagedb/ggdb6_pxf_regression:${{ matrix.version }}-${{ matrix.release }}
           build-args: GGDB_IMAGE=${{ matrix.image }}
 
-      - name: Run regression on ${{ matrix.version }} image
+      - name: Run regression on ${{ matrix.release }} v${{ matrix.version }} image
         shell: bash
         run: |
           mkdir logs
@@ -183,7 +243,7 @@ jobs:
             -v ./logs:/logs \
             --sysctl 'kernel.sem=500 1024000 200 4096' \
             --privileged \
-            greengagedb/ggdb6_pxf_regression:${{ matrix.version }} \
+            greengagedb/ggdb6_pxf_regression:${{ matrix.version }}-${{ matrix.release }} \
             bash -c "
               set +e
               cd /tmp/build || status=1
@@ -198,7 +258,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: logs_regression-${{ matrix.version }}
+          name: logs_regression-${{ matrix.version }}-${{ matrix.release }}
           path: logs
           retention-days: 7
           if-no-files-found: warn

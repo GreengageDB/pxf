@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC1087,2155,2004
 # --- Presets ---
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) ; export SCRIPT_DIR=${SCRIPT_DIR:-.}
 CONFIG=$1 ; export CONFIG=${CONFIG:-"$SCRIPT_DIR"/../../.github/workflows/greengage-ci.yml}
@@ -8,11 +9,11 @@ yq_version=$(yq --version 2>/dev/null)
 if [ -z "$yq_version" ] ; then
   echo -n "Utility YQ not found but required. Try to install... "
   install_log=$(mktemp)
-  sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq &> $install_log
-  sudo chmod +x /usr/local/bin/yq &>> $install_log
+  sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq | tee "$install_log"
+  sudo chmod +x /usr/local/bin/yq | tee -a "$install_log"
   yq_version=$(yq --version 2>/dev/null)
   [ -z "$yq_version" ] && { echo "failed. Process terminated. See log: 'cat $install_log'" ; exit 1; } \
-               || { echo -ne "completed. Installed $yq_version\n" ; rm -f $install_log; }
+               || { echo -ne "completed. Installed $yq_version\n" ; rm -f "$install_log"; }
 else
   echo "Utility YQ found: $yq_version"
 fi
@@ -21,12 +22,12 @@ fi
 [ -r "$CONFIG" ] || { echo "Config file '$CONFIG' not readable. Process terminated"; exit 1; }
 
 # --- Configure ---
-export KEY_ENV='.jobs.integration.env'
+export KEY_ENV='.jobs.integration-matrix.env'
 export KEY_TESTS='.jobs.integration.strategy.matrix.include'
 
-export GGDB_IMAGE=$(yq "${KEY_ENV}.GGDB_IMAGE // \"ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest\"" "$CONFIG")
-export IT_IMAGE=$(yq "${KEY_ENV}.IT_IMAGE // \"greengagedb/ggdb6_pxf_automation\"" "$CONFIG")
-export IT_TAG=$(yq "${KEY_ENV}.IT_TAG // \"it\"" "$CONFIG")
+export GGDB_IMAGE=$(yq '.jobs.build.strategy.matrix.include[0].image // "ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest\"' "$CONFIG")
+export IT_IMAGE='greengagedb/ggdb6_pxf_automation'
+export IT_TAG='it'
 
 export DEBUG_DIR=$(yq "${KEY_ENV}.DEBUG_DIR // \"artifacts/docker_logs\"" "$CONFIG")
 export DEBUG=$(yq "${KEY_ENV}.DEBUG // \"\"" "$CONFIG")
