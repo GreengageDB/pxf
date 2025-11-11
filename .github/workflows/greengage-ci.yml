@@ -20,7 +20,7 @@ env:
 
 jobs:
   build:
-    name: Build PXF Packages
+    name: Build PXF on ${{ matrix.release }} image v${{ matrix.version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -216,18 +216,25 @@ jobs:
     timeout-minutes: 180
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - image: greengagedb/ggdb6_ubuntu:6.29.1
-            dev_home: /home/gpadmin
-            version: dh-6.29.1
-          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
-            dev_home: /home/gpadmin
-            version: ghcr-latest
+            release: stable
+            version: '6'
+          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+            release: devel
+            version: '6'
+          - image: greengagedb/ggdb7_ubuntu:7.4.0
+            release: stable
+            version: '7'
+          - image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
+            release: devel
+            version: '7'
 
     steps:
       - uses: actions/checkout@v4
-      - name: Build PXF regression image ${{ matrix.release }} v${{ matrix.version }} 
+      - name: Build PXF regression ${{ matrix.release }} image v${{ matrix.version }} 
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -236,7 +243,7 @@ jobs:
           tags: greengagedb/ggdb6_pxf_regression:${{ matrix.version }}-${{ matrix.release }}
           build-args: GGDB_IMAGE=${{ matrix.image }}
 
-      - name: Run regression on ${{ matrix.release }} v${{ matrix.version }} image
+      - name: Run regression on ${{ matrix.release }} image v${{ matrix.version }}
         shell: bash
         run: |
           mkdir logs
