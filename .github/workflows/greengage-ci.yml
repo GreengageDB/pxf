@@ -103,8 +103,7 @@ jobs:
     outputs:
       matrix: ${{ steps.generate-matrix.outputs.matrix_output }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install yq and jq (usually pre-installed on GitHub runners)
         # Ensure yq v4+ is available (e.g., using a setup action if needed)
@@ -136,8 +135,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ needs.integration-matrix-gen.outputs.matrix }}
-    timeout-minutes: 180
+        include: ${{ fromJson(needs.integration-matrix-gen.outputs.matrix) }}
     
     name: IT '${{ matrix.test }}' with ${{ matrix.fdw && 'FDW' || 'external table' }}${{ matrix.ssl && ' and SSL' || '' }} on ${{ matrix.image }}
     
