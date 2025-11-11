@@ -61,18 +61,18 @@ jobs:
           cd $PXF_SRC
           bash ci/build_in_docker.sh
           git config --global --add safe.directory $PXF_SRC
-          make deb
-      - name: Cache deb packages
-        uses: actions/cache@v4
-        with:
-          path: build/*.deb
-          key: pxf-deb-${{ github.sha }}-${{ matrix.version }}-${{ matrix.release }}
-      - name: Upload build artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pxf-deb-${{ matrix.version }}-${{ matrix.release }}
-          path: build/*.deb
+          # make deb
+      # - name: Cache deb packages
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: build/*.deb
+      #     key: pxf-deb-${{ github.sha }}-${{ matrix.version }}-${{ matrix.release }}
+      # - name: Upload build artifacts
+      #   if: always()
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: pxf-deb-${{ matrix.version }}-${{ matrix.release }}
+      #     path: build/*.deb
 
   # This job holds the list of tests
   integration-matrix:
