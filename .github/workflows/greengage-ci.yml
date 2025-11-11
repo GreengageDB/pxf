@@ -93,6 +93,9 @@ jobs:
           - test: ggdbssl
             fdw: 'true'
             ssl: 'true'
+    steps:
+      - name: Fake step
+        run: echo "This is fake configuration job and this"
 
   # Job to generate the combined matrix
   integration-matrix-gen:
