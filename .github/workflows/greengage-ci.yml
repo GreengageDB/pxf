@@ -115,7 +115,7 @@ jobs:
       - name: Generate combined matrix configurations
         id: generate-matrix
         run: |
-          YAML_FILE="${GITHUB_WORKSPACE}/${GITHUB_WORKFLOW_REF#*/}"
+          YAML_FILE="${GITHUB_WORKSPACE}/.github/workflows/greengage-ci.yml"
           IMAGES_JSON=$(yq eval '.jobs.build.strategy.matrix.include' "$YAML_FILE" -o=json)
           TESTS_JSON=$(yq eval '.jobs.integration.strategy.matrix.include' "$YAML_FILE" -o=json)
           COMBINED_MATRIX=$(echo "$IMAGES_JSON" "$TESTS_JSON" | jq -s '
