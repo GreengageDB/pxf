@@ -22,8 +22,8 @@ fi
 [ -r "$CONFIG" ] || { echo "Config file '$CONFIG' not readable. Process terminated"; exit 1; }
 
 # --- Configure ---
-export KEY_ENV='.jobs.integration-matrix.env'
-export KEY_TESTS='.jobs.integration.strategy.matrix.include'
+export KEY_ENV='.jobs.integration.env'
+export KEY_TESTS='.jobs.integration-matrix.strategy.matrix.include'
 
 export GGDB_IMAGE=$(yq '.jobs.build.strategy.matrix.include[0].image // "ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest\"' "$CONFIG")
 export IT_IMAGE='greengagedb/ggdb6_pxf_automation'

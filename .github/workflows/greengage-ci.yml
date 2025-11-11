@@ -75,7 +75,7 @@ jobs:
           path: build/*.deb
 
   # This job holds the list of tests
-  integration:
+  integration-matrix:
     if: false # fake job for configuration multi-matrix tests
     runs-on: ubuntu-latest
     strategy:
@@ -116,7 +116,7 @@ jobs:
         run: |
           YAML_FILE="${GITHUB_WORKSPACE}/.github/workflows/greengage-ci.yml"
           IMAGES_JSON=$(yq eval '.jobs.build.strategy.matrix.include' "$YAML_FILE" -o=json)
-          TESTS_JSON=$(yq eval '.jobs.integration.strategy.matrix.include' "$YAML_FILE" -o=json)
+          TESTS_JSON=$(yq eval '.jobs.integration-matrix.strategy.matrix.include' "$YAML_FILE" -o=json)
           COMBINED_MATRIX=$(echo "$IMAGES_JSON" "$TESTS_JSON" | jq -s -c '
             .[0] as $images |
             .[1] as $tests |
@@ -129,7 +129,7 @@ jobs:
           echo "matrix_output=$COMBINED_MATRIX" >> "$GITHUB_OUTPUT"
 
   # Job that runs based on the dynamically generated matrix
-  integration-matrix:
+  integration:
     needs: integration-matrix-gen
     runs-on: ubuntu-latest
     strategy:
