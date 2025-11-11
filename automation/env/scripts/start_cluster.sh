@@ -306,7 +306,12 @@ do
   fi
 
   if [ "$HOSTNAME" == "$DOCKER_GG_MASTER_SERVER" ]; then
-    sudo -H -u gpadmin bash -c -l "pxf start && tail -f /data1/master/gpseg-1/pg_log/gpdb-*.csv"
+    if [ -d "/data1/master/gpseg-1/pg_log" ]; then
+      log_dir="pg_log"
+    else
+      log_dir="log"
+    fi
+    sudo -H -u gpadmin bash -c -l "pxf start && tail -f /data1/master/gpseg-1/${log_dir}/gpdb-*.csv"
   else
     sudo -H -u gpadmin bash -c -l "pxf start && tail -f /usr/local/greengage-db-devel/pxf/logs/pxf-service.log"
   fi
