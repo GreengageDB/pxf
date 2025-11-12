@@ -44,7 +44,8 @@ public class PushdownPredicateInTest extends BaseFeature {
             "INTO system.predicate_in_source_table VALUES (4, 'text4')\n" +
             "INTO system.predicate_in_source_table VALUES (5, 'text5')\n" +
             "SELECT 1 FROM DUAL";
-    private static final String GET_LATEST_MASTER_LOG_COMMAND = "source $GPHOME/greengage_path.sh;psql -d %s -Atc 'SELECT pg_current_logfile();'";
+    private static final String GET_MASTER_LOG_DIRECTORY_COMMAND = "source $GPHOME/greengage_path.sh;psql -d %s -Atc 'show log_directory'";
+    private static final String GET_LATEST_MASTER_LOG_COMMAND = "$(stat -c '%%Y %%n' %s/gpdb-*.csv | sort -k1,1nr | head -1 | awk '{ print $2 }')";
     private static final String POSTGRES_SEGMENT_LOG_GREP_COMMAND = "cat " + PXF_TEMP_LOG_PATH + " | grep ' FILTER target:  WHERE id IN (2,3)' | wc -l";
     private static final String GET_STATS_QUERY = "SELECT count(*) FROM v$sqlstats " +
             "WHERE SQL_FULLTEXT LIKE 'SELECT id, descr FROM " + SOURCE_TABLE_SCHEMA + "." + SOURCE_TABLE_NAME + " WHERE id IN (3,4,5)'";
@@ -60,7 +61,7 @@ public class PushdownPredicateInTest extends BaseFeature {
     @Override
     protected void beforeClass() throws Exception {
         if (!FDWUtils.useFDW) {
-            latestMasterLog = getMasterLog();
+            latestMasterLog = String.format(GET_LATEST_MASTER_LOG_COMMAND, getMasterLogDirectory());
             String pxfHome = cluster.getPxfHome();
             restartCommand = pxfHome + "/bin/pxf restart";
             String pxfJdbcSiteConfPath = String.format(PXF_JDBC_SITE_CONF_FILE_PATH_TEMPLATE, pxfHome, PXF_ORACLE_SERVER_PROFILE);
@@ -141,7 +142,7 @@ public class PushdownPredicateInTest extends BaseFeature {
         cleanLogs();
         runSqlTest("features/jdbc/predicate-in/postgres");
         String result = getCmdResult(cluster,
-                "cat " +  latestMasterLog + " | grep -v snapshot | grep -e 'SELECT id, descr FROM " + SOURCE_TABLE_NAME + " WHERE id IN (2,3)' | wc -l");
+                "cat " + latestMasterLog + " | grep -v snapshot | grep -e 'SELECT id, descr FROM " + SOURCE_TABLE_NAME + " WHERE id IN (2,3)' | wc -l");
         assertEquals("1", result);
     }
 
@@ -174,9 +175,9 @@ public class PushdownPredicateInTest extends BaseFeature {
         cluster.runCommandOnNodes(pxfNodes, "> " + pxfLogFile);
     }
 
-    private String getMasterLog() throws Exception {
-        String command = String.format(GET_LATEST_MASTER_LOG_COMMAND, gpdb.getDb());
-        String lastLog = PxfTestUtil.getCmdResult(cluster, command);
-        return "$MASTER_DATA_DIRECTORY/" + lastLog;
+    private String getMasterLogDirectory() throws Exception {
+        String command = String.format(GET_MASTER_LOG_DIRECTORY_COMMAND, gpdb.getDb());
+        PxfTestUtil.getCmdResult(cluster, command);
+        return "$MASTER_DATA_DIRECTORY/" + PxfTestUtil.getCmdResult(cluster, command);
     }
 }
