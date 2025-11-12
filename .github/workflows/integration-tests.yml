@@ -27,6 +27,9 @@ jobs:
 
     runs-on: ubuntu-latest
     env:
+      DEV_HOME: /home/gpadmin
+      PXF_HOME: /usr/local/greengage-db-devel/pxf
+      GPHOME:   /usr/local/greengage-db-devel
       PROFILE: ${{ matrix.test }}
       GROUP: ${{ matrix.test }}
       USE_FDW: ${{ matrix.fdw }}
