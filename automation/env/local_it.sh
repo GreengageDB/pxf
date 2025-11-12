@@ -35,9 +35,9 @@ echo "Found ${#TEST_SECTIONS[@]} test(s)"
 # --- Run tests ---
 was_failed=""
 for section in "${TEST_SECTIONS[@]}"; do
-  GROUP=$(ini_get "tests.$section" profile "$CONFIG")
-  USE_FDW=$(ini_get "tests.$section" fdw "$CONFIG")
-  USE_SSL=$(ini_get "tests.$section" ssl "$CONFIG")
+  export GROUP=$(ini_get "tests.$section" profile "$CONFIG")
+  export USE_FDW=$(ini_get "tests.$section" fdw "$CONFIG")
+  export USE_SSL=$(ini_get "tests.$section" ssl "$CONFIG")
 
   echo "------------------------------------------------------"
   echo "Running test '$GROUP' (FDW=$USE_FDW, SSL=$USE_SSL)"
@@ -45,7 +45,7 @@ for section in "${TEST_SECTIONS[@]}"; do
 
   pushd "$SCRIPT_DIR" > /dev/null
   if ! bash it.sh ; then
-    opts=""
+    unset opts
     [ "$USE_FDW" = "true" ] && opts=${opts:+$opts,}FDW
     [ "$USE_SSL" = "true" ] && opts=${opts:+$opts,}SSL
     was_failed=${was_failed:+$was_failed, }$GROUP${opts:+"($opts)"}
