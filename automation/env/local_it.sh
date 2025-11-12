@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC1087,2155,2004,2207
 set -e
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 CONFIG=${1:-"$SCRIPT_DIR/local_it.ini"}
@@ -14,11 +15,11 @@ function ini_get() {
 }
 
 # --- Read general settings ---
-GGDB_IMAGE=$(ini_get general ggdb_image "$CONFIG")
-IT_IMAGE=$(ini_get general it_image "$CONFIG")
-IT_TAG=$(ini_get general it_tag "$CONFIG")
-DEBUG_DIR=$(ini_get general debug_dir "$CONFIG")
-DEBUG=$(ini_get general debug "$CONFIG")
+export GGDB_IMAGE=$(ini_get general ggdb_image "$CONFIG")
+export IT_IMAGE=$(ini_get general it_image "$CONFIG")
+export IT_TAG=$(ini_get general it_tag "$CONFIG")
+export DEBUG_DIR=$(ini_get general debug_dir "$CONFIG")
+export DEBUG=$(ini_get general debug "$CONFIG")
 
 # --- Build IT image if missing ---
 if ! docker image inspect "$IT_IMAGE:$IT_TAG" &>/dev/null; then
