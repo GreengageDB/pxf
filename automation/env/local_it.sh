@@ -35,9 +35,10 @@ echo "Found ${#TEST_SECTIONS[@]} test(s)"
 # --- Run tests ---
 was_failed=""
 for section in "${TEST_SECTIONS[@]}"; do
-  export GROUP=$(ini_get "tests.$section" profile "$CONFIG")
+  export GROUP="$section"
   export USE_FDW=$(ini_get "tests.$section" fdw "$CONFIG")
   export USE_SSL=$(ini_get "tests.$section" ssl "$CONFIG")
+  export PROFILE=$(ini_get "tests.$section" profile "$CONFIG")
 
   echo "------------------------------------------------------"
   echo "Running test '$GROUP' (FDW=$USE_FDW, SSL=$USE_SSL)"
