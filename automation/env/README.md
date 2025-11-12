@@ -5,9 +5,9 @@ run integration tests for Greengage PXF. These scripts are originally designed
 to be executed by the GitHub CI workflow, but can also be run locally for
 development and debugging purposes.
 
-The main entry point for local execution is `local_it.sh`, which emulates the
-CI integration testing process defined in
-`.github/workflows/greengage-ci.yml`.
+The main entry point for local execution is `local_it.sh`, which reads
+configuration from a dedicated `.ini` file (`local_it.ini`) instead of the CI
+workflow.
 
 ---
 
@@ -39,8 +39,9 @@ Runs a specific integration test group (e.g. `smoke`, `gpdb`, `jdbc`,
 
 ### `local_it.sh`
 
-Main entry point for local execution. Emulates the CI workflow: builds
-images, runs all test groups sequentially, and collects artifacts.
+Main entry point for local execution. Reads configuration from
+`local_it.ini`, builds images if needed, runs all test groups sequentially,
+and collects artifacts.
 
 ### `run_it.sh`
 
@@ -65,13 +66,9 @@ other Linux distributions, but additional manual setup may be required.
     ```
 
 - **YQ (v4.x)**
-  - Required for reading test configuration from
-    `.github/workflows/greengage-ci.yml`.
-  - On Linux-like systems, YQ is installed automatically when missing.
-  - On other systems, install manually following the instructions here:  
-    [https://github.com/mikefarah/yq#install](https://github.com/mikefarah/yq#install)
-  - Note: older 3.x versions (often installed via `apt`, `yum`, or `brew` on
-    older systems) are not supported.
+  - Required only if manually parsing YAML; local execution uses `.ini` file.
+  - On Linux-like systems, YQ can still be installed if needed.
+
 - **GNU Bash**
 - **Coreutils** (standard on Linux)
 
@@ -109,8 +106,7 @@ This will:
 
 1. Build the integration test image if not exists
    (`greengagedb/ggdb6_pxf_automation`).
-2. Sequentially run all configured test groups (`smoke`, `gpdb`, `jdbc`,
-   `ggdbssl`, etc.).
+2. Sequentially run all configured test groups defined in `local_it.ini`.
 3. Collect and store artifacts under `automation/env/artifacts`.
 
 ### Manual execution
@@ -145,15 +141,15 @@ GROUP=gpdb USE_FDW=true bash it.sh
 
 ## Configuration Source
 
-All test configurations, groups, and image definitions are derived from:
+All local test configurations, groups, and image definitions are now stored
+in the dedicated `.ini` file:
 
 ```text
-.github/workflows/greengage-ci.yml
+automation/env/local_it.ini
 ```
 
-This file defines the canonical CI configuration. `local_it.sh` reads it
-directly to replicate the same setup locally. To modify test sets or
-configurations, edit the CI file - not the local scripts.
+This file defines the canonical local test configuration. `local_it.sh` reads
+it directly to replicate the integration test setup locally.
 
 ---
 
@@ -186,26 +182,26 @@ When you run `local_it.sh`, the workflow proceeds as follows:
 
 ```mermaid
 flowchart TD
-    A[Start local_it.sh] --> B[Check and install YQ utility]
-    B --> C[Read CI config<br/>.github/workflows/greengage-ci.yml]
-    C --> D[Extract configuration:<br/>GGDB_IMAGE, IT_IMAGE, IT_TAG, DEBUG_DIR]
-    D --> E{BUILD_IMAGES=true<br/>or image missing?}
-    E -->|Yes| F[Build Docker images<br/>build-images.sh]
+    A[Start local_it.sh] --> B[Check and install YQ utility if needed]
+    B --> C[Read configuration from local_it.ini]
+    C --> D[Extract configuration: GGDB_IMAGE, IT_IMAGE, IT_TAG, DEBUG_DIR]
+    D --> E{BUILD_IMAGES=true or image missing?}
+    E -->|Yes| F[Build Docker images build-images.sh]
     E -->|No| G[Skip image build]
     F --> H[Clean project & build PXF image]
     H --> I
-    G --> I[Get number of test groups from CI config]
+    G --> I[Get number of test groups from INI config]
     I --> J[Loop through all test groups]
     
-    J --> K[Extract group parameters:<br/>GROUP, USE_FDW, USE_SSL, PROFILE]
-    K --> L[Run integration test<br/>it.sh]
+    J --> K[Extract group parameters: GROUP, USE_FDW, USE_SSL, PROFILE]
+    K --> L[Run integration test it.sh]
     
-    L --> M[compose.sh down<br/>Clean previous containers]
-    M --> N[compose.sh up<br/>Start containers with profile]
-    N --> O[Execute tests in mdw container<br/>make GROUP=$GROUP USE_FDW=$USE_FDW]
+    L --> M[compose.sh down Clean previous containers]
+    M --> N[compose.sh up Start containers with profile]
+    N --> O[Execute tests in mdw container make GROUP=$GROUP USE_FDW=$USE_FDW]
     O --> P{Test passed?}
     P -->|No| Q[Mark group as failed]
-    P -->|Yes| R[Copy artifacts:<br/>surefire-reports, sqlrepo,<br/>automation_logs, allure-results, pxf logs]
+    P -->|Yes| R[Copy artifacts: surefire-reports, sqlrepo, automation_logs, allure-results, pxf logs]
     R --> S{More groups?}
     
     S -->|Yes| J
@@ -229,7 +225,7 @@ flowchart TD
    - Utilities such as `pxf_regress` for query analysis, file comparison, and
      automation logging
 3. `local_it.sh` ensures that the local execution mimics the CI workflow by
-   reading `.github/workflows/greengage-ci.yml`.
+   reading `local_it.ini`.
 4. Artifacts (logs, diffs, Allure results) are stored in
    `automation/env/artifacts` for post-run analysis.
 5. If SSL or FDW is required, containers are restarted with the appropriate
