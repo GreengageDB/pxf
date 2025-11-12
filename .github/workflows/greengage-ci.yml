@@ -74,142 +74,6 @@ jobs:
       #     name: pxf-deb-${{ matrix.version }}-${{ matrix.release }}
       #     path: build/*.deb
 
-  # This job holds the list of tests
-  integration-matrix:
-    if: false # fake job for configuration multi-matrix tests
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - test: smoke
-          - test: gpdb
-          - test: jdbc
-          - test: smoke
-            fdw: 'true'
-          - test: gpdb
-            fdw: 'true'
-          - test: jdbc
-            fdw: 'true'
-          - test: ggdbssl
-            fdw: 'true'
-            ssl: 'true'
-    steps:
-      - name: Fake step
-        run: echo "This is fake configuration job and this"
-
-  # Job to generate the combined matrix
-  integration-matrix-gen:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.generate-matrix.outputs.matrix_output }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install yq and jq (usually pre-installed on GitHub runners)
-        # Ensure yq v4+ is available (e.g., using a setup action if needed)
-        run: |
-          echo "yq version: $(yq --version)"
-          echo "jq version: $(jq --version)"
-
-      - name: Generate combined matrix configurations
-        id: generate-matrix
-        run: |
-          YAML_FILE="${GITHUB_WORKSPACE}/.github/workflows/greengage-ci.yml"
-          IMAGES_JSON=$(yq eval '.jobs.build.strategy.matrix.include' "$YAML_FILE" -o=json)
-          TESTS_JSON=$(yq eval '.jobs.integration-matrix.strategy.matrix.include' "$YAML_FILE" -o=json)
-          COMBINED_MATRIX=$(echo "$IMAGES_JSON" "$TESTS_JSON" | jq -s -c '
-            .[0] as $images |
-            .[1] as $tests |
-            [
-              $images[] as $image |
-              $tests[] as $test |
-              $image + $test
-            ]
-          ')
-          echo "matrix_output=$COMBINED_MATRIX" >> "$GITHUB_OUTPUT"
-
-  # Job that runs based on the dynamically generated matrix
-  integration:
-    needs: integration-matrix-gen
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJson(needs.integration-matrix-gen.outputs.matrix) }}
-    
-    name: IT '${{ matrix.test }}' with ${{ matrix.fdw && 'FDW' || 'external table' }}${{ matrix.ssl && ' and SSL' || '' }} on ${{ matrix.image }}
-    
-    env:
-      PROFILE: ${{ matrix.test }}
-      GROUP: ${{ matrix.test }}
-      USE_FDW: ${{ matrix.fdw }}
-      USE_SSL: ${{ matrix.ssl }}
-      JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
-      DEBIAN_FRONTEND: noninteractive
-      GGDB_IMAGE: ${{ matrix.image }}
-      IT_IMAGE: greengagedb/ggdb${{ matrix.version }}_pxf_automation_${{ matrix.release }}
-      IT_TAG: it
-      DEBUG: 'true'
-      DEBUG_DIR: 'artifacts/docker_logs'
-
-    steps:
-      - name: Debug works message
-        run: |
-          echo "Running test: ${{ matrix.test }}"
-          echo "Using image: ${{ matrix.image }}"
-          if [ "${{ matrix.fdw }}" == "true" ]; then
-            echo "FDW is enabled."
-          fi
-          if [ "${{ matrix.ssl }}" == "true" ]; then
-            echo "SSL is enabled."
-          fi
-
-      # Maximize build space for Docker
-      - name: Move /var/lib/docker/
-        run: sudo mv /var/lib/docker/ "${GITHUB_WORKSPACE}/docker"
-
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 512
-          temp-reserve-mb: 32
-          swap-size-mb: 32
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
-          remove-docker-images: 'false'
-          build-mount-path: '/var/lib/docker/'
-
-      - run: sudo sh -c "mv ${GITHUB_WORKSPACE}/docker/* /var/lib/docker"
-      - uses: actions/checkout@v4
-      - run: cp /etc/apt/sources.list ./
-      - name: Build '${{ env.IT_IMAGE }}:${{ env.IT_TAG }}' image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ci/Dockerfile.${{ github.job }}
-          no-cache: true
-          push: false
-          tags: ${{ env.IT_IMAGE }}:${{ env.IT_TAG }}
-          build-args: GGDB_IMAGE=${{ env.GGDB_IMAGE }}
-      - name: Set up Docker Compose
-        uses: docker/setup-compose-action@v1
-      - name: Run '${{ matrix.test }}' test with ${{ matrix.fdw && 'FDW' || 'external table' }}${{ matrix.ssl && ' and SSL' || '' }}
-        run: |
-          set -ex
-          cd automation/env
-          bash it.sh
-
-      - name: Upload integration tests artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: integration-${{ matrix.test }}-${{ matrix.release }}-v${{ matrix.version }}${{ matrix.fdw && '-fdw' || '' }}${{ matrix.ssl && '-ssl' || '' }}
-          path: automation/env/artifacts/
-          retention-days: 7
-          if-no-files-found: warn
-
   regression:
     name: Regression on ${{ matrix.release }} v${{ matrix.version }} image
     runs-on: ubuntu-latest
@@ -270,3 +134,44 @@ jobs:
           path: logs
           retention-days: 7
           if-no-files-found: warn
+
+  integration-ggdb6-stable:
+    uses: ./.github/workflows/integration-tests.yml
+    with:
+      image: greengagedb/ggdb6_ubuntu:6.29.1
+      version: '6'
+      release: stable
+      tests_matrix: |
+        [
+          { "test": "smoke" },
+          { "test": "gpdb" },
+          { "test": "jdbc" },
+          { "test": "smoke", "fdw": "true" },
+          { "test": "gpdb", "fdw": "true" },
+          { "test": "jdbc", "fdw": "true" },
+          { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
+        ]
+
+  integration-ggdb6-devel:
+    uses: ./.github/workflows/integration-tests.yml
+    with:
+      image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+      version: '6'
+      release: devel
+      tests_matrix: ${{ jobs.integration-ggdb6-stable.with.tests_matrix }}
+
+  integration-ggdb7-stable:
+    uses: ./.github/workflows/integration-tests.yml
+    with:
+      image: greengagedb/ggdb7_ubuntu:7.4.0
+      version: '7'
+      release: stable
+      tests_matrix: ${{ jobs.integration-ggdb6-stable.with.tests_matrix }}
+
+  integration-ggdb7-devel:
+    uses: ./.github/workflows/integration-tests.yml
+    with:
+      image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
+      version: '7'
+      release: devel
+      tests_matrix: ${{ jobs.integration-ggdb6-stable.with.tests_matrix }}

@@ -1,0 +1,63 @@
+name: Integration Tests (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      release:
+        required: true
+        type: string
+      tests_matrix:
+        required: true
+        type: string  # JSON string with test matrix
+
+jobs:
+  integration:
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(inputs.tests_matrix) }}
+
+    name: IT '${{ matrix.test }}'${{ matrix.fdw && ' FDW' || '' }}${{ matrix.ssl && ' SSL' || '' }} on ${{ inputs.image }}
+
+    runs-on: ubuntu-latest
+    env:
+      PROFILE: ${{ matrix.test }}
+      GROUP: ${{ matrix.test }}
+      USE_FDW: ${{ matrix.fdw }}
+      USE_SSL: ${{ matrix.ssl }}
+      GGDB_IMAGE: ${{ inputs.image }}
+      IT_IMAGE: greengagedb/ggdb${{ inputs.version }}_pxf_automation_${{ inputs.release }}
+      IT_TAG: it
+      JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
+      DEBIAN_FRONTEND: noninteractive
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build '${{ env.IT_IMAGE }}:${{ env.IT_TAG }}' image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ci/Dockerfile.integration
+          tags: ${{ env.IT_IMAGE }}:${{ env.IT_TAG }}
+          build-args: GGDB_IMAGE=${{ env.GGDB_IMAGE }}
+
+      - name: Run '${{ matrix.test }}' integration test
+        run: |
+          set -ex
+          cd automation/env
+          bash it.sh
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-${{ matrix.test }}-${{ inputs.release }}-v${{ inputs.version }}${{ matrix.fdw && '-fdw' || '' }}${{ matrix.ssl && '-ssl' || '' }}
+          path: automation/env/artifacts/
+          retention-days: 7
