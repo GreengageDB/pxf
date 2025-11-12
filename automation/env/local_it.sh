@@ -1,85 +1,66 @@
 #!/bin/bash
-# shellcheck disable=SC1087,2155,2004
-# --- Presets ---
-SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) ; export SCRIPT_DIR=${SCRIPT_DIR:-.}
-CONFIG=$1 ; export CONFIG=${CONFIG:-"$SCRIPT_DIR"/../../.github/workflows/greengage-ci.yml}
-
-# Check YQ Utility
-yq_version=$(yq --version 2>/dev/null)
-if [ -z "$yq_version" ] ; then
-  echo -n "Utility YQ not found but required. Try to install... "
-  install_log=$(mktemp)
-  sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq | tee "$install_log"
-  sudo chmod +x /usr/local/bin/yq | tee -a "$install_log"
-  yq_version=$(yq --version 2>/dev/null)
-  [ -z "$yq_version" ] && { echo "failed. Process terminated. See log: 'cat $install_log'" ; exit 1; } \
-               || { echo -ne "completed. Installed $yq_version\n" ; rm -f "$install_log"; }
-else
-  echo "Utility YQ found: $yq_version"
-fi
-
-# Check config file
-[ -r "$CONFIG" ] || { echo "Config file '$CONFIG' not readable. Process terminated"; exit 1; }
-
-# --- Configure ---
-export KEY_ENV='.jobs.integration.env'
-export KEY_TESTS='.jobs.integration-matrix.strategy.matrix.include'
-
-export GGDB_IMAGE=$(yq '.jobs.build.strategy.matrix.include[0].image // "ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest\"' "$CONFIG")
-export IT_IMAGE='greengagedb/ggdb6_pxf_automation'
-export IT_TAG='it'
-
-export DEBUG_DIR=$(yq "${KEY_ENV}.DEBUG_DIR // \"artifacts/docker_logs\"" "$CONFIG")
-export DEBUG=$(yq "${KEY_ENV}.DEBUG // \"\"" "$CONFIG")
-
-# --- Begin ---
 set -e
-if [ "$BUILD_IMAGES" == "true" ]; then
-  echo "------------"
-  echo "Force (re)build image $IT_IMAGE:$IT_TAG"
-  echo "------------"
-  bash "$SCRIPT_DIR"/build-images.sh
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+CONFIG=${1:-"$SCRIPT_DIR/local_it.ini"}
+
+# --- Helper function to read INI ---
+function ini_get() {
+  local section=$1 key=$2 file=$3
+  awk -F '=' -v section="$section" -v key="$key" '
+    $0 ~ "\\[" section "\\]" { in_section=1; next }
+    /^\[.*\]/ { in_section=0 }
+    in_section && $1 ~ key { gsub(/^[ \t]+|[ \t]+$/,"",$2); print $2; exit }
+  ' "$file"
+}
+
+# --- Read general settings ---
+GGDB_IMAGE=$(ini_get general ggdb_image "$CONFIG")
+IT_IMAGE=$(ini_get general it_image "$CONFIG")
+IT_TAG=$(ini_get general it_tag "$CONFIG")
+DEBUG_DIR=$(ini_get general debug_dir "$CONFIG")
+DEBUG=$(ini_get general debug "$CONFIG")
+
+# --- Build IT image if missing ---
+if ! docker image inspect "$IT_IMAGE:$IT_TAG" &>/dev/null; then
+  echo "Building integration test image $IT_IMAGE:$IT_TAG..."
+  bash "$SCRIPT_DIR/build-images.sh"
 fi
 
-if ! docker image inspect $IT_IMAGE:$IT_TAG &>/dev/null ; then
-  echo "------------"
-  echo "Integreation tests image $IT_IMAGE:$IT_TAG not found locally. Building"
-  echo "------------"
-  bash "$SCRIPT_DIR"/build-images.sh
-fi
+# --- Collect all test sections ---
+TEST_SECTIONS=($(grep '^\[tests\.' "$CONFIG" | sed 's/^\[tests\.//;s/\]//'))
 
-tests_num=$(yq  "$KEY_TESTS | length" "$CONFIG")
-echo "----------------"
-echo "Tests found: $tests_num"
-echo "----------------"
+echo "Found ${#TEST_SECTIONS[@]} test(s)"
 
-unset was_failed
-for n in $(seq 0 $(($tests_num-1))) ; do
-  export GROUP=$(yq "$KEY_TESTS[$n].test" "$CONFIG")
-  export USE_FDW=$(yq "$KEY_TESTS[$n].fdw // \"\"" "$CONFIG")
-  export USE_SSL=$(yq "$KEY_TESTS[$n].ssl // \"\"" "$CONFIG")
-  export PROFILE=$(yq "$KEY_TESTS[$n].profile // \"\"" "$CONFIG")
-  echo "---------------------------------------------------------------------------------"
-  echo "Run test #$(($n+1)) of $tests_num with: GROUP='$GROUP', FDW='${USE_FDW:-false}', SSL='${USE_SSL:-false}', PROFILE='${PROFILE:-$GROUP}'"
-  echo "---------------------------------------------------------------------------------"
-  pushd "$SCRIPT_DIR"
-  if ! bash "$SCRIPT_DIR"/it.sh ; then  # Collect failed tests
-    unset opts
-    [ -n "$USE_FDW" ] && opts=${opts:+$opts,}FDW || true
-    [ -n "$USE_SSL" ] && opts=${opts:+$opts,}SSL || true
+# --- Run tests ---
+was_failed=""
+for section in "${TEST_SECTIONS[@]}"; do
+  GROUP=$(ini_get "tests.$section" profile "$CONFIG")
+  USE_FDW=$(ini_get "tests.$section" fdw "$CONFIG")
+  USE_SSL=$(ini_get "tests.$section" ssl "$CONFIG")
+
+  echo "------------------------------------------------------"
+  echo "Running test '$GROUP' (FDW=$USE_FDW, SSL=$USE_SSL)"
+  echo "------------------------------------------------------"
+
+  pushd "$SCRIPT_DIR" > /dev/null
+  if ! bash it.sh ; then
+    opts=""
+    [ "$USE_FDW" = "true" ] && opts=${opts:+$opts,}FDW
+    [ "$USE_SSL" = "true" ] && opts=${opts:+$opts,}SSL
     was_failed=${was_failed:+$was_failed, }$GROUP${opts:+"($opts)"}
   fi
-  popd
+  popd > /dev/null
 done
 
 if [ -z "$was_failed" ]; then
   echo "----------------------------"
-  echo "Grand TOTAL $tests_num test(s) passed"
+  echo "All ${#TEST_SECTIONS[@]} test(s) passed"
   echo "----------------------------"
   exit 0
 else
   echo "----------------------------------------------"
-  echo "This tests(s) was failed: $was_failed. Check logs and reports"
+  echo "Failed test(s): $was_failed"
+  echo "Check logs and reports in $DEBUG_DIR"
   echo "----------------------------------------------"
   exit 1
 fi
