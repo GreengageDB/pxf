@@ -42,7 +42,7 @@ start_copy_artifacts() {
   $DOCKER_COMPOSE cp "$TEST_SERVICE:/home/gpadmin/workspace/pxf/automation/target/allure-results" "./$test_dir"
   pxf_log_count=$($DOCKER_COMPOSE exec -it "$TEST_SERVICE" ls  /tmp/pxf 2> /dev/null | wc -l)
   if [ "$pxf_log_count" -ge 1 ]; then
-    $DOCKER_COMPOSE cp "$TEST_SERVICE:/tmp/pxf" ./$test_dir
+    $DOCKER_COMPOSE cp "$TEST_SERVICE:/tmp/pxf" "./$test_dir"
   fi
 }
 

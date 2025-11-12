@@ -6,8 +6,7 @@ to be executed by the GitHub CI workflow, but can also be run locally for
 development and debugging purposes.
 
 The main entry point for local execution is `local_it.sh`, which reads
-configuration from a dedicated `.ini` file (`local_it.ini`) instead of the CI
-workflow.
+configuration from a dedicated `.ini` file (`local_it.ini`).
 
 ---
 
@@ -25,7 +24,7 @@ environment setup, test execution, and artifact collection.
 ### `build-images.sh`
 
 Builds the Docker image `greengagedb/ggdb6_pxf_automation` used for
-integration testing. Used by both previous GitLab CI and local runs.
+integration testing.
 
 ### `compose.sh`
 
@@ -34,26 +33,72 @@ environment. Ensures required services are healthy before tests start.
 
 ### `it.sh`
 
-Runs a specific integration test group (e.g. `smoke`, `gpdb`, `jdbc`,
-`ggdbssl`) with optional parameters for FDW and SSL modes.
+Runs a specific integration test group with configurable parameters for FDW
+and SSL modes.
 
 ### `local_it.sh`
 
-Main entry point for local execution. Reads configuration from
-`local_it.ini`, builds images if needed, runs all test groups sequentially,
-and collects artifacts.
+**Main entry point for local execution**. Reads configuration from
+`local_it.ini`, builds images if needed, runs all configured test scenarios
+sequentially, and collects artifacts.
 
 ### `run_it.sh`
 
-Legacy script preserved for compatibility with the previous (GitLab) CI system.
+Legacy script preserved for compatibility with the previous CI system.
 Not recommended for new use.
+
+---
+
+## Configuration-Based Test Management
+
+### New INI-Based Configuration System
+
+The test execution now uses a flexible INI-file configuration system
+(`local_it.ini`) that allows defining multiple test scenarios with different
+parameters.
+
+#### Configuration Structure
+
+```ini
+[general]           ; Global settings (images, debug options)
+[default]           ; Default values reset before each test scenario
+[scenario_name]     ; Test scenario with description as section name
+```
+
+#### Key Concepts
+
+- **Section names** serve as human-readable test descriptions
+- **GROUP** variable defines the actual test group (smoke, gpdb, jdbc,
+ggdbssl)
+- **PROFILE** specifies the test profile (defaults to 'all')
+- **USE_FDW** and **USE_SSL** enable additional features
+- Each scenario automatically resets to default values before execution
+
+#### Example Configuration
+
+```ini
+[smoke_test_basic]
+GROUP=smoke
+PROFILE=smoke
+
+[smoke_test_with_fdw]
+GROUP=smoke
+PROFILE=smoke
+USE_FDW=1
+
+[ggdb_ssl_test]
+GROUP=ggdbssl
+PROFILE=ggdbssl
+USE_FDW=1
+USE_SSL=1
+```
 
 ---
 
 ## System Requirements
 
-The scripts were developed and tested on **Ubuntu 24.04 LTS**. They may work on
-other Linux distributions, but additional manual setup may be required.
+The scripts were developed and tested on **Ubuntu 24.04 LTS**. They may work
+on other Linux distributions, but additional manual setup may be required.
 
 ### Required components
 
@@ -64,10 +109,6 @@ other Linux distributions, but additional manual setup may be required.
     ```bash
     curl -fsSL https://get.docker.com | sh
     ```
-
-- **YQ (v4.x)**
-  - Required only if manually parsing YAML; local execution uses `.ini` file.
-  - On Linux-like systems, YQ can still be installed if needed.
 
 - **GNU Bash**
 - **Coreutils** (standard on Linux)
@@ -83,8 +124,7 @@ other Linux distributions, but additional manual setup may be required.
 ## Directory Structure
 
 All scripts are located in `automation/env`. It is recommended to execute them
-from this directory, even though `local_it.sh` attempts to support execution
-from arbitrary paths.
+from this directory.
 
 Test results, logs, and diffs are saved to `automation/env/artifacts/`
 
@@ -104,52 +144,29 @@ bash local_it.sh
 
 This will:
 
-1. Build the integration test image if not exists
-   (`greengagedb/ggdb6_pxf_automation`).
-2. Sequentially run all configured test groups defined in `local_it.ini`.
-3. Collect and store artifacts under `automation/env/artifacts`.
+1. Read configuration from `local_it.ini`
+2. Build the integration test image if not exists
+3. Sequentially run all configured test scenarios
+4. Collect and store artifacts under `automation/env/artifacts`
 
-### Manual execution
+### Manual execution of specific scenarios
 
-Each stage can be executed manually:
-
-```bash
-bash build-images.sh
-bash compose.sh up
-bash it.sh
-bash compose.sh down
-```
-
-Optional environment variables (examples):
-
-| Variable    | Description                                                |
-|-------------|------------------------------------------------------------|
-| `GROUP`     | Test group to execute (`smoke`, `gpdb`, `jdbc`, `ggdbssl`) |
-| `USE_FDW`   | Enables FDW-based tests (`true` / unset)                   |
-| `USE_SSL`   | Enables SSL tests (`true` / unset)                         |
-| `PROFILE`   | Specifies test profile (usually same as `GROUP`)           |
-| `DEBUG`     | Enables verbose output and additional logs                 |
-| `DEBUG_DIR` | Path to store collected logs (default: `artifacts/docker_logs`) |
-
-Example:
+Each test scenario can be executed manually by setting environment variables:
 
 ```bash
 GROUP=gpdb USE_FDW=true bash it.sh
 ```
 
----
+### Environment Variables
 
-## Configuration Source
-
-All local test configurations, groups, and image definitions are now stored
-in the dedicated `.ini` file:
-
-```text
-automation/env/local_it.ini
-```
-
-This file defines the canonical local test configuration. `local_it.sh` reads
-it directly to replicate the integration test setup locally.
+| Variable    | Description                                      |
+|-------------|--------------------------------------------------|
+| `GROUP`     | Test group (smoke, gpdb, jdbc, ggdbssl)         |
+| `USE_FDW`   | Enables FDW-based tests (any non-empty value)   |
+| `USE_SSL`   | Enables SSL tests (any non-empty value)         |
+| `PROFILE`   | Test profile (defaults to 'all')                |
+| `DEBUG`     | Enables verbose output and additional logs      |
+| `DEBUG_DIR` | Path for logs (default: `artifacts/docker_logs`)|
 
 ---
 
@@ -161,6 +178,7 @@ After test execution, artifacts are stored under
 - Test logs
 - Docker container logs
 - `.diffs` files from regression checks
+- Allure test reports
 
 These files are used to analyze test results and diagnose failures.
 
@@ -173,41 +191,36 @@ tests located in `automation/`. They manage environment creation, Docker
 container orchestration, and test execution, without implementing the tests
 themselves.
 
-The PXF automation framework (`automation/`) contains TestNG-based tests for
-PXF functionalities and exposes utility APIs for interacting with GGDB, HDFS,
-Hive, HBase, and PXF services. It requires a running Hadoop cluster, GGDB, and
-JRE 1.8.
-
 When you run `local_it.sh`, the workflow proceeds as follows:
 
 ```mermaid
 flowchart TD
-    A[Start local_it.sh] --> B[Check and install YQ utility if needed]
-    B --> C[Read configuration from local_it.ini]
-    C --> D[Extract configuration: GGDB_IMAGE, IT_IMAGE, IT_TAG, DEBUG_DIR]
-    D --> E{BUILD_IMAGES=true or image missing?}
-    E -->|Yes| F[Build Docker images build-images.sh]
-    E -->|No| G[Skip image build]
-    F --> H[Clean project & build PXF image]
-    H --> I
-    G --> I[Get number of test groups from INI config]
-    I --> J[Loop through all test groups]
+    A[Start local_it.sh] --> B[Read configuration]
+    B --> C[Load general and default values]
+    C --> D{Image exists?}
+    D -->|No| E[Build Docker image]
+    D -->|Yes| F[Skip build]
+    E --> G
+    F --> G[Discover scenarios]
+    G --> H[Loop scenarios]
     
-    J --> K[Extract group parameters: GROUP, USE_FDW, USE_SSL, PROFILE]
-    K --> L[Run integration test it.sh]
+    H --> I[Reset defaults]
+    I --> J[Apply scenario config]
+    J --> K[Validate GROUP]
+    K --> L[Run test]
     
-    L --> M[compose.sh down Clean previous containers]
-    M --> N[compose.sh up Start containers with profile]
-    N --> O[Execute tests in mdw container make GROUP=$GROUP USE_FDW=$USE_FDW]
-    O --> P{Test passed?}
-    P -->|No| Q[Mark group as failed]
-    P -->|Yes| R[Copy artifacts: surefire-reports, sqlrepo, automation_logs, allure-results, pxf logs]
-    R --> S{More groups?}
+    L --> M[Stop containers]
+    M --> N[Start containers]
+    N --> O[Execute tests]
+    O --> P{Passed?}
+    P -->|No| Q[Mark failed]
+    P -->|Yes| R[Collect artifacts]
+    R --> S{More?}
     
-    S -->|Yes| J
+    S -->|Yes| H
     S -->|No| T{Any failures?}
-    T -->|No| U[All tests passed]
-    T -->|Yes| V[Some tests failed]
+    T -->|No| U[All passed]
+    T -->|Yes| V[Report failures]
     
     U --> W[Exit 0]
     V --> X[Exit 1]
@@ -216,30 +229,23 @@ flowchart TD
 
 **Key Points:**
 
-1. The environment scripts do **not implement the tests** themselves - they
-   prepare Docker containers, configure the environment, and call the actual
-   PXF automation tests.
-2. Test logic is implemented in `automation/` and uses:
-   - TestNG via Maven
-   - APIs for interacting with GGDB, PXF, HDFS, Hive, HBase
-   - Utilities such as `pxf_regress` for query analysis, file comparison, and
-     automation logging
-3. `local_it.sh` ensures that the local execution mimics the CI workflow by
-   reading `local_it.ini`.
-4. Artifacts (logs, diffs, Allure results) are stored in
-   `automation/env/artifacts` for post-run analysis.
-5. If SSL or FDW is required, containers are restarted with the appropriate
-   configuration (`docker-compose-ssl.yaml`).
+1. **Flexible Configuration**: Test scenarios defined in `local_it.ini`
+2. **Automatic Reset**: Each scenario starts with clean defaults
+3. **Environment Isolation**: Variables properly exported to child processes
+4. **Comprehensive Reporting**: Failed tests show scenario name and GROUP
+
+The PXF automation framework (`automation/`) contains TestNG-based tests for
+PXF functionalities and exposes utility APIs for interacting with GGDB, HDFS,
+Hive, HBase, and PXF services.
 
 **Summary:**
-This mechanism allows a developer to run PXF integration tests locally in a
-controlled and reproducible way, following the same sequence as CI, while
-keeping the actual test logic in the main `automation` framework.
+This mechanism allows developers to run PXF integration tests locally in a
+controlled and reproducible way, with flexible scenario configuration and
+comprehensive artifact collection.
 
 ---
 
 ## Legacy Note
 
 The script `run_it.sh` is retained for backward compatibility with the legacy
-GitLab-based CI pipeline. All new development and debugging should use
-`local_it.sh`. See [README_run_it.md](automation/env/README_run_it.md).
+CI pipeline. All new development and debugging should use `local_it.sh`.
