@@ -79,6 +79,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: integration-${{ matrix.test }}-${{ inputs.release }}-v${{ inputs.version }}${{ matrix.fdw && '-fdw' || '' }}${{ matrix.ssl && '-ssl' || '' }}
+          name: integration-ggdb${{ inputs.version }}-${{ inputs.release }}-${{ matrix.test }}${{ matrix.fdw && '-fdw' || '' }}${{ matrix.ssl && '-ssl' || '' }}
           path: automation/env/artifacts/
           retention-days: 7

@@ -130,7 +130,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: logs_regression-${{ matrix.version }}-${{ matrix.release }}
+          name: regression-ggdb${{ matrix.version }}-${{ matrix.release }}
           path: logs
           retention-days: 7
           if-no-files-found: warn
