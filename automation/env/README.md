@@ -51,9 +51,9 @@ Not recommended for new use.
 
 ## Configuration-Based Test Management
 
-### New INI-Based Configuration System
+### INI-Based Configuration System
 
-The test execution now uses a flexible INI-file configuration system
+The test execution uses a flexible INI-file configuration system
 (`local_it.ini`) that allows defining multiple test scenarios with different
 parameters.
 
@@ -69,28 +69,29 @@ parameters.
 
 - **Section names** serve as human-readable test descriptions
 - **GROUP** variable defines the actual test group (smoke, gpdb, jdbc,
-ggdbssl)
+ggdbssl) - **MANDATORY** for each test section
 - **PROFILE** specifies the test profile (defaults to 'all')
 - **USE_FDW** and **USE_SSL** enable additional features
 - Each scenario automatically resets to default values before execution
+- Values in sections are executed as bash code (use with caution)
 
 #### Example Configuration
 
 ```ini
-[smoke_test_basic]
+[Smoke_External_Table]
 GROUP=smoke
 PROFILE=smoke
 
-[smoke_test_with_fdw]
-GROUP=smoke
-PROFILE=smoke
-USE_FDW=1
+[GPDB_With_FDW]
+GROUP=gpdb
+PROFILE=gpdb
+USE_FDW=true
 
-[ggdb_ssl_test]
+[GGDB_With_FDW_SSL]
 GROUP=ggdbssl
 PROFILE=ggdbssl
-USE_FDW=1
-USE_SSL=1
+USE_FDW=true
+USE_SSL=true
 ```
 
 ---
@@ -145,7 +146,7 @@ bash local_it.sh
 This will:
 
 1. Read configuration from `local_it.ini`
-2. Build the integration test image if not exists
+2. Build the integration test image if not exists (or if BUILD_IMAGES=true)
 3. Sequentially run all configured test scenarios
 4. Collect and store artifacts under `automation/env/artifacts`
 
@@ -195,44 +196,48 @@ When you run `local_it.sh`, the workflow proceeds as follows:
 
 ```mermaid
 flowchart TD
-    A[Start local_it.sh] --> B[Read configuration]
-    B --> C[Load general and default values]
-    C --> D{Image exists?}
-    D -->|No| E[Build Docker image]
-    D -->|Yes| F[Skip build]
-    E --> G
-    F --> G[Discover scenarios]
-    G --> H[Loop scenarios]
+    A[Start local_it.sh] --> B[Read local_it.ini]
+    B --> C[Load general section]
+    C --> D[Load default section for reset]
+    D --> E[Discover test sections]
+    E --> F{Build images?}
+    F -->|BUILD_IMAGES=true| G[Build images]
+    F -->|Image missing| G
+    F -->|Skip| H[Proceed to tests]
+    G --> H
     
-    H --> I[Reset defaults]
-    I --> J[Apply scenario config]
-    J --> K[Validate GROUP]
-    K --> L[Run test]
+    H --> I[Loop test sections]
+    I --> J[Reset to default values]
+    J --> K[Apply section variables]
+    K --> L{GROUP defined?}
+    L -->|No| M[Error and exit]
+    L -->|Yes| N[Run test scenario]
     
-    L --> M[Stop containers]
-    M --> N[Start containers]
-    N --> O[Execute tests]
-    O --> P{Passed?}
-    P -->|No| Q[Mark failed]
-    P -->|Yes| R[Collect artifacts]
-    R --> S{More?}
+    N --> O[Stop containers]
+    O --> P[Start containers]
+    P --> Q[Execute tests]
+    Q --> R{Test passed?}
+    R -->|No| S[Record failure]
+    R -->|Yes| T[Continue]
     
-    S -->|Yes| H
-    S -->|No| T{Any failures?}
-    T -->|No| U[All passed]
-    T -->|Yes| V[Report failures]
+    S --> T
+    T --> U{More sections?}
+    U -->|Yes| I
+    U -->|No| V{Any failures?}
+    V -->|No| W[All tests passed]
+    V -->|Yes| X[Report failed tests]
     
-    U --> W[Exit 0]
-    V --> X[Exit 1]
-    Q --> R
+    W --> Y[Exit 0]
+    X --> Z[Exit 1]
 ```
 
 **Key Points:**
 
 1. **Flexible Configuration**: Test scenarios defined in `local_it.ini`
 2. **Automatic Reset**: Each scenario starts with clean defaults
-3. **Environment Isolation**: Variables properly exported to child processes
-4. **Comprehensive Reporting**: Failed tests show scenario name and GROUP
+3. **Mandatory GROUP**: Every test section must define GROUP variable
+4. **Conditional Build**: Images built only when missing or forced
+5. **Comprehensive Reporting**: Failed tests show scenario name and parameters
 
 The PXF automation framework (`automation/`) contains TestNG-based tests for
 PXF functionalities and exposes utility APIs for interacting with GGDB, HDFS,
