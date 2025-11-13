@@ -13,8 +13,13 @@ CONFIG=${1:-"$SCRIPT_DIR/local_it.ini"} ; export CONFIG
 function apply_section_vars() {
     local section=$1
     awk -F '=' -v section="$section" '
-        $0 ~ "\\[" section "\\]" { in_section=1; next }
-        /^\[.*\]/ { in_section=0 }
+        {
+            sub(/[ \t]*[;#].*$/, "", $0)
+            gsub(/^[ \t]+|[ \t]+$/, "", $0)
+        }
+        NF == 0 { next }
+        $0 ~ "^[[:space:]]*\\[" section "\\][[:space:]]*$" { in_section=1; next }
+        /^[[:space:]]*\\[.*\\][[:space:]]*$/ { in_section=0 }
         in_section && $1 ~ /^[a-zA-Z_][a-zA-Z0-9_]*$/ {
             gsub(/^[ \t]+|[ \t]+$/, "", $1)
             gsub(/^[ \t]+|[ \t]+$/, "", $2)
@@ -75,7 +80,7 @@ for section in "${TEST_SECTIONS[@]}"; do
 
   pushd "$SCRIPT_DIR" > /dev/null
   if ! bash "$SCRIPT_DIR"/it.sh ; then
-    opts=""
+    unset opts
     [ -n "$USE_FDW" ] && opts=${opts:+$opts,}FDW
     [ -n "$USE_SSL" ] && opts=${opts:+$opts,}SSL
     was_failed=${was_failed:+$was_failed, }$GROUP${opts:+" (with $opts)"}
