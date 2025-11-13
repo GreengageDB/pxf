@@ -20,7 +20,7 @@ env:
 
 jobs:
   build:
-    name: Build PXF on ${{ matrix.release }} image v${{ matrix.version }}
+    name: Build on ggdb${{ matrix.version }}-${{ matrix.release }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -75,7 +75,7 @@ jobs:
       #     path: build/*.deb
 
   regression:
-    name: Regression on ${{ matrix.release }} v${{ matrix.version }} image
+    name: Regression on ggdb${{ matrix.version }}-${{ matrix.release }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
 
@@ -136,6 +136,7 @@ jobs:
           if-no-files-found: warn
 
   integration-ggdb6-stable:
+    name: Integration on ggdb6-stable
     uses: ./.github/workflows/integration-tests.yml
     with:
       image: greengagedb/ggdb6_ubuntu:6.29.1
@@ -153,6 +154,7 @@ jobs:
         ]
 
   integration-ggdb6-devel:
+    name: Integration on ggdb6-devel
     uses: ./.github/workflows/integration-tests.yml
     with:
       image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
@@ -170,6 +172,7 @@ jobs:
         ]
 
   integration-ggdb7-stable:
+    name: Integration on ggdb7-stable
     uses: ./.github/workflows/integration-tests.yml
     with:
       image: greengagedb/ggdb7_ubuntu:7.4.0
@@ -187,6 +190,7 @@ jobs:
         ]
 
   integration-ggdb7-devel:
+    name: Integration on ggdb7-devel
     uses: ./.github/workflows/integration-tests.yml
     with:
       image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
