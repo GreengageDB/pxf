@@ -98,16 +98,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Build PXF regression ${{ matrix.release }} image v${{ matrix.version }} 
+      - name: Build PXF regression on ggdb${{ matrix.version }}-${{ matrix.release }} 
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./ci/Dockerfile.${{ github.job }}
           push: false
-          tags: greengagedb/ggdb${{ matrix.version }}_pxf_regression:${{ matrix.version }}-${{ matrix.release }}
+          tags: greengagedb/ggdb${{ matrix.version }}_pxf_regression:${{ matrix.release }}
           build-args: GGDB_IMAGE=${{ matrix.image }}
 
-      - name: Run regression on ${{ matrix.release }} image v${{ matrix.version }}
+      - name: Run regression on ggdb${{ matrix.version }}-${{ matrix.release }}
         shell: bash
         run: |
           mkdir logs
@@ -115,7 +115,7 @@ jobs:
             -v ./logs:/logs \
             --sysctl 'kernel.sem=500 1024000 200 4096' \
             --privileged \
-            greengagedb/ggdb${{ matrix.version }}_pxf_regression:${{ matrix.version }}-${{ matrix.release }} \
+            greengagedb/ggdb${{ matrix.version }}_pxf_regression:${{ matrix.release }} \
             bash -c "
               set +e
               cd /tmp/build || status=1
