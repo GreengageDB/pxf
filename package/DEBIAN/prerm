@@ -1,5 +1,0 @@
-#!/bin/sh
-
-rm -f /usr/local/pxf-gp6/conf/pxf-private.classpath
-rm -rf /usr/local/pxf-gp6/pxf-service
-rm -rf /usr/local/pxf-gp6/run
