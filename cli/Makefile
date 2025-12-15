@@ -35,15 +35,15 @@ build:
 	go build -v $(LDFLAGS) -o build/$(TARGET) $(MODULE_NAME)
 
 stage: test
-	mkdir -p $(PXF_CLI_DIR)/build/stage/bin
-	cp build/$(TARGET) build/stage/bin
+	mkdir -p $(DESTDIR)$(PXF_CLI_DIR)/build/stage/bin
+	cp build/$(TARGET) $(DESTDIR)$(PXF_CLI_DIR)/build/stage/bin
 
 install: build
 	@if [ -z "$(PXF_HOME)" ]; then \
 		echo "ERROR: PXF_HOME is not set"; exit 2; \
 	fi
-	mkdir -p $(PXF_HOME)/bin
-	cp build/$(TARGET) $(PXF_HOME)/bin
+	mkdir -p $(DESTDIR)$(PXF_HOME)/bin
+	cp build/$(TARGET) $(DESTDIR)$(PXF_HOME)/bin
 
 test: build install-tools
 	${GOBIN}/ginkgo cmd end_to_end

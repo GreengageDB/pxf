@@ -33,7 +33,8 @@ export SKIP_FDW_PACKAGE_REASON
 export GP_MAJORVERSION
 export GP_BUILD_ARCH
 
-PXF_PACKAGE_NAME := pxf-gpdb$(GP_MAJORVERSION)-$(PXF_VERSION)-$(GP_BUILD_ARCH)
+PACKAGE_NAME := $(shell grep '^Package:' debian/control | head -1 | awk '{print $$2}')
+PXF_PACKAGE_NAME := $(PACKAGE_NAME)-$(PXF_VERSION)-$(GP_BUILD_ARCH)
 export PXF_PACKAGE_NAME
 
 LICENSE ?= ASL 2.0
@@ -41,7 +42,7 @@ VENDOR ?= Open Source
 
 default: all
 
-.PHONY: all extensions external-table fdw cli server install install-server stage tar rpm rpm-tar deb deb-tar clean test it help
+.PHONY: all extensions external-table fdw cli server install install-server stage tar deb deb-tar clean test it help
 
 all: extensions cli server
 	@echo "===> PXF compilation is complete <==="
@@ -89,12 +90,12 @@ endif
 	set -e ;\
 	for module in $${PXF_MODULES[@]}; do \
 		echo "===> Installing [$${module}] module <===" ;\
-		make -C $${module} install ;\
+		make -C $${module} install DESTDIR=$(DESTDIR) GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME) ;\
 	done ;\
 	echo "===> PXF installation is complete <==="
 
 install-server:
-	make -C server install-server
+	make -C server install-server DESTDIR=$(DESTDIR) GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME)
 
 stage:
 	rm -rf build/stage
@@ -106,75 +107,71 @@ endif
 	mkdir -p build/stage/$${PXF_PACKAGE_NAME}/pxf ;\
 	for module in $${PXF_MODULES[@]}; do \
 		echo "===> Staging [$${module}] module <===" ;\
-		make -C $${module} stage ;\
+		make -C $${module} stage  DESTDIR=$(DESTDIR) GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME) ;\
 		cp -a "$${module}"/build/stage/* "build/stage/$${PXF_PACKAGE_NAME}/pxf" ;\
 	done ;\
 	echo $$(git rev-parse --verify HEAD) > build/stage/$${PXF_PACKAGE_NAME}/pxf/commit.sha ;\
 	cp package/install_binary build/stage/$${PXF_PACKAGE_NAME}/install_component ;\
 	echo "===> PXF staging is complete <==="
 
-tar: stage
-	rm -rf build/dist
-	mkdir -p build/dist
-	tar -czf build/dist/$(PXF_PACKAGE_NAME).tar.gz -C build/stage $(PXF_PACKAGE_NAME)
-	echo "===> PXF TAR file with binaries creation is complete <==="
+#---------------------------------------------------------------------
+# Packaging targets with changelog options
+#---------------------------------------------------------------------
 
-rpm: stage
-	rm -rf build/rpmbuild
-	set -e ;\
-	PXF_MAIN_VERSION=$${PXF_VERSION//-SNAPSHOT/} ;\
-	if [[ $${PXF_VERSION} == *"-SNAPSHOT" ]]; then PXF_RELEASE=SNAPSHOT; else PXF_RELEASE=1; fi ;\
-	mkdir -p build/rpmbuild/{BUILD,RPMS,SOURCES,SPECS} ;\
-	cp -a build/stage/$${PXF_PACKAGE_NAME}/pxf/* build/rpmbuild/SOURCES ;\
-	cp package/*.spec build/rpmbuild/SPECS/ ;\
-	rpmbuild \
-	--define "_topdir $${PWD}/build/rpmbuild" \
-	--define "pxf_version $${PXF_MAIN_VERSION}" \
-	--define "pxf_release $${PXF_RELEASE}" \
-	--define "license ${LICENSE}" \
-	--define "vendor ${VENDOR}" \
-	-bb $${PWD}/build/rpmbuild/SPECS/pxf-gp$${GP_MAJORVERSION}.spec ;\
-	echo "===> PXF RPM package creation is complete <==="
+# Metadata vars
+PACKAGE_NAME := $(shell grep '^Package:' debian/control | head -1 | awk '{print $$2}')
+MAINTAINER := $(shell grep '^Maintainer:' debian/control | sed 's/Maintainer: //')
+DATE_RFC := $(shell date -R)
+ARTIFACTS_DIR := $(CURDIR)/./Package
 
-rpm-tar: rpm
-	rm -rf build/{stagerpm,distrpm}
-	mkdir -p build/{stagerpm,distrpm}
-	set -e ;\
-	PXF_RPM_FILE=$$(find build/rpmbuild/RPMS -name pxf-gp$${GP_MAJORVERSION}-*.rpm) ;\
-	PXF_RPM_BASE_NAME=$$(basename $${PXF_RPM_FILE%*.rpm}) ;\
-	PXF_PACKAGE_NAME=$${PXF_RPM_BASE_NAME%.*} ;\
-	mkdir -p build/stagerpm/$${PXF_PACKAGE_NAME} ;\
-	cp $${PXF_RPM_FILE} build/stagerpm/$${PXF_PACKAGE_NAME} ;\
-	cp package/install_rpm build/stagerpm/$${PXF_PACKAGE_NAME}/install_component ;\
-	tar -czf build/distrpm/$${PXF_PACKAGE_NAME}.tar.gz -C build/stagerpm $${PXF_PACKAGE_NAME} ;\
-	echo "===> PXF TAR file with RPM package creation is complete <==="
+./version :
+# 	@echo "Update $@"
+# 	./getversion > $@
+	@cat $@
 
-deb: stage
-	rm -rf build/debbuild
-	set -e ;\
-	PXF_MAIN_VERSION=$${PXF_VERSION//-SNAPSHOT/} ;\
-	if [[ $${PXF_VERSION} == *"-SNAPSHOT" ]]; then PXF_RELEASE=SNAPSHOT; else PXF_RELEASE=1; fi ;\
-	mkdir -p build/debbuild/usr/local/pxf-gp$${GP_MAJORVERSION} ;\
-	cp -a build/stage/$${PXF_PACKAGE_NAME}/pxf/* build/debbuild/usr/local/pxf-gp$${GP_MAJORVERSION} ;\
-	mkdir build/debbuild/DEBIAN ;\
-	cp -a package/DEBIAN/* build/debbuild/DEBIAN/ ;\
-	sed -i -e "s/%VERSION%/$${PXF_MAIN_VERSION}-$${PXF_RELEASE}/" -e "s/%MAINTAINER%/${VENDOR}/" build/debbuild/DEBIAN/control ;\
-	dpkg-deb --build build/debbuild ;\
-	mv build/debbuild.deb build/pxf-gp$${GP_MAJORVERSION}-$${PXF_MAIN_VERSION}-$${PXF_RELEASE}-ubuntu18.04-amd64.deb ;\
-	echo "===> PXF DEB package creation is complete <==="
+version-vars : ./version
+	$(eval FULL_VERSION := $(shell [ -f ./version ] && perl -pe 's, ,-,g' ./version))
+	$(eval PACKAGE_VERSION := $(shell [ -f ./version ] && perl -pe 's, .*,,g' ./version))
+	$(eval IS_RELEASE := $(if $(findstring +dev,$(PACKAGE_VERSION)),no,yes))
+	$(eval STABILITY := $(if $(filter yes,$(IS_RELEASE)),stable,unstable))
+	$(eval BUILD_TYPE := $(if $(filter yes,$(IS_RELEASE)),Release build,Development build))
+
+version-info : version-vars
+	@echo "PACKAGE_VERSION: $(PACKAGE_VERSION)"
+	@echo "FULL_VERSION: $(FULL_VERSION)"
+	@echo "IS_RELEASE: $(IS_RELEASE)"
+	@echo "STABILITY: $(STABILITY)"
+	@echo "BUILD_TYPE: $(BUILD_TYPE)"
+
+# Generate package control files
+changelog : debian/changelog
+debian/changelog : version-vars
+	@echo "$(PACKAGE_NAME) ($(PACKAGE_VERSION)) $(STABILITY); urgency=low" > $@
+	@echo "" >> $@
+	@echo "  * $(BUILD_TYPE)" >> $@
+	@echo "" >> $@
+	@echo " -- $(MAINTAINER)  $(DATE_RFC)" >> $@
+
+debian/install:
+	@echo "$(PACKAGE_NAME)/* /" > $@
 
 
-deb-tar: deb
-	rm -rf build/{stagedeb,distdeb}
-	mkdir -p build/{stagedeb,distdeb}
-	set -e ;\
-	PXF_DEB_FILE=$$(find build/ -name pxf-gp$${GP_MAJORVERSION}*.deb) ;\
-	PXF_PACKAGE_NAME=$$(dpkg-deb --field $${PXF_DEB_FILE} Package)-$$(dpkg-deb --field $${PXF_DEB_FILE} Version)-ubuntu18.04 ;\
-	mkdir -p build/stagedeb/$${PXF_PACKAGE_NAME} ;\
-	cp $${PXF_DEB_FILE} build/stagedeb/$${PXF_PACKAGE_NAME} ;\
-	cp package/install_deb build/stagedeb/$${PXF_PACKAGE_NAME}/install_component ;\
-	tar -czf build/distdeb/$${PXF_PACKAGE_NAME}.tar.gz -C build/stagedeb $${PXF_PACKAGE_NAME} ;\
-	echo "===> PXF TAR file with DEB package creation is complete <==="
+# Default packaging target
+pkg : pkg-deb
+
+# Build Debian package
+pkg-deb : debian/changelog debian/install
+	@echo "Building with GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME), PACKAGE_NAME=$(PACKAGE_NAME)"
+	@GPHOME="$(GPHOME)" PXF_HOME="$(PXF_HOME)" PACKAGE_NAME="$(PACKAGE_NAME)" debuild --preserve-env -us -uc -b
+	@mkdir -p $(ARTIFACTS_DIR)
+	@find $(CURDIR)/../ -maxdepth 1 -type f \( -name "*.deb" \
+											-o -name "*.ddeb" \
+											-o -name "*.build" \
+											-o -name "*.buildinfo" \
+											-o -name "*.changes" \) \
+											-exec mv -f {} $(ARTIFACTS_DIR)/ \;
+
+.PHONY: pkg pkg-deb changelog version-vars version-info
 
 
 help:
@@ -191,8 +188,4 @@ help:
 	@echo	'  - install - install external table and foreign data wrapper extensions, CLI and server binaries'
 	@echo	'  - install-server - install server binaries only without running tests'
 	@echo	'  - stage - install external table and foreign data wrapper extensions, CLI, and server binaries into build/stage/pxf directory'
-	@echo	'  - tar - bundle external table and foreign data wrapper extensions, CLI, and server into a single tarball'
-	@echo	'  - rpm - create PXF RPM package'
-	@echo	'  - rpm-tar - bundle PXF RPM package along with helper scripts into a single tarball'
 	@echo	'  - deb - create PXF DEB package'
-	@echo	'  - deb-tar - bundle PXF DEB package along with helper scripts into a single tarball'
