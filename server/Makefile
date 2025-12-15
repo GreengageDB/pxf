@@ -25,7 +25,7 @@ PXF_ROOT_DIR := $(shell cd .. && pwd)
 PXF_VERSION ?= $(shell cat $(PXF_ROOT_DIR)/version)
 PXF_API_VERSION ?= $(shell cat $(PXF_ROOT_DIR)/api_version)
 
-PXF_GRADLE_PROPERTIES = -Pversion=$(PXF_VERSION) -PapiVersion=$(PXF_API_VERSION)
+PXF_GRADLE_PROPERTIES = -Pversion=$(PXF_VERSION) -PapiVersion=$(PXF_API_VERSION) #--debug
 
 help:
 	@echo
@@ -61,6 +61,7 @@ test unittest:
 		echo 'Test $(TEST) was not found'; \
 		exit 1; \
 	fi
+
 	./gradlew $(PXF_GRADLE_PROPERTIES) ${GRADLEW_TEST_PARAMS}
 
 coverage:
@@ -69,27 +70,30 @@ coverage:
 	@echo  "Coverage reports can be found within each server module under <module-name>/build/reports/jacoco"
 	@echo  "For example, the pxf-service coverage report is located at $(shell pwd)/pxf-service/build/reports/jacoco/test/html/index.html"
 
-.PHONY: stage
-stage:
-	./gradlew $(PXF_GRADLE_PROPERTIES) test stage
-	install -m 744 -d "build/stage/lib"
-	install -m 744 -d "build/stage/lib/native"
-	install -m 744 -d "build/stage/servers"
-	install -m 744 -d "build/stage/servers/default"
-	install -m 700 -d "build/stage/logs"
-	install -m 700 -d "build/stage/run"
-	install -m 700 -d "build/stage/keytabs"
+.PHONY: stage stage-notest
+stage stage-notest:
 
-.PHONY: stage-notest
-stage-notest:
+	@echo "=== Environment Variables ==="
+	@printenv | sort
+	@echo "=== End of Environment Variables ==="
+	@echo "=== JVM System Properties ==="
+	@./gradlew properties
+	@echo "=== End of JVM System Properties ==="
+
+ifneq ($(SKIP_TESTS),)
 	./gradlew $(PXF_GRADLE_PROPERTIES) stage -x test
-	install -m 744 -d "build/stage/lib"
-	install -m 744 -d "build/stage/lib/native"
-	install -m 744 -d "build/stage/servers"
-	install -m 744 -d "build/stage/servers/default"
-	install -m 700 -d "build/stage/logs"
-	install -m 700 -d "build/stage/run"
-	install -m 700 -d "build/stage/keytabs"
+else ifeq ($@,stage-notest)
+	./gradlew $(PXF_GRADLE_PROPERTIES) stage -x test
+else
+	./gradlew $(PXF_GRADLE_PROPERTIES) test stage
+endif
+	install -m 744 -d "$(DESTDIR)build/stage/lib"
+	install -m 744 -d "$(DESTDIR)build/stage/lib/native"
+	install -m 744 -d "$(DESTDIR)build/stage/servers"
+	install -m 744 -d "$(DESTDIR)build/stage/servers/default"
+	install -m 700 -d "$(DESTDIR)build/stage/logs"
+	install -m 700 -d "$(DESTDIR)build/stage/run"
+	install -m 700 -d "$(DESTDIR)build/stage/keytabs"
 
 clean:
 	./gradlew clean
@@ -108,16 +112,16 @@ install: stage
 	@if [ -z "$(PXF_HOME)" ]; then \
 		echo "ERROR: PXF_HOME is not set"; exit 2; \
 	fi
-	mkdir -p "$(PXF_HOME)"
-	cp -R build/stage/* "$(PXF_HOME)"
+	mkdir -p "$(DESTDIR)$(PXF_HOME)"
+	cp -R build/stage/* "$(DESTDIR)$(PXF_HOME)"
 
 .PHONY: install-server
 install-server: stage-notest
 	@if [ -z "$(PXF_HOME)" ]; then \
 		echo "ERROR: PXF_HOME is not set"; exit 2; \
 	fi
-	mkdir -p "$(PXF_HOME)"
-	cp -R build/stage/* "$(PXF_HOME)"
+	mkdir -p "$(DESTDIR)$(PXF_HOME)"
+	cp -R build/stage/* "$(DESTDIR)$(PXF_HOME)"
 
 .PHONY: version
 version:
