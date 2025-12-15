@@ -1,11 +1,118 @@
-*.iml
-.cache/
+########################################
+# IDE / Editor files
+########################################
+# IntelliJ / IDEA
 .idea/
-.local/
+*.iml
+
+# VSCode
 .vscode/
+
+# Local editor/caches
+.cache/
+.local/
+
+
+########################################
+# Python artifacts
+########################################
 *.pyc
+__pycache__/
+
+
+########################################
+# Logs
+########################################
 *.log
+
+
+########################################
+# Build artifacts (generic)
+########################################
 build/
-server/*/out
-server/tmp
 artifacts/
+server/tmp
+server/*/out
+
+
+########################################
+# Java / JVM build outputs
+########################################
+# Maven / Gradle (if present)
+target/
+out/
+*.class
+*.jar
+*.war
+*.ear
+
+# JVM crash logs
+hs_err_pid*
+replay_pid*
+
+
+########################################
+# C / C++ build artifacts
+########################################
+# Object files / dependencies
+*.o
+*.so
+*.so.*
+*.a
+.deps/
+
+# Makefile auto-generated
+*.d
+
+
+########################################
+# Go artifacts
+########################################
+# Go build outputs
+*.exe
+*.test
+*.out
+
+# Go modules
+bin/
+pkg/
+
+
+########################################
+# Perl artifacts
+########################################
+# Build and install artifacts
+blib/
+_build/
+Build
+Makefile.old
+pm_to_blib
+
+
+########################################
+# Shell-related (rarely needed, but safe)
+########################################
+# Temp and cache files produced by scripts
+*.swp
+*.swo
+*~
+
+
+########################################
+# OS-specific files
+########################################
+# macOS
+.DS_Store
+
+# Linux temp
+tmp/
+
+########################################
+# Packages
+########################################
+# Debian
+/Package/
+**/debian/*
+!**/debian/co*
+!**/debian/lint*
+!**/debian/rules
