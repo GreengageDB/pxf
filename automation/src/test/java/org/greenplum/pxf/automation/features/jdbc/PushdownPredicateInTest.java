@@ -29,7 +29,7 @@ public class PushdownPredicateInTest extends BaseFeature {
     private static final String SOURCE_TABLE_SCHEMA = "system";
     private static final String PXF_ORACLE_SERVER_PROFILE = "oracle-predicate";
     private static final String PXF_JDBC_SITE_CONF_TEMPLATE_RELATIVE_PATH = "templates/oracle/jdbc-site.xml";
-    private static final String PXF_TEMP_LOG_PATH = "/tmp/pxf-service.log";
+    private static final String PXF_TEMP_LOG_PATH = "/tmp/pxf-service-pushdown.log";
     private static final String[] POSTGRES_SOURCE_TABLE_FIELDS = new String[]{
             "id    int",
             "descr   text"};
@@ -152,7 +152,7 @@ public class PushdownPredicateInTest extends BaseFeature {
         runSqlTest("features/jdbc/predicate-in/postgres");
         int result = 0;
         for (Node pxfNode : pxfNodes) {
-            cluster.copyFromRemoteMachine(pxfNode.getUserName(), pxfNode.getPassword(), pxfNode.getHost(), pxfLogFile, "/tmp/");
+            cluster.copyFromRemoteMachine(pxfNode.getUserName(), pxfNode.getPassword(), pxfNode.getHost(), pxfLogFile, PXF_TEMP_LOG_PATH);
             result += Integer.parseInt(getCmdResult(cluster, POSTGRES_SEGMENT_LOG_GREP_COMMAND));
             cluster.deleteFileFromNodes(PXF_TEMP_LOG_PATH, false);
         }

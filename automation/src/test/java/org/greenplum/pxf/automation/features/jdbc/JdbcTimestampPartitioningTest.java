@@ -34,7 +34,7 @@ public class JdbcTimestampPartitioningTest extends BaseFeature {
             "id    int",
             "datetime   timestamp"};
     private static final String SELECT_QUERY = "SELECT * FROM ${pxf_read_table}";
-    private static final String PXF_TEMP_LOG_PATH = "/tmp/pxf-service.log";
+    private static final String PXF_TEMP_LOG_PATH = "/tmp/pxf-service-partition.log";
     private static final String SEGMENT_LOG_GREP_COMMAND = "cat " + PXF_TEMP_LOG_PATH + " | grep 'Returning 14 fragments' | wc -l";
     private static final String SOURCE_TABLE_NAME = "source_table";
     private static final String PXF_TABLE_NAME = "${db}_ext_table";
@@ -152,7 +152,7 @@ public class JdbcTimestampPartitioningTest extends BaseFeature {
     private void checkPxfLogs() throws Exception {
         int result = 0;
         for (Node pxfNode : pxfNodes) {
-            cluster.copyFromRemoteMachine(pxfNode.getUserName(), pxfNode.getPassword(), pxfNode.getHost(), pxfLogFile, "/tmp/");
+            cluster.copyFromRemoteMachine(pxfNode.getUserName(), pxfNode.getPassword(), pxfNode.getHost(), pxfLogFile, PXF_TEMP_LOG_PATH);
             result += Integer.parseInt(getCmdResult(cluster, SEGMENT_LOG_GREP_COMMAND));
             cluster.deleteFileFromNodes(PXF_TEMP_LOG_PATH, false);
         }
