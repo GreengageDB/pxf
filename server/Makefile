@@ -61,7 +61,6 @@ test unittest:
 		echo 'Test $(TEST) was not found'; \
 		exit 1; \
 	fi
-
 	./gradlew $(PXF_GRADLE_PROPERTIES) ${GRADLEW_TEST_PARAMS}
 
 coverage:
