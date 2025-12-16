@@ -25,7 +25,7 @@ PXF_ROOT_DIR := $(shell cd .. && pwd)
 PXF_VERSION ?= $(shell cat $(PXF_ROOT_DIR)/version)
 PXF_API_VERSION ?= $(shell cat $(PXF_ROOT_DIR)/api_version)
 
-PXF_GRADLE_PROPERTIES = -Pversion=$(PXF_VERSION) -PapiVersion=$(PXF_API_VERSION) #--debug
+PXF_GRADLE_PROPERTIES = -Pversion=$(PXF_VERSION) -PapiVersion=$(PXF_API_VERSION)
 
 help:
 	@echo
@@ -70,23 +70,27 @@ coverage:
 	@echo  "Coverage reports can be found within each server module under <module-name>/build/reports/jacoco"
 	@echo  "For example, the pxf-service coverage report is located at $(shell pwd)/pxf-service/build/reports/jacoco/test/html/index.html"
 
-.PHONY: stage stage-notest
-stage stage-notest:
+.PHONY: stage
+stage:
+	@if [ -n "$(SKIP_TESTS)" ]; then \
+		echo "SKIP_TESTS is set, skipping tests"; \
+		./gradlew $(PXF_GRADLE_PROPERTIES) stage -x test; \
+	else \
+		echo "Running with tests"; \
+		./gradlew $(PXF_GRADLE_PROPERTIES) test stage; \
+	fi
 
-	@echo "=== Environment Variables ==="
-	@printenv | sort
-	@echo "=== End of Environment Variables ==="
-	@echo "=== JVM System Properties ==="
-	@./gradlew properties
-	@echo "=== End of JVM System Properties ==="
+	install -m 744 -d "$(DESTDIR)build/stage/lib"
+	install -m 744 -d "$(DESTDIR)build/stage/lib/native"
+	install -m 744 -d "$(DESTDIR)build/stage/servers"
+	install -m 744 -d "$(DESTDIR)build/stage/servers/default"
+	install -m 700 -d "$(DESTDIR)build/stage/logs"
+	install -m 700 -d "$(DESTDIR)build/stage/run"
+	install -m 700 -d "$(DESTDIR)build/stage/keytabs"
 
-ifneq ($(SKIP_TESTS),)
+.PHONY: stage-notest
+stage-notest:
 	./gradlew $(PXF_GRADLE_PROPERTIES) stage -x test
-else ifeq ($@,stage-notest)
-	./gradlew $(PXF_GRADLE_PROPERTIES) stage -x test
-else
-	./gradlew $(PXF_GRADLE_PROPERTIES) test stage
-endif
 	install -m 744 -d "$(DESTDIR)build/stage/lib"
 	install -m 744 -d "$(DESTDIR)build/stage/lib/native"
 	install -m 744 -d "$(DESTDIR)build/stage/servers"
