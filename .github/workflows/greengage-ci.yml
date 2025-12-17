@@ -80,6 +80,13 @@ jobs:
           path: deb-packages-${{ matrix.version }}-${{ matrix.release }}
           key:  deb-packages-${{ matrix.version }}-${{ matrix.release }}-${{ github.sha }}
 
+      - name: Upload Package artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-packages-${{ matrix.version }}-${{ matrix.release }}
+          path: deb-packages-${{ matrix.version }}-${{ matrix.release }}
+
   regression:
     name: Regression on ggdb${{ matrix.version }}-${{ matrix.release }}
     runs-on: ubuntu-latest
