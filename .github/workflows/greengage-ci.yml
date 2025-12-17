@@ -47,7 +47,7 @@ jobs:
           JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
           DEBIAN_FRONTEND: noninteractive
           GREENGAGE_DEB: /tmp/greengage.deb
-          GREENGAGE_DEB_URL: https://github.com/magf/greengage/releases/download/6.99.9/greengage6.deb
+          GREENGAGE_DEB_URL: https://github.com/GreengageDB/greengage/releases/download/6.29.2/greengage6.deb
         run: |
           set -eux
           docker run \
