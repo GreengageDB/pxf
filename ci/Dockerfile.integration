@@ -6,9 +6,9 @@ FROM $GGDB_IMAGE
 SHELL ["bash", "-c"]
 
 # install maven
-RUN curl -fSL https://dlcdn.apache.org/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz -o /tmp/apache-maven-3.9.11-bin.tar.gz \
-    && tar -xf /tmp/apache-maven-3.9.11-bin.tar.gz -C /opt \
-    && ln -s /opt/apache-maven-3.9.11 /opt/maven
+RUN curl -fSL https://archive.apache.org/dist/maven/maven-3/3.9.12/binaries/apache-maven-3.9.12-bin.tar.gz -o /tmp/apache-maven-3.9.12-bin.tar.gz \
+    && tar -xf /tmp/apache-maven-3.9.12-bin.tar.gz -C /opt \
+    && ln -s /opt/apache-maven-3.9.12 /opt/maven
 
 # Download jar files
 RUN mkdir -p /tmp/libs
