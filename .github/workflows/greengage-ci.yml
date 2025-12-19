@@ -33,7 +33,9 @@ jobs:
           - image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
             release: devel
             version: '7'
-
+    env:
+      GREENGAGE_DEB:     Package/greengage.deb
+      GREENGAGE_DEB_URL: https://github.com/GreengageDB/greengage/releases/download/6.29.2/greengage6.deb
     steps:
       - uses: actions/checkout@v4
       - name: Build in Docker using docker run
@@ -46,13 +48,16 @@ jobs:
           PATH: /opt/greengagedb/greengage/bin:/opt/greengagedb/greengage/pxf/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:/opt/go/bin
           JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
           DEBIAN_FRONTEND: noninteractive
-          GREENGAGE_DEB: /tmp/greengage.deb
-          GREENGAGE_DEB_URL: https://github.com/GreengageDB/greengage/releases/download/6.29.2/greengage6.deb
+          GREENGAGE_DEB: ${{ env.GREENGAGE_DEB }}
+          GREENGAGE_DEB_URL: ${{ env.GREENGAGE_DEB_URL }}
         run: |
-          set -eux
+          set -eu
+          mkdir -p "$(dirname $GREENGAGE_DEB)"
+          curl -L $GREENGAGE_DEB_URL -o $GREENGAGE_DEB
           docker run \
             --rm \
-            -v ${{ github.workspace }}:/home/gpadmin/pxf \
+            -v ${{ github.workspace }}:$PXF_SRC \
+            -w $PXF_SRC \
             -e DEV_HOME \
             -e PXF_HOME \
             -e GPHOME \
@@ -64,12 +69,27 @@ jobs:
             -e GREENGAGE_DEB \
             -e GREENGAGE_DEB_URL \
             ${{ matrix.image }} \
-            bash -c "
+            /bin/bash ci/build_in_docker.sh
+
+      - name: Test Package install in Ubuntu 22.04 (docker)
+        env:
+          GREENGAGE_DEB: ${{ env.GREENGAGE_DEB }}
+          DEBIAN_FRONTEND: noninteractive
+          TEST_DOCKER_IMAGE: ubuntu:22.04
+        run: |
+          set -eu
+          docker run \
+            --rm \
+            -v ./Package:/deb-packages \
+            -e DEBIAN_FRONTEND \
+            $TEST_DOCKER_IMAGE \
+            /bin/bash -c "
               set -e
-              cd /home/gpadmin/pxf
-              bash ci/build_in_docker.sh
-              git config --global --add safe.directory /home/gpadmin/pxf
+              apt-get update 
+              { apt-get install -yq /deb-packages/*.deb 2>&1 || dpkg -i /deb-packages/*.deb 2>&1; }
+              apt-get install -yqf
             "
+            rm -f $GREENGAGE_DEB
 
       - name: Rename Package artifacts
         run: mv Package deb-packages-${{ matrix.version }}-${{ matrix.release }}
