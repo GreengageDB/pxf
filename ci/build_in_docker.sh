@@ -6,6 +6,8 @@
 # image=ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest
 # version=ghcr-latest
 
+# shellcheck disable=SC2086
+
 set -eu
 
 export JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:-'-Dfile.encoding=UTF8'}
@@ -72,7 +74,7 @@ git config --global --add safe.directory "$(pwd)"
 localedef -c -i ru_RU -f CP1251 ru_RU.CP1251
 
 # Install Greengage package
-apt-get -f install -y "$GREENGAGE_DEB"
+apt-get install -yf "$(realpath "$GREENGAGE_DEB")"
 
 known_locations='/opt /usr/lib'
 GPHOME=$(dev/detect_gphome.bash "$known_locations")
