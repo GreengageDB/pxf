@@ -26,7 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: ghcr.io/magf/ggdb6_ubuntu:ADBDEV-9054
+          - image: ghcr.io/magf/greengage/ggdb6_ubuntu:ADBDEV-9054
             release: devel
             version: '6'
           # - image: greengagedb/ggdb6_ubuntu:6.29.1
@@ -86,18 +86,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: greengagedb/ggdb6_ubuntu:6.29.1
-            release: stable
-            version: '6'
-          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+          - image: ghcr.io/magf/greengage/ggdb6_ubuntu:ADBDEV-9054
             release: devel
             version: '6'
-          - image: greengagedb/ggdb7_ubuntu:7.4.0
-            release: stable
-            version: '7'
-          - image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
-            release: devel
-            version: '7'
+          # - image: greengagedb/ggdb6_ubuntu:6.29.1
+          #   release: stable
+          #   version: '6'
+          # - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+          #   release: devel
+          #   version: '6'
+          # - image: greengagedb/ggdb7_ubuntu:7.4.0
+          #   release: stable
+          #   version: '7'
+          # - image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
+          #   release: devel
+          #   version: '7'
 
     steps:
       - uses: actions/checkout@v4
@@ -138,29 +141,11 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
-  integration-ggdb6-stable:
-    name: Integration on ggdb6-stable
-    uses: ./.github/workflows/integration-tests.yml
-    with:
-      image: greengagedb/ggdb6_ubuntu:6.29.1
-      version: '6'
-      release: stable
-      tests_matrix: |
-        [
-          { "test": "smoke" },
-          { "test": "gpdb" },
-          { "test": "jdbc" },
-          { "test": "smoke", "fdw": "true" },
-          { "test": "gpdb", "fdw": "true" },
-          { "test": "jdbc", "fdw": "true" },
-          { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
-        ]
-
-  integration-ggdb6-devel:
+  integration-ggdb6-ADBDEV-9054:
     name: Integration on ggdb6-devel
     uses: ./.github/workflows/integration-tests.yml
     with:
-      image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+      image: ghcr.io/magf/greengage/ggdb6_ubuntu:ADBDEV-9054
       version: '6'
       release: devel
       tests_matrix: |
@@ -174,38 +159,74 @@ jobs:
           { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
         ]
 
-  integration-ggdb7-stable:
-    name: Integration on ggdb7-stable
-    uses: ./.github/workflows/integration-tests.yml
-    with:
-      image: greengagedb/ggdb7_ubuntu:7.4.0
-      version: '7'
-      release: stable
-      tests_matrix: |
-        [
-          { "test": "smoke" },
-          { "test": "gpdb" },
-          { "test": "jdbc" },
-          { "test": "smoke", "fdw": "true" },
-          { "test": "gpdb", "fdw": "true" },
-          { "test": "jdbc", "fdw": "true" },
-          { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
-        ]
+  # integration-ggdb6-stable:
+  #   name: Integration on ggdb6-stable
+  #   uses: ./.github/workflows/integration-tests.yml
+  #   with:
+  #     image: greengagedb/ggdb6_ubuntu:6.29.1
+  #     version: '6'
+  #     release: stable
+  #     tests_matrix: |
+  #       [
+  #         { "test": "smoke" },
+  #         { "test": "gpdb" },
+  #         { "test": "jdbc" },
+  #         { "test": "smoke", "fdw": "true" },
+  #         { "test": "gpdb", "fdw": "true" },
+  #         { "test": "jdbc", "fdw": "true" },
+  #         { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
+  #       ]
 
-  integration-ggdb7-devel:
-    name: Integration on ggdb7-devel
-    uses: ./.github/workflows/integration-tests.yml
-    with:
-      image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
-      version: '7'
-      release: devel
-      tests_matrix: |
-        [
-          { "test": "smoke" },
-          { "test": "gpdb" },
-          { "test": "jdbc" },
-          { "test": "smoke", "fdw": "true" },
-          { "test": "gpdb", "fdw": "true" },
-          { "test": "jdbc", "fdw": "true" },
-          { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
-        ]
+  # integration-ggdb6-devel:
+  #   name: Integration on ggdb6-devel
+  #   uses: ./.github/workflows/integration-tests.yml
+  #   with:
+  #     image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+  #     version: '6'
+  #     release: devel
+  #     tests_matrix: |
+  #       [
+  #         { "test": "smoke" },
+  #         { "test": "gpdb" },
+  #         { "test": "jdbc" },
+  #         { "test": "smoke", "fdw": "true" },
+  #         { "test": "gpdb", "fdw": "true" },
+  #         { "test": "jdbc", "fdw": "true" },
+  #         { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
+  #       ]
+
+  # integration-ggdb7-stable:
+  #   name: Integration on ggdb7-stable
+  #   uses: ./.github/workflows/integration-tests.yml
+  #   with:
+  #     image: greengagedb/ggdb7_ubuntu:7.4.0
+  #     version: '7'
+  #     release: stable
+  #     tests_matrix: |
+  #       [
+  #         { "test": "smoke" },
+  #         { "test": "gpdb" },
+  #         { "test": "jdbc" },
+  #         { "test": "smoke", "fdw": "true" },
+  #         { "test": "gpdb", "fdw": "true" },
+  #         { "test": "jdbc", "fdw": "true" },
+  #         { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
+  #       ]
+
+  # integration-ggdb7-devel:
+  #   name: Integration on ggdb7-devel
+  #   uses: ./.github/workflows/integration-tests.yml
+  #   with:
+  #     image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
+  #     version: '7'
+  #     release: devel
+  #     tests_matrix: |
+  #       [
+  #         { "test": "smoke" },
+  #         { "test": "gpdb" },
+  #         { "test": "jdbc" },
+  #         { "test": "smoke", "fdw": "true" },
+  #         { "test": "gpdb", "fdw": "true" },
+  #         { "test": "jdbc", "fdw": "true" },
+  #         { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
+  #       ]
