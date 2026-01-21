@@ -3,7 +3,6 @@ CREATE SERVER writable_smoke_test_hdfs
 	FOREIGN DATA WRAPPER {{ HCFS_PROTOCOL }}_pxf_fdw
 	OPTIONS (config '{{ SERVER_CONFIG }}');
 CREATE USER MAPPING FOR CURRENT_USER SERVER writable_smoke_test_hdfs;
-
 CREATE FOREIGN TABLE writable_smoke_test_foreign_table (
 		name TEXT,
 		num INTEGER,
