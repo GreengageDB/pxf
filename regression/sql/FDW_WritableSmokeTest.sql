@@ -3,6 +3,7 @@ CREATE SERVER writable_smoke_test_hdfs
 	FOREIGN DATA WRAPPER {{ HCFS_PROTOCOL }}_pxf_fdw
 	OPTIONS (config '{{ SERVER_CONFIG }}');
 CREATE USER MAPPING FOR CURRENT_USER SERVER writable_smoke_test_hdfs;
+
 CREATE FOREIGN TABLE writable_smoke_test_foreign_table (
 		name TEXT,
 		num INTEGER,
@@ -26,6 +27,26 @@ INSERT INTO writable_smoke_test_foreign_table
 
 SELECT * FROM writable_smoke_test_foreign_table ORDER BY name;
 SELECT name, num FROM writable_smoke_test_foreign_table WHERE num > 50 ORDER BY name;
+
+-- Test to check, that fdw adds "trace=true" to the URI for PXF server when
+-- client_min_messages is LOG or more verbose. And PXF server adds stacktrace to
+-- the answer in case of error.
+BEGIN;
+CREATE TABLE test_table (a INT) DISTRIBUTED BY (a);
+CREATE FOREIGN TABLE public.t1_ft (a INT)
+	SERVER writable_smoke_test_hdfs
+	OPTIONS (resource 'public.t1');
+SET client_min_messages=LOG;
+-- start_matchsubs
+-- m/LOG:  /
+-- s/LOG:  .*//
+
+-- m/ERROR:  PXF server error(500) : /
+-- s/ERROR:  PXF server error(500).*/ERROR:  PXF server error(500) : error and trace here/
+-- end_matchsubs
+-- Fails, because transaction has not been commited and table test_table does not exist.
+INSERT INTO t1_ft (a) SELECT i FROM generate_series(0, 10) i;
+ROLLBACK;
 
 -- start_ignore
 {{ CLEAN_UP }}-- clean up HCFS
