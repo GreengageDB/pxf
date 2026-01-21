@@ -25,6 +25,7 @@
 #include "cdb/cdbvars.h"
 #include "access/xact.h"
 #include "utils/memutils.h"
+#include "utils/guc.h"
 
 typedef struct PxfFdwCancelState
 {
@@ -382,6 +383,12 @@ BuildUriForRead(PxfFdwScanState *pxfsstate)
 	resetStringInfo(&pxfsstate->uri);
 	appendStringInfo(&pxfsstate->uri, "%s://%s:%d/%s/read", 
 		protocol, options->pxf_host, options->pxf_port, PXF_SERVICE_PREFIX);
+
+	if ((LOG >= log_min_messages) || (LOG >= client_min_messages))
+	{
+		appendStringInfo(&pxfsstate->uri, "?trace=true");
+	}
+
 	elog(DEBUG2, "pxf_fdw: uri %s for read", pxfsstate->uri.data);
 }
 
@@ -397,6 +404,12 @@ BuildUriForWrite(PxfFdwModifyState *pxfmstate)
 	resetStringInfo(&pxfmstate->uri);
 	appendStringInfo(&pxfmstate->uri, "%s://%s:%d/%s/write", 
 		protocol, options->pxf_host, options->pxf_port, PXF_SERVICE_PREFIX);
+
+	if ((LOG >= log_min_messages) || (LOG >= client_min_messages))
+	{
+		appendStringInfo(&pxfmstate->uri, "?trace=true");
+	}
+
 	elog(DEBUG2, "pxf_fdw: uri %s with file name for write: %s", pxfmstate->uri.data, options->resource);
 }
 
