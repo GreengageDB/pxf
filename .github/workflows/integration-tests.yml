@@ -42,23 +42,9 @@ jobs:
 
     steps:
       # Maximize build space for Docker
-      - name: Move /var/lib/docker/
-        run: sudo mv /var/lib/docker/ "${GITHUB_WORKSPACE}/docker"
+      - name: Maximize disk space
+        uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v19
 
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 512
-          temp-reserve-mb: 32
-          swap-size-mb: 32
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
-          remove-docker-images: 'false'
-          build-mount-path: '/var/lib/docker/'
-      - run: sudo sh -c "mv ${GITHUB_WORKSPACE}/docker/* /var/lib/docker"
-      # - run: cp /etc/apt/sources.list ./
       - uses: actions/checkout@v4
 
       - name: Build '${{ env.IT_IMAGE }}:${{ env.IT_TAG }}' image
