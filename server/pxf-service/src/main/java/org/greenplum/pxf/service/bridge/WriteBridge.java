@@ -101,9 +101,10 @@ public class WriteBridge extends BaseBridge {
     /**
      * {@inheritDoc}
      */
-    public void endIteration() throws Exception {
+    public byte[] endIteration() throws Exception {
         try {
             accessor.closeForWrite();
+            return null;
         } catch (Exception e) {
             LOG.error("Failed to close bridge resources: {}", e.getMessage());
             throw e;

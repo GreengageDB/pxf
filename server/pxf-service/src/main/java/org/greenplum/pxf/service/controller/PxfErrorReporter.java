@@ -17,12 +17,11 @@ import java.io.IOException;
  * annotation can be specified for the endpoint methods that must have any exceptions they throw be reported before
  * propagating them to the container.
  *
- * @param <T> type of data the action returns
  */
 @Slf4j
-public abstract class PxfErrorReporter<T> {
+public abstract class PxfErrorReporter {
 
-    protected T invokeWithErrorHandling(ThrowingSupplier<T, Exception> action) {
+    protected <V> V invokeWithErrorHandling(ThrowingSupplier<V, Exception> action) {
         try {
             // call the action and return the value if there are no errors
             return action.get();

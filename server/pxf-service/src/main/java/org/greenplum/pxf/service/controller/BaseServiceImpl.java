@@ -19,7 +19,7 @@ import java.time.Instant;
  * using provided request context and the identity determined by the security service.
  */
 @Slf4j
-public abstract class BaseServiceImpl<T> extends PxfErrorReporter<T> {
+public abstract class BaseServiceImpl<T> extends PxfErrorReporter {
 
     protected final MetricsReporter metricsReporter;
     private final String serviceName;
@@ -55,7 +55,7 @@ public abstract class BaseServiceImpl<T> extends PxfErrorReporter<T> {
      * @param action  action to execute
      * @return operation statistics
      */
-    protected OperationStats processData(RequestContext context, PrivilegedAction<OperationResult> action) throws Exception {
+    protected OperationResult processData(RequestContext context, PrivilegedAction<OperationResult> action) throws Exception {
         log.debug("{} service is called for resource {} using profile {}",
                 serviceName, context.getDataSource(), context.getProfile());
 
@@ -103,7 +103,7 @@ public abstract class BaseServiceImpl<T> extends PxfErrorReporter<T> {
         }
 
         // return operation stats
-        return stats;
+        return result;
     }
 
     /**

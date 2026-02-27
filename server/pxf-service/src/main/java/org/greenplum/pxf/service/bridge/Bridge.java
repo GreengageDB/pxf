@@ -58,7 +58,7 @@ public interface Bridge {
      * End the iteration for data access. Implementations need to close any underlying resources.
      * @throws Exception when an error occurs during the operation
      */
-    void endIteration() throws Exception;
+    byte[] endIteration() throws Exception;
 
     /**
      * Cancel iteration for data access. Immediately cancel and close the connection to the external system.

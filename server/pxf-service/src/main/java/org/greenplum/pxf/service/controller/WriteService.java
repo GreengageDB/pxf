@@ -18,7 +18,7 @@ public interface WriteService {
      * @return text response to send back to the client
      * @throws Exception if any error happened during processing
      */
-    String writeData(RequestContext context, InputStream inputStream) throws Exception;
+    OperationResult writeData(RequestContext context, InputStream inputStream) throws Exception;
 
     /**
      * Tries to cancel active write request to the external system specified by the RequestContext.

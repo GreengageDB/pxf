@@ -2,6 +2,8 @@ package org.greenplum.pxf.service;
 
 import com.google.common.base.Charsets;
 import org.greenplum.pxf.api.model.RequestContext;
+import org.greenplum.pxf.service.controller.OperationResult;
+import org.greenplum.pxf.service.controller.OperationStats;
 import org.greenplum.pxf.service.controller.ReadService;
 import org.greenplum.pxf.service.controller.WriteService;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,8 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.condition.OS.MAC;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = PxfServiceApplication.class)
 @AutoConfigureObservability
@@ -83,8 +84,7 @@ public class PxfMetricsIT {
                 .header("X-GP-SEGMENT-ID", "77")
                 .header("X-GP-OPTIONS-PROFILE", "profile:test")
                 .header("X-GP-OPTIONS-SERVER", "speedy")
-                .exchange().expectStatus().isOk()
-                .expectBody(String.class).isEqualTo("Hello from write!");
+                .exchange().expectStatus().isOk();
 
         // assert metric got reported with proper tags
         client.get().uri("/actuator/metrics/http.server.requests?tag=uri:/pxf/write")
@@ -135,7 +135,11 @@ public class PxfMetricsIT {
 
         // mock WriteService
         when(mockParser.parseRequest(any(), eq(RequestContext.RequestType.WRITE_BRIDGE))).thenReturn(mockContext);
-        when(mockWriteService.writeData(same(mockContext), any())).thenReturn("Hello from write!");
+        var stats = mock(OperationStats.class);
+        when(stats.getRecordCount()).thenReturn(100L);
+        var operationResult = new OperationResult();
+        operationResult.setStats(stats);
+        when(mockWriteService.writeData(same(mockContext), any())).thenReturn(operationResult);
     }
 
 }

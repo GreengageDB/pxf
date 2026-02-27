@@ -81,7 +81,8 @@ public class BaseBridgeTest {
         }
 
         @Override
-        public void endIteration() {
+        public byte[] endIteration() {
+            return null;
         }
 
         @Override

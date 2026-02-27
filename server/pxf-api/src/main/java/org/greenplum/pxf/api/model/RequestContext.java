@@ -298,6 +298,11 @@ public class RequestContext {
     private int clientPort;
 
     /**
+     * Version of protocol
+     */
+    private ProtocolVersion protocolVersion;
+
+    /**
      * USER-DEFINED OPTIONS other than NAMED PROPERTIES
      */
     @Getter(AccessLevel.NONE)
