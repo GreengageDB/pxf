@@ -16,4 +16,5 @@ public class OperationResult {
     private Exception exception;
     private OperationStats stats;
     private String sourceName;
+    private byte[] metadata;
 }

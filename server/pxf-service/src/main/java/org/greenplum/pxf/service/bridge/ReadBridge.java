@@ -120,9 +120,10 @@ public class ReadBridge extends BaseBridge {
      * {@inheritDoc}
      */
     @Override
-    public void endIteration() throws Exception {
+    public byte[] endIteration() throws Exception {
         try {
             accessor.closeForRead();
+            return null;
         } catch (Exception e) {
             LOG.error("Failed to close bridge resources: {}", e.getMessage());
             throw e;

@@ -1,8 +1,12 @@
 package org.greenplum.pxf.service.rest;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.greenplum.pxf.api.model.RequestContext;
+import org.greenplum.pxf.api.utilities.Utilities;
 import org.greenplum.pxf.service.RequestParser;
+import org.greenplum.pxf.service.controller.OperationResult;
+import org.greenplum.pxf.service.controller.OperationStats;
 import org.greenplum.pxf.service.controller.WriteService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/pxf")
+@Slf4j
 public class PxfWriteResource extends PxfBaseResource<String> {
 
     private final WriteService writeService;
@@ -48,6 +53,13 @@ public class PxfWriteResource extends PxfBaseResource<String> {
 
     @Override
     protected String produceResponse(RequestContext context, HttpServletRequest request) throws Exception {
-        return writeService.writeData(context, request.getInputStream());
+        OperationResult result = writeService.writeData(context, request.getInputStream());
+        OperationStats stats = result.getStats();
+
+        String censuredPath = Utilities.maskNonPrintables(context.getDataSource());
+        String returnMsg = String.format("wrote %d records to %s", stats.getRecordCount(), censuredPath);
+        log.debug(returnMsg);
+        return returnMsg;
+
     }
 }

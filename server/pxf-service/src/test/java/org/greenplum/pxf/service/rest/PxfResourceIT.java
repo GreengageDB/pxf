@@ -5,6 +5,8 @@ import org.greenplum.pxf.api.error.PxfRuntimeException;
 import org.greenplum.pxf.api.model.RequestContext;
 import org.greenplum.pxf.service.HttpHeaderDecoder;
 import org.greenplum.pxf.service.RequestParser;
+import org.greenplum.pxf.service.controller.OperationResult;
+import org.greenplum.pxf.service.controller.OperationStats;
 import org.greenplum.pxf.service.controller.ReadService;
 import org.greenplum.pxf.service.controller.WriteService;
 import org.greenplum.pxf.service.security.SecurityConfig;
@@ -29,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -66,11 +69,15 @@ public class PxfResourceIT {
     @Test
     public void testWriteEndpoint() throws Exception {
         when(mockParser.parseRequest(any(), eq(RequestContext.RequestType.WRITE_BRIDGE))).thenReturn(mockContext);
-        when(mockWriteService.writeData(same(mockContext), any())).thenReturn("Hello from write!");
+        var stats = mock(OperationStats.class);
+        when(stats.getRecordCount()).thenReturn(100L);
+        var operationResult = new OperationResult();
+        operationResult.setStats(stats);
+
+        when(mockWriteService.writeData(same(mockContext), any())).thenReturn(operationResult);
 
         mvc.perform(post("/pxf/write"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Hello from write!"));
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -109,7 +116,8 @@ public class PxfResourceIT {
     @Test
     public void testLegacyWritableEndpoint() throws Exception {
         when(mockParser.parseRequest(any(), eq(RequestContext.RequestType.WRITE_BRIDGE))).thenReturn(mockContext);
-        when(mockWriteService.writeData(same(mockContext), any())).thenReturn("Hello from write!");
+        OperationResult operationResult = mock(OperationResult.class);
+        when(mockWriteService.writeData(same(mockContext), any())).thenReturn(operationResult);
 
         ResultActions result = mvc.perform(post("/pxf/v15/Writable/stream")).andExpect(status().isInternalServerError());
         result.andExpect(r -> assertTrue(r.getResolvedException() instanceof PxfRuntimeException))

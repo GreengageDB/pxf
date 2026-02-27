@@ -2,10 +2,9 @@ package org.greenplum.pxf.service.rest;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.greenplum.pxf.api.model.ProtocolVersion;
 import org.greenplum.pxf.api.model.RequestContext;
 import org.greenplum.pxf.service.RequestParser;
-import org.greenplum.pxf.service.controller.PxfErrorReporter;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 
@@ -18,10 +17,11 @@ import org.springframework.util.MultiValueMap;
  * @param <T> type of ResponseEntity that a resource will produce.
  */
 @Slf4j
-public abstract class PxfBaseResource<T> extends PxfErrorReporter<T> {
+public abstract class PxfBaseResource<T> {
 
     protected final RequestContext.RequestType requestType;
     protected final RequestParser<MultiValueMap<String, String>> parser;
+    private final PxfRequestHandler requestHandler;
 
     /**
      * Creates a new instance of the resource.
@@ -32,6 +32,7 @@ public abstract class PxfBaseResource<T> extends PxfErrorReporter<T> {
     protected PxfBaseResource(RequestContext.RequestType requestType, RequestParser<MultiValueMap<String, String>> parser) {
         this.requestType = requestType;
         this.parser = parser;
+        this.requestHandler = new PxfRequestHandler(parser);
     }
 
     /**
@@ -43,16 +44,9 @@ public abstract class PxfBaseResource<T> extends PxfErrorReporter<T> {
      */
     protected ResponseEntity<T> processRequest(final MultiValueMap<String, String> headers,
                                                final HttpServletRequest httpServletRequest) {
-        // use the request processing algorithm as a lambda for the invoking and error handling logic
-        T response = this.invokeWithErrorHandling(
-                () -> {
-                    RequestContext context = parser.parseRequest(headers, requestType);
-                    return produceResponse(context, httpServletRequest);
-                }
+        return requestHandler.processRequest(headers, requestType, ProtocolVersion.V0, context ->
+                produceResponse(context, httpServletRequest)
         );
-
-        // return the response entity, if it is StreamingResponseBody, then the response will be streamed asynchronously
-        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     /**
@@ -64,4 +58,5 @@ public abstract class PxfBaseResource<T> extends PxfErrorReporter<T> {
      * @throws Exception if operation fails
      */
     protected abstract T produceResponse(RequestContext context, HttpServletRequest request) throws Exception;
+
 }

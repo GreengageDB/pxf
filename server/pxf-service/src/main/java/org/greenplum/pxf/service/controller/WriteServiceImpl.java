@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.greenplum.pxf.api.model.ConfigurationFactory;
 import org.greenplum.pxf.api.model.RequestContext;
-import org.greenplum.pxf.api.utilities.Utilities;
 import org.greenplum.pxf.service.MetricsReporter;
 import org.greenplum.pxf.service.bridge.Bridge;
 import org.greenplum.pxf.service.bridge.BridgeFactory;
@@ -23,7 +22,7 @@ import java.util.function.Predicate;
  */
 @Service
 @Slf4j
-public class WriteServiceImpl extends BaseServiceImpl<OperationStats> implements WriteService {
+public class WriteServiceImpl extends BaseServiceImpl<OperationResult> implements WriteService {
 
     private final Map<RequestIdentifier, Bridge> writeExecutionMap = new ConcurrentHashMap<>();
 
@@ -42,14 +41,8 @@ public class WriteServiceImpl extends BaseServiceImpl<OperationStats> implements
     }
 
     @Override
-    public String writeData(RequestContext context, InputStream inputStream) throws Exception {
-        OperationStats stats = processData(context, OperationStats.Operation.WRITE, () -> readStream(context, inputStream));
-
-        String censuredPath = Utilities.maskNonPrintables(context.getDataSource());
-        String returnMsg = String.format("wrote %d records to %s", stats.getRecordCount(), censuredPath);
-        log.debug(returnMsg);
-
-        return returnMsg;
+    public OperationResult writeData(RequestContext context, InputStream inputStream) throws Exception {
+        return processData(context, OperationStats.Operation.WRITE, () -> readStream(context, inputStream));
     }
 
     @Override
@@ -102,7 +95,7 @@ public class WriteServiceImpl extends BaseServiceImpl<OperationStats> implements
             operationResult.setException(e);
         } finally {
             try {
-                bridge.endIteration();
+                operationResult.setMetadata(bridge.endIteration());
             } catch (Exception e) {
                 if (operationResult.getException() == null) {
                     operationResult.setException(e);

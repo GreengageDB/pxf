@@ -1,8 +1,6 @@
 package org.greenplum.pxf.service.bridge;
 
-import org.greenplum.pxf.api.model.ReadVectorizedResolver;
-import org.greenplum.pxf.api.model.RequestContext;
-import org.greenplum.pxf.api.model.WriteVectorizedResolver;
+import org.greenplum.pxf.api.model.*;
 import org.greenplum.pxf.api.utilities.Utilities;
 import org.greenplum.pxf.service.serde.RecordReaderFactory;
 import org.greenplum.pxf.service.utilities.BasePluginFactory;
@@ -30,11 +28,7 @@ public class SimpleBridgeFactory implements BridgeFactory {
 
         Bridge bridge;
         if (context.getRequestType() == RequestContext.RequestType.WRITE_BRIDGE) {
-            if (useWriteVectorization(context)) {
-                bridge = new WriteVectorizedBridge(pluginFactory, recordReaderFactory, context, failureHandler);
-            } else {
-                bridge = new WriteBridge(pluginFactory, recordReaderFactory, context, failureHandler);
-            }
+            bridge = getWriteBridge(context);
         } else if (context.getRequestType() != RequestContext.RequestType.READ_BRIDGE) {
             throw new UnsupportedOperationException("Current Operation is not supported");
         } else if (context.getStatsSampleRatio() > 0) {
@@ -45,6 +39,21 @@ public class SimpleBridgeFactory implements BridgeFactory {
             bridge = new ReadVectorizedBridge(pluginFactory, context, failureHandler);
         } else {
             bridge = new ReadBridge(pluginFactory, context, failureHandler);
+        }
+        return bridge;
+    }
+
+    private Bridge getWriteBridge(RequestContext context) {
+        if (useWriteVectorization(context)) {
+            return new WriteVectorizedBridge(pluginFactory, recordReaderFactory, context, failureHandler);
+        }
+        var bridge = new WriteBridge(pluginFactory, recordReaderFactory, context, failureHandler);
+        if(ProtocolVersion.V1.equals(context.getProtocolVersion())) {
+            var accessor = bridge.accessor;
+            if(!(accessor instanceof ProtocolVersionV1Aware)) {
+                throw new IllegalStateException("Protocol version v1 is not supported by accessor with type " + accessor.getClass().getName());
+            }
+            return new WriteBridgeV1(bridge, (ProtocolVersionV1Aware) accessor);
         }
         return bridge;
     }
