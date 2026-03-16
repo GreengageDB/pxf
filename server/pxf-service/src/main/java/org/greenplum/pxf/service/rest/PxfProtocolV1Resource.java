@@ -10,10 +10,9 @@ import org.greenplum.pxf.service.controller.WriteService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * PXF REST endpoint for protocol v1 requests.
@@ -44,6 +43,15 @@ public class PxfProtocolV1Resource {
         return requestHandler.processRequest(headers, RequestContext.RequestType.WRITE_BRIDGE, ProtocolVersion.V1, context -> {
             OperationResult result = writeService.writeData(context, request.getInputStream());
             return result.getMetadata();
+        });
+    }
+
+    @PostMapping(value = "/commit", consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    public ResponseEntity<Void> commit(@RequestHeader MultiValueMap<String, String> headers,
+                                         @RequestBody List<byte[]> fullMetadata) {
+        return requestHandler.processRequest(headers, RequestContext.RequestType.WRITE_BRIDGE, ProtocolVersion.V1, context -> {
+            writeService.commitData(context, fullMetadata);
+            return null;
         });
     }
 

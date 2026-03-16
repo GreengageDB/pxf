@@ -3,6 +3,7 @@ package org.greenplum.pxf.service.controller;
 import org.greenplum.pxf.api.model.RequestContext;
 
 import java.io.InputStream;
+import java.util.List;
 
 /**
  * Service that writes data to external systems.
@@ -19,6 +20,15 @@ public interface WriteService {
      * @throws Exception if any error happened during processing
      */
     OperationResult writeData(RequestContext context, InputStream inputStream) throws Exception;
+
+    /**
+     * Commit data written to the external system on previous step.
+     *
+     * @param context     request context
+     * @param fullMetadata metadata received from all pxf nodes
+     * @throws Exception if any error happened during processing
+     */
+    void commitData(RequestContext context, List<byte[]> fullMetadata) throws Exception;
 
     /**
      * Tries to cancel active write request to the external system specified by the RequestContext.

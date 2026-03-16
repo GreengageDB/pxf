@@ -2,7 +2,18 @@ package org.greenplum.pxf.api.model;
 
 import org.apache.commons.lang.NotImplementedException;
 
-public interface ProtocolVersionV1Aware {
+import java.util.List;
+
+public interface ProtocolVersionV1Aware extends CommittableOperation {
+
+    /**
+     * Commit data handled on all pxf nodes.
+     *
+     * @throws Exception if closing the resource failed
+     */
+    default void commit(List<byte[]> fullMetadata) throws Exception {
+        throw new NotImplementedException("Commit operation is not implemented");
+    }
 
     /**
      * Closes the resource for write and return metadata.
