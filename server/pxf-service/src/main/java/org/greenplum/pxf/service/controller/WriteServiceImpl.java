@@ -3,6 +3,7 @@ package org.greenplum.pxf.service.controller;
 import com.google.common.io.CountingInputStream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
+import org.greenplum.pxf.api.model.CommittableOperation;
 import org.greenplum.pxf.api.model.ConfigurationFactory;
 import org.greenplum.pxf.api.model.RequestContext;
 import org.greenplum.pxf.service.MetricsReporter;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.DataInputStream;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
@@ -43,6 +45,16 @@ public class WriteServiceImpl extends BaseServiceImpl<OperationResult> implement
     @Override
     public OperationResult writeData(RequestContext context, InputStream inputStream) throws Exception {
         return processData(context, OperationStats.Operation.WRITE, () -> readStream(context, inputStream));
+    }
+
+    @Override
+    public void commitData(RequestContext context, List<byte[]> fullMetadata) throws Exception {
+        Bridge bridge = getBridge(context);
+        if(bridge instanceof CommittableOperation committable) {
+            committable.commit(fullMetadata);
+            return;
+        }
+        throw new IllegalStateException("Commit operation is not supported by protocol " + context.getProtocolVersion());
     }
 
     @Override
