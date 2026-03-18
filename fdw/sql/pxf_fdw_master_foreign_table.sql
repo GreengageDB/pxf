@@ -11,6 +11,6 @@ CREATE USER MAPPING FOR current_user
 
 CREATE FOREIGN TABLE pxf_fdw_master_foreign_table (id int, name text)
     SERVER pxf_fdw_master_foreign_table_server
-    OPTIONS ( resource 'dummy_path', mpp_execute 'master' );
+    OPTIONS ( resource 'dummy_path', mpp_execute 'master', format 'filter', delimiter ',' );
 
 SELECT * FROM pxf_fdw_master_foreign_table;
