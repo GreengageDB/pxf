@@ -1,7 +1,7 @@
 CREATE FOREIGN DATA WRAPPER pxf_fdw_master_foreign_table_data_wrapper
     HANDLER pxf_fdw_handler
     VALIDATOR pxf_fdw_validator
-    OPTIONS ( protocol 'system' );
+    OPTIONS ( protocol 'system', pxf_protocol 'http' );
 
 CREATE SERVER pxf_fdw_master_foreign_table_server
     FOREIGN DATA WRAPPER pxf_fdw_master_foreign_table_data_wrapper;
