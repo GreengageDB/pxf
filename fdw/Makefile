@@ -7,7 +7,7 @@ with_llvm = no
 
 is_ssl_supported :=$(filter https,$(PXF_PROTOCOL))
 REGRESS_SSL := $(if $(is_ssl_supported), pxf_fdw_ssl)
-REGRESS     = pxf_fdw_wrapper pxf_fdw_server pxf_fdw_user_mapping pxf_fdw_foreign_table $(REGRESS_SSL)
+REGRESS     = pxf_fdw_wrapper pxf_fdw_server pxf_fdw_user_mapping pxf_fdw_foreign_table pxf_fdw_master_foreign_table $(REGRESS_SSL)
 SHLIB_LINK += -lcurl
 
 PXF_API_VERSION := $(shell cat ../api_version)
