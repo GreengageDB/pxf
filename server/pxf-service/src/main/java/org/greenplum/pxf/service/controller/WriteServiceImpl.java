@@ -49,12 +49,7 @@ public class WriteServiceImpl extends BaseServiceImpl<OperationResult> implement
 
     @Override
     public void commitData(RequestContext context, List<byte[]> fullMetadata) throws Exception {
-        Bridge bridge = getBridge(context);
-        if(bridge instanceof CommittableOperation committable) {
-            processData(context, () -> processCommit(committable, context, fullMetadata));
-            return;
-        }
-        throw new IllegalStateException("Commit operation is not supported by protocol " + context.getProtocolVersion());
+        processData(context, () -> processCommit(context, fullMetadata));
     }
 
     @Override
@@ -79,10 +74,15 @@ public class WriteServiceImpl extends BaseServiceImpl<OperationResult> implement
                 && (StringUtils.isBlank(server) || key.getServer().equals(server));
     }
 
-    private OperationResult processCommit(CommittableOperation committable, RequestContext context, List<byte[]> fullMetadata) {
+    private OperationResult processCommit(RequestContext context, List<byte[]> fullMetadata) {
         var result = new OperationResult();
+        Bridge bridge = getBridge(context);
+        if(!(bridge instanceof CommittableOperation)) {
+            result.setException(new IllegalStateException("Commit operation is not supported by protocol " + context.getProtocolVersion()));
+            return result;
+        }
         try {
-            committable.commit(fullMetadata);
+            ((CommittableOperation)bridge).commit(fullMetadata);
         } catch (Exception e) {
             result.setException(e);
         } finally {
