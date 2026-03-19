@@ -51,7 +51,7 @@ public class WriteServiceImpl extends BaseServiceImpl<OperationResult> implement
     public void commitData(RequestContext context, List<byte[]> fullMetadata) throws Exception {
         Bridge bridge = getBridge(context);
         if(bridge instanceof CommittableOperation committable) {
-            committable.commit(fullMetadata);
+            processData(context, () -> processCommit(committable, context, fullMetadata));
             return;
         }
         throw new IllegalStateException("Commit operation is not supported by protocol " + context.getProtocolVersion());
@@ -77,6 +77,18 @@ public class WriteServiceImpl extends BaseServiceImpl<OperationResult> implement
     private Predicate<RequestIdentifier> getIdentifierFilter(String profile, String server) {
         return key -> (StringUtils.isBlank(profile) || key.getProfile().equals(profile))
                 && (StringUtils.isBlank(server) || key.getServer().equals(server));
+    }
+
+    private OperationResult processCommit(CommittableOperation committable, RequestContext context, List<byte[]> fullMetadata) {
+        var result = new OperationResult();
+        try {
+            committable.commit(fullMetadata);
+        } catch (Exception e) {
+            result.setException(e);
+        } finally {
+            result.setStats(new OperationStats(OperationStats.Operation.WRITE, metricsReporter, context));
+        }
+        return result;
     }
 
     /**
