@@ -429,8 +429,7 @@ pxfBeginForeignScan(ForeignScanState *node, int eflags)
 
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("Reading is not supported for table with option mpp_execute '%s'.",
-						rel->exec_location == FTEXECLOCATION_ANY ? "any" : "master")));
+				 errmsg("Reading is supported only for table with option mpp_execute 'all segments'.")));
 	}
 
 	/*
