@@ -63,6 +63,9 @@ typedef struct PxfOptions
 	/* Encoding options */
 	const char	   *data_encoding;	/* The encoding of the data on the external system */
 	const char *database_encoding;	/* The database encoding */
+
+	/* What pxf extended protocol version to use */
+	char 			*ext_protocol_version;
 } PxfOptions;
 
 /* Functions prototypes for pxf_option.c file */

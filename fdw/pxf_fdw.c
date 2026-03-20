@@ -37,6 +37,7 @@
 #include "parser/parsetree.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
+#include "libpq/libpq.h"
 
 PG_MODULE_MAGIC;
 
@@ -47,6 +48,7 @@ PG_MODULE_MAGIC;
  */
 #define PXF_ERROR_TOKEN "PXFERRMSG> "
 #define PXF_ERROR_TOKEN_SIZE strlen(PXF_ERROR_TOKEN)
+#define IsExtendedPxfProtocol(ver)	strcmp(ver, "v1") == 0
 
 extern Datum pxf_fdw_handler(PG_FUNCTION_ARGS);
 
@@ -82,13 +84,17 @@ static void pxfReScanForeignScan(ForeignScanState *node);
 static void pxfEndForeignScan(ForeignScanState *node);
 
 /* Foreign updates */
+#if PG_VERSION_NUM >= 120000
 static void pxfBeginForeignInsert(ModifyTableState *mtstate, ResultRelInfo *resultRelInfo);
+#endif
 
 static void pxfBeginForeignModify(ModifyTableState *mtstate, ResultRelInfo *resultRelInfo, List *fdw_private, int subplan_index, int eflags);
 
 static TupleTableSlot *pxfExecForeignInsert(EState *estate, ResultRelInfo *resultRelInfo, TupleTableSlot *slot, TupleTableSlot *planSlot);
 
+#if PG_VERSION_NUM >= 120000
 static void pxfEndForeignInsert(EState *estate, ResultRelInfo *resultRelInfo);
+#endif
 
 static void pxfEndForeignModify(EState *estate, ResultRelInfo *resultRelInfo);
 
@@ -573,6 +579,7 @@ pxfEndForeignScan(ForeignScanState *node)
 	elog(DEBUG5, "pxf_fdw: pxfEndForeignScan ends on segment: %d", PXF_SEGMENT_ID);
 }
 
+#if PG_VERSION_NUM >= 120000
 /*
  * pxfBeginForeignInsert
  *		Begin an insert operation on a foreign table, called in COPY <table> FROM <source> flow
@@ -590,6 +597,7 @@ pxfBeginForeignInsert(ModifyTableState *mtstate,
 	 * in the segments.
 	 */
 }
+#endif
 
 /*
  * pxfBeginForeignModify
@@ -619,7 +627,7 @@ pxfBeginForeignModify(ModifyTableState *mtstate,
 	 */
 	if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
 		return;
-	if (!resultRelInfo->ri_FdwState)
+	if (Gp_role == GP_ROLE_DISPATCH && !resultRelInfo->ri_FdwState)
 		resultRelInfo->ri_FdwState = InitForeignModify(resultRelInfo->ri_RelationDesc);
 	/* end of temp block */
 }
@@ -649,10 +657,6 @@ InitForeignModify(Relation relation)
 	foreigntableid = RelationGetRelid(relation);
 	rel = GetForeignTable(foreigntableid);
 
-	if (Gp_role == GP_ROLE_DISPATCH && rel->exec_location == FTEXECLOCATION_ALL_SEGMENTS)
-		/* master does not process any data when exec_location is all segments */
-		return NULL;
-
 #if PG_VERSION_NUM < 90600
 	tupDesc = RelationGetDescr(relation);
 #endif
@@ -666,6 +670,18 @@ InitForeignModify(Relation relation)
 	pxfmstate->values = (Datum *) palloc(tupDesc->natts * sizeof(Datum));
 	pxfmstate->nulls = (bool *) palloc(tupDesc->natts * sizeof(bool));
 #endif
+
+	if (Gp_role == GP_ROLE_DISPATCH && rel->exec_location == FTEXECLOCATION_ALL_SEGMENTS)
+	{
+		if (IsExtendedPxfProtocol(pxfmstate->options->ext_protocol_version))
+		{
+			/* master does not process any data when exec_location is all segments, so we don't need to
+			 * initialize copy state, but we're still need PxfFdwModifyState instance for extended pxf protocol */
+			return pxfmstate;
+		}
+		else
+			return NULL;
+	};
 
 	InitCopyStateForModify(pxfmstate);
 
@@ -735,6 +751,7 @@ pxfExecForeignInsert(EState *estate,
 	return slot;
 }
 
+#if PG_VERSION_NUM >= 120000
 /*
  * pxfEndForeignInsert
  *		Finish an insert operation on a foreign table
@@ -749,6 +766,8 @@ pxfEndForeignInsert(EState *estate,
 
 	elog(DEBUG5, "pxf_fdw: pxfEndForeignInsert ends on segment: %d", PXF_SEGMENT_ID);
 }
+
+#endif
 
 /*
  * pxfEndForeignModify
@@ -768,14 +787,34 @@ pxfEndForeignModify(EState *estate,
 static void
 FinishForeignModify(PxfFdwModifyState *pxfmstate)
 {
-	/* If pxfmstate is NULL, we are in EXPLAIN or MASTER when exec_location is all segments; nothing to do */
-	if (pxfmstate == NULL)
-		return;
+	if (pxfmstate != NULL)
+	{
+		if (Gp_role == GP_ROLE_DISPATCH &&
+				IsExtendedPxfProtocol(pxfmstate->options->ext_protocol_version))
+		{
+			/*
+			 * Request /pxf/commit endpoint to perform pxf global commit
+			 */
+			PxfBridgeExportCommit(pxfmstate);
+		}
+		else
+		{
+			if (IsExtendedPxfProtocol(pxfmstate->options->ext_protocol_version))
+			{
+				size_t 		fdw_private_data_len;
+				char 		fdw_private_data_buf[512*1024];
 
-	EndCopyFrom(pxfmstate->cstate);
-	pxfmstate->cstate = NULL;
-	PxfBridgeCleanup(pxfmstate);
+				fdw_private_data_len = PxfBridgeReadExportResponse(
+						pxfmstate, fdw_private_data_buf, 512, sizeof(fdw_private_data_buf));
 
+				pq_metadatasend(fdw_private_data_buf, fdw_private_data_len);
+			}
+
+			EndCopyFrom(pxfmstate->cstate);
+			pxfmstate->cstate = NULL;
+			PxfBridgeCleanup(pxfmstate);
+		}
+	}
 }
 
 /*

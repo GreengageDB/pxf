@@ -26,6 +26,7 @@
 #include "access/xact.h"
 #include "utils/memutils.h"
 #include "utils/guc.h"
+#include "libpq/libpq.h"
 
 typedef struct PxfFdwCancelState
 {
@@ -207,6 +208,26 @@ PxfBridgeImportCleanup(PxfFdwScanState *pxfsstate)
 	}
 }
 
+size_t
+PxfBridgeReadExportResponse(PxfFdwModifyState *pxfsstate, char *start, int minlen, int maxlen)
+{
+	size_t		n = 0;
+	char	   *ptr = start;
+	char	   *minend = ptr + minlen;
+	char	   *maxend = ptr + maxlen;
+
+	while (ptr < minend)
+	{
+		n = churl_read(pxfsstate->churl_handle, ptr, maxend - ptr);
+		if (n == 0)
+			break;
+
+		ptr += n;
+	}
+
+	return ptr - start;
+}
+
 /*
  * Clean up churl related data structures from the PXF FDW modify state.
  */
@@ -309,6 +330,79 @@ PxfBridgeExportStart(PxfFdwModifyState *pxfmstate)
 	}
 }
 
+void
+PxfBridgeExportCommit(PxfFdwModifyState *pxfmstate)
+{
+	Assert(Gp_role == GP_ROLE_DISPATCH);
+
+	StringInfoData 		uri;
+	StringInfoData 		fdw_private_data;
+	CHURL_HANDLE 		churl_handle;
+	CHURL_HEADERS 		churl_headers;
+	int 				fdw_private_data_len;
+	void 				*metadata;
+	churl_ssl_options 	*ssl_options = NULL; /* NULL if SSL not used */
+
+	if (pxfmstate == NULL)
+		return;
+
+	PG_TRY();
+	{
+		initStringInfo(&fdw_private_data);
+		ggMetadataChunkIterator it = PQMetadataWalk();
+		for (; it; it = PQgetNextMetadata(it))
+		{
+			PQgetMetadata(it, &fdw_private_data_len, &metadata);
+			if (fdw_private_data_len > 0)
+			{
+				elog(DEBUG1, "pxf_fdw: custom metadata received, len=%d, metadata=%s", fdw_private_data_len, (char *)metadata);
+
+				appendBinaryStringInfo(&fdw_private_data, (char *)&fdw_private_data_len, sizeof(int));
+				appendBinaryStringInfo(&fdw_private_data, metadata, fdw_private_data_len);
+			}
+		}
+	}
+	PG_CATCH();
+	{
+		PQCleanMetadata();
+
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
+
+	PQCleanMetadata();
+
+	if (fdw_private_data.len > 0)
+	{
+		churl_headers = churl_headers_init();
+		BuildHttpHeaders(churl_headers,
+						 pxfmstate->options,
+						 pxfmstate->relation,
+						 NULL,
+						 NULL,
+						 NULL);
+
+		if (IsProtocolHttps(pxfmstate->options->pxf_protocol)) {
+			ssl_options = churl_make_ssl_options(pxfmstate->options);
+		}
+
+		initStringInfo(&uri);
+		appendStringInfo(&uri, "http://%s:%d/%s/v1/commit",
+						 pxfmstate->options->pxf_host, pxfmstate->options->pxf_port, PXF_SERVICE_PREFIX);
+
+		elog(DEBUG1, "pxf_fdw: uri %s", uri.data);
+
+		churl_handle = churl_init_upload_ssl(uri.data, churl_headers, ssl_options);
+		churl_write(churl_handle, fdw_private_data.data, fdw_private_data.len);
+
+		if (ssl_options != NULL) {
+			free_churl_ssl_options(ssl_options);
+		}
+
+		churl_cleanup(churl_handle, false);
+	}
+}
+
 /*
  * Reads data from the PXF server into the given buffer of a given size
  */
@@ -400,10 +494,12 @@ BuildUriForWrite(PxfFdwModifyState *pxfmstate)
 {
 	PxfOptions *options = pxfmstate->options;
 	const char *protocol = IsProtocolHttps(options->pxf_protocol) ? "https" : "http";
+    const char *pxf_protocol_ver = (pxfmstate->options->ext_protocol_version != NULL) ?
+			pxfmstate->options->ext_protocol_version : "";
 
 	resetStringInfo(&pxfmstate->uri);
-	appendStringInfo(&pxfmstate->uri, "%s://%s:%d/%s/write", 
-		protocol, options->pxf_host, options->pxf_port, PXF_SERVICE_PREFIX);
+	appendStringInfo(&pxfmstate->uri, "%s://%s:%d/%s/%s/write",
+		protocol, options->pxf_host, options->pxf_port, PXF_SERVICE_PREFIX, pxf_protocol_ver);
 
 	if ((LOG >= log_min_messages) || (LOG >= client_min_messages))
 	{

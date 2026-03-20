@@ -12,6 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -48,11 +51,26 @@ public class PxfProtocolV1Resource {
 
     @PostMapping(value = "/commit", consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     public ResponseEntity<Void> commit(@RequestHeader MultiValueMap<String, String> headers,
-                                         @RequestBody List<byte[]> fullMetadata) {
+                                         @RequestBody byte[] fullMetadata) {
         return requestHandler.processRequest(headers, RequestContext.RequestType.WRITE_BRIDGE, ProtocolVersion.V1, context -> {
-            writeService.commitData(context, fullMetadata);
+            writeService.commitData(context, deserializeToByteArrayList(fullMetadata));
             return null;
         });
     }
 
+    private List<byte[]> deserializeToByteArrayList(byte[] raw)
+    {
+        List<byte[]> metadata = new ArrayList<>();
+
+        ByteBuffer buffer = ByteBuffer.wrap(raw).order(ByteOrder.LITTLE_ENDIAN);
+
+        while (buffer.hasRemaining()) {
+            int length = buffer.getInt();
+            byte[] chunk = new byte[length];
+            buffer.get(chunk);
+            metadata.add(chunk);
+        }
+
+        return metadata;
+    }
 }

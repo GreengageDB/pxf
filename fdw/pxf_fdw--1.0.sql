@@ -28,6 +28,11 @@ CREATE FOREIGN DATA WRAPPER hive_pxf_fdw
     VALIDATOR pxf_fdw_validator
     OPTIONS ( protocol 'hive', mpp_execute 'all segments' );
 
+CREATE FOREIGN DATA WRAPPER iceberg_pxf_fdw
+    HANDLER pxf_fdw_handler
+    VALIDATOR pxf_fdw_validator
+    OPTIONS ( protocol 'iceberg', mpp_execute 'all segments', ext_protocol_version 'v1' );
+
 CREATE FOREIGN DATA WRAPPER hbase_pxf_fdw
     HANDLER pxf_fdw_handler
     VALIDATOR pxf_fdw_validator

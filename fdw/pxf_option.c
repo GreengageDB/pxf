@@ -45,6 +45,7 @@
 #define FDW_OPTION_REJECT_LIMIT "reject_limit"
 #define FDW_OPTION_REJECT_LIMIT_TYPE "reject_limit_type"
 #define FDW_OPTION_RESOURCE "resource"
+#define FDW_OPTION_PXF_EXT_PROTOCOL_VERSION "ext_protocol_version"
 
 #define FDW_COPY_OPTION_FORMAT "format"
 #define FDW_COPY_OPTION_HEADER "header"
@@ -504,6 +505,10 @@ PxfGetOptions(Oid foreigntableid)
 			 */
 			encoding = defGetString(def);
 			copy_options = lappend(copy_options, def);
+		}
+		else if (strcmp(def->defname, FDW_OPTION_PXF_EXT_PROTOCOL_VERSION) == 0)
+		{
+			opt->ext_protocol_version = defGetString(def);
 		}
 		else if (IsCopyOption(def->defname))
 			copy_options = lappend(copy_options, def);
