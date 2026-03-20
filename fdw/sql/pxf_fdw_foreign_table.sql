@@ -406,18 +406,18 @@ CREATE FOREIGN TABLE pxf_fdw_test_table_any (id int, name text)
 SELECT * FROM pxf_fdw_test_table_any;
 
 --
--- Table selection fails if table option is mpp_execute 'master'
+-- Table selection fails if table option is mpp_execute 'coordinator' / 'master'
 --
-do $$ begin
+DO $$ BEGIN
     IF setting::int >= 120000 FROM pg_settings WHERE name = 'server_version_num' THEN
-        CREATE FOREIGN TABLE pxf_fdw_test_table_master (id int, name text)
+        CREATE FOREIGN TABLE pxf_fdw_test_table_coordinator_master (id int, name text)
             SERVER pxf_fdw_test_server
             OPTIONS ( resource 'dummy_path', mpp_execute 'coordinator' );
     ELSE
-        CREATE FOREIGN TABLE pxf_fdw_test_table_master (id int, name text)
+        CREATE FOREIGN TABLE pxf_fdw_test_table_coordinator_master (id int, name text)
             SERVER pxf_fdw_test_server
             OPTIONS ( resource 'dummy_path', mpp_execute 'master' );
     END IF;
-end; $$;
+END; $$;
 
-SELECT * FROM pxf_fdw_test_table_master;
+SELECT * FROM pxf_fdw_test_table_coordinator_master;
