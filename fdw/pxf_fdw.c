@@ -419,9 +419,17 @@ pxfBeginForeignScan(ForeignScanState *node, int eflags)
 	char *filter_str              = strVal(list_nth(foreignScan->fdw_private, FdwScanPrivateWhereClauses));
 	List *retrieved_attrs = (List *) list_nth(foreignScan->fdw_private, FdwScanPrivateRetrievedAttrs);
 
-	if (Gp_role == GP_ROLE_DISPATCH && rel->exec_location == FTEXECLOCATION_ALL_SEGMENTS)
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		if (rel->exec_location == FTEXECLOCATION_ANY || rel->exec_location == FTEXECLOCATION_MASTER)
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("Reading is not supported for table with option mpp_execute '%s'.",
+							rel->exec_location == FTEXECLOCATION_ANY ? "any" : "master")));
+
 		/* master does not process any data when exec_location is all segments */
 		return;
+	}
 
 	/*
 	 * Save state in node->fdw_state.  We must save enough information to call

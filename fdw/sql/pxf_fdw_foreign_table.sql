@@ -392,3 +392,24 @@ ALTER FOREIGN TABLE pxf_fdw_test_table
 --
 ALTER FOREIGN TABLE pxf_fdw_test_table
     OPTIONS ( DROP disable_ppd );
+
+CREATE USER MAPPING FOR current_user
+    SERVER pxf_fdw_test_server;
+
+--
+-- Table selection fails if table option is mpp_execute 'any'
+--
+CREATE FOREIGN TABLE pxf_fdw_test_table_any (id int, name text)
+    SERVER pxf_fdw_test_server
+    OPTIONS ( resource 'dummy_path', mpp_execute 'any' );
+
+SELECT * FROM pxf_fdw_test_table_any;
+
+--
+-- Table selection fails if table option is mpp_execute 'master'
+--
+CREATE FOREIGN TABLE pxf_fdw_test_table_master (id int, name text)
+    SERVER pxf_fdw_test_server
+    OPTIONS ( resource 'dummy_path', mpp_execute 'master' );
+
+SELECT * FROM pxf_fdw_test_table_master;
