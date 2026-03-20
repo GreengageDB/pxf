@@ -422,14 +422,11 @@ pxfBeginForeignScan(ForeignScanState *node, int eflags)
 	{
 		ForeignTable *rel             = GetForeignTable(foreigntableid);
 
-		if (rel->exec_location == FTEXECLOCATION_NOT_DEFINED ||
-			rel->exec_location == FTEXECLOCATION_ALL_SEGMENTS)
-			/* master does not process any data when exec_location is all segments */
-			return;
-
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("Reading is supported only for table with option mpp_execute 'all segments'.")));
+		if (rel->exec_location != FTEXECLOCATION_NOT_DEFINED &&
+			rel->exec_location != FTEXECLOCATION_ALL_SEGMENTS)
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("Reading is supported only for table with option mpp_execute 'all segments'.")));
 	}
 
 	/*
