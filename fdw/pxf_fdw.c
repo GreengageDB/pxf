@@ -422,7 +422,7 @@ pxfBeginForeignScan(ForeignScanState *node, int eflags)
 	{
 		ForeignTable *rel             = GetForeignTable(foreigntableid);
 
-		if (rel->exec_location == FTEXECLOCATION_NOT_DEFINED |
+		if (rel->exec_location == FTEXECLOCATION_NOT_DEFINED ||
 			rel->exec_location == FTEXECLOCATION_ALL_SEGMENTS)
 			/* master does not process any data when exec_location is all segments */
 			return;
