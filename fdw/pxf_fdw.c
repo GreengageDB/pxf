@@ -413,7 +413,6 @@ pxfBeginForeignScan(ForeignScanState *node, int eflags)
 	Relation	relation          = node->ss.ss_currentRelation;
 	ForeignScan *foreignScan      = (ForeignScan *) node->ss.ps.plan;
 	PxfOptions *options           = PxfGetOptions(foreigntableid);
-	ForeignTable *rel             = GetForeignTable(foreigntableid);
 
 	/* retrieve fdw-private information from pxfGetForeignPlan() */
 	char *filter_str              = strVal(list_nth(foreignScan->fdw_private, FdwScanPrivateWhereClauses));
@@ -421,6 +420,8 @@ pxfBeginForeignScan(ForeignScanState *node, int eflags)
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
+		ForeignTable *rel             = GetForeignTable(foreigntableid);
+
 		if (rel->exec_location == FTEXECLOCATION_ANY || rel->exec_location == FTEXECLOCATION_MASTER)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),

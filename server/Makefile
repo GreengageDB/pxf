@@ -111,7 +111,7 @@ doc:
 	./gradlew $(PXF_GRADLE_PROPERTIES) aggregateJavadoc
 
 .PHONY: install
-install: stage
+install: stage-notest
 	@if [ -z "$(PXF_HOME)" ]; then \
 		echo "ERROR: PXF_HOME is not set"; exit 2; \
 	fi
