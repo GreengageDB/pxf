@@ -422,14 +422,14 @@ pxfBeginForeignScan(ForeignScanState *node, int eflags)
 	{
 		ForeignTable *rel             = GetForeignTable(foreigntableid);
 
-		if (rel->exec_location == FTEXECLOCATION_ANY || rel->exec_location == FTEXECLOCATION_MASTER)
-			ereport(ERROR,
-					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("Reading is not supported for table with option mpp_execute '%s'.",
-							rel->exec_location == FTEXECLOCATION_ANY ? "any" : "master")));
+		if (rel->exec_location == FTEXECLOCATION_NOT_DEFINED || rel->exec_location == FTEXECLOCATION_ALL_SEGMENTS)
+			/* master does not process any data when exec_location is all segments */
+			return;
 
-		/* master does not process any data when exec_location is all segments */
-		return;
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("Reading is not supported for table with option mpp_execute '%s'.",
+						rel->exec_location == FTEXECLOCATION_ANY ? "any" : "master")));
 	}
 
 	/*
