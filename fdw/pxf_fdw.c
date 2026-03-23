@@ -427,6 +427,8 @@ pxfBeginForeignScan(ForeignScanState *node, int eflags)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("Reading is supported only for table with option mpp_execute 'all segments'.")));
+
+		return;
 	}
 
 	/*
