@@ -33,7 +33,7 @@ export SKIP_FDW_PACKAGE_REASON
 export GP_MAJORVERSION
 export GP_BUILD_ARCH
 
-PACKAGE_NAME := $(shell grep '^Package:' debian/control | head -1 | awk '{print $$2}')
+PACKAGE_NAME := $(shell grep '^Source:' debian/control | awk '{print $$2}')
 PXF_PACKAGE_NAME := $(PACKAGE_NAME)-$(PXF_VERSION)-$(GP_BUILD_ARCH)
 export PXF_PACKAGE_NAME
 
@@ -119,7 +119,7 @@ endif
 #---------------------------------------------------------------------
 
 # Metadata vars
-PACKAGE_NAME := $(shell grep '^Package:' debian/control | head -1 | awk '{print $$2}')
+PACKAGE_NAME := $(shell grep '^Source:' debian/control | head -1 | awk '{print $$2}')
 MAINTAINER := $(shell grep '^Maintainer:' debian/control | sed 's/Maintainer: //')
 DATE_RFC := $(shell date -R)
 ARTIFACTS_DIR := $(CURDIR)/./Package
@@ -152,17 +152,13 @@ debian/changelog : version-vars
 	@echo "" >> $@
 	@echo " -- $(MAINTAINER)  $(DATE_RFC)" >> $@
 
-debian/install:
-	@echo "$(PACKAGE_NAME)/* /" > $@
-
-
 # Default packaging target
 pkg : pkg-deb
 
 # Build Debian package
-pkg-deb : debian/changelog debian/install
+pkg-deb : debian/changelog
 	@echo "Building with GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME), PACKAGE_NAME=$(PACKAGE_NAME)"
-	@GPHOME="$(GPHOME)" PXF_HOME="$(PXF_HOME)" PACKAGE_NAME="$(PACKAGE_NAME)" debuild --preserve-env -us -uc -b
+	@GPHOME="$(GPHOME)" PXF_HOME="$(PXF_HOME)" debuild --preserve-env -us -uc -b
 	@mkdir -p $(ARTIFACTS_DIR)
 	@find $(CURDIR)/../ -maxdepth 1 -type f \( -name "*.deb" \
 											-o -name "*.ddeb" \

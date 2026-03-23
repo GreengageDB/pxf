@@ -85,7 +85,7 @@ jobs:
             $TEST_DOCKER_IMAGE \
             /bin/bash -c "
               set -e
-              apt-get update 
+              apt-get update
               { apt-get install -yq /deb-packages/*.deb 2>&1 || dpkg -i /deb-packages/*.deb 2>&1; }
               apt-get install -yqf
             "
@@ -131,7 +131,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Build PXF regression on ggdb${{ matrix.version }}-${{ matrix.release }} 
+      - name: Build PXF regression on ggdb${{ matrix.version }}-${{ matrix.release }}
         uses: docker/build-push-action@v6
         with:
           context: .

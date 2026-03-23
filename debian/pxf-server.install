@@ -1,0 +1,8 @@
+opt/greengagedb/greengage/pxf/application/*
+opt/greengagedb/greengage/pxf/conf/*
+opt/greengagedb/greengage/pxf/lib/*
+opt/greengagedb/greengage/pxf/templates/*
+opt/greengagedb/greengage/pxf/share/*
+opt/greengagedb/greengage/pxf/bin/kill-pxf.sh
+opt/greengagedb/greengage/pxf/bin/merge-pxf-config.sh
+opt/greengagedb/greengage/pxf/version

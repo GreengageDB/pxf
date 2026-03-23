@@ -1,0 +1,2 @@
+opt/greengagedb/greengage/lib/postgresql/*
+opt/greengagedb/greengage/share/postgresql/extension/*

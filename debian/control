@@ -5,15 +5,17 @@ Build-Depends: debhelper (>= 13),
 	dh-python,
 	lsb-release
 
-Package: pxf
+Package: pxf-fdw
 Architecture: any
-Depends: ${shlibs:Depends},
-	greengage
-Description: The PXF package with FDW extension provides connection pool for the Greengage Database
-	PXF is an extensible framework that allows a distributed database like 
-	Greengage to query external data files, whose metadata is not managed by 
-	the database.
-	PXF includes built-in connectors for accessing data that exists inside HDFS 
-	files, Hive tables, HBase tables, JDBC-accessible databases and more.
-	Users can also create their own connectors to other data storage or 
-	processing engines.
+Depends: ${shlibs:Depends}, greengage
+Description: PXF FDW extension
+
+Package: pxf-cli
+Architecture: any
+Depends: ${shlibs:Depends}, pxf-server
+Description: PXF CLI tools
+
+Package: pxf-server
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: PXF Server

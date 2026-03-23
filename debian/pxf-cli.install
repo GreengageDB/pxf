@@ -1,0 +1,4 @@
+opt/greengagedb/greengage/pxf/bin/pxf
+opt/greengagedb/greengage/pxf/bin/pxf-cli
+opt/greengagedb/greengage/pxf/bin/pxf-pre-gpupgrade
+opt/greengagedb/greengage/pxf/bin/pxf-post-gpupgrade
