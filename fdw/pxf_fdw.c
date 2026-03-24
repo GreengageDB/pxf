@@ -426,7 +426,9 @@ pxfBeginForeignScan(ForeignScanState *node, int eflags)
 			rel->exec_location != FTEXECLOCATION_ALL_SEGMENTS)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("Reading is supported only for table with option mpp_execute 'all segments'.")));
+					 errmsg("Reading is not supported for table '%s'", RelationGetRelationName(relation)),
+					 errdetail("Reading is supported only for tables without option 'mpp_execute' "
+							   "or when option 'mpp_execute' is set to 'all segments'")));
 
 		return;
 	}

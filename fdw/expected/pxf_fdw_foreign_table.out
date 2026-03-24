@@ -369,7 +369,8 @@ CREATE FOREIGN TABLE pxf_fdw_test_table_any (id int, name text)
     SERVER pxf_fdw_test_server
     OPTIONS ( resource 'dummy_path', mpp_execute 'any' );
 SELECT * FROM pxf_fdw_test_table_any;
-ERROR:  Reading is supported only for table with option mpp_execute 'all segments'.
+ERROR:  Reading is not supported for table 'pxf_fdw_test_table_any'
+DETAIL:  Reading is supported only for tables without option 'mpp_execute' or when option 'mpp_execute' is set to 'all segments'
 --
 -- Table selection fails if table option is mpp_execute 'coordinator' / 'master'
 --
@@ -385,4 +386,5 @@ DO $$ BEGIN
     END IF;
 END; $$;
 SELECT * FROM pxf_fdw_test_table_coordinator_master;
-ERROR:  Reading is supported only for table with option mpp_execute 'all segments'.
+ERROR:  Reading is not supported for table 'pxf_fdw_test_table_coordinator_master'
+DETAIL:  Reading is supported only for tables without option 'mpp_execute' or when option 'mpp_execute' is set to 'all segments'
