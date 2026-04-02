@@ -21,18 +21,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: greengagedb/ggdb6_ubuntu:6.29.1
-            release: stable
-            version: '6'
-          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:GG-246
             release: devel
             version: '6'
-          - image: greengagedb/ggdb7_ubuntu:7.4.0
-            release: stable
-            version: '7'
-          - image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
-            release: devel
-            version: '7'
+          # - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+          #   release: devel
+          #   version: '6'
+          # - image: greengagedb/ggdb7_ubuntu:7.4.0
+          #   release: stable
+          #   version: '7'
+          # - image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
+          #   release: devel
+          #   version: '7'
     env:
       GREENGAGE_DEB:     Package/greengage.deb
       GREENGAGE_DEB_URL: https://github.com/GreengageDB/greengage/releases/download/6.29.2/greengage6.deb
@@ -116,18 +116,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: greengagedb/ggdb6_ubuntu:6.29.1
-            release: stable
-            version: '6'
-          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+          # - image: greengagedb/ggdb6_ubuntu:6.29.1
+          #   release: stable
+          #   version: '6'
+          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:GG-246
             release: devel
             version: '6'
-          - image: greengagedb/ggdb7_ubuntu:7.4.0
-            release: stable
-            version: '7'
-          - image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
-            release: devel
-            version: '7'
+          # - image: greengagedb/ggdb7_ubuntu:7.4.0
+          #   release: stable
+          #   version: '7'
+          # - image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
+          #   release: devel
+          #   version: '7'
 
     steps:
       - uses: actions/checkout@v4
@@ -172,7 +172,7 @@ jobs:
     name: Integration on ggdb6-stable
     uses: ./.github/workflows/integration-tests.yml
     with:
-      image: greengagedb/ggdb6_ubuntu:6.29.1
+      image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:GG-246
       version: '6'
       release: stable
       tests_matrix: |
