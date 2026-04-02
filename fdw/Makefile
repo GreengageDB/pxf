@@ -37,7 +37,9 @@ clean-all: clean
 	rm -rf build
 
 .PHONY: test
-test: install installcheck isolationcheck
+test: install installcheck
+
+installcheck: isolationcheck
 
 isolationcheck: submake
 	$(pg_isolation2_regress_installcheck) $(ISOLATIONCHECKS)

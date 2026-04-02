@@ -4,7 +4,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from http.client import HTTPConnection
 from urllib.parse import urlparse, parse_qs
 
-PXF_PORT=5888
+PXF_PORT=5889
 print_headers = False
 
 class MockPXFHandler(BaseHTTPRequestHandler):

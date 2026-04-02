@@ -2,11 +2,13 @@ CREATE EXTENSION IF NOT EXISTS pxf_fdw;
 
 2:!& python3 test/mock_server/pxf_mock.py > /tmp/pxf_mock.log 2>&1;
 
+select pg_sleep(1);
+
 CREATE FOREIGN DATA WRAPPER pxf_ext_v1
     HANDLER pxf_fdw_handler
     VALIDATOR pxf_fdw_validator
     OPTIONS (protocol 'system', mpp_execute 'all segments',
-        pxf_protocol 'http', ext_protocol_version 'v1'
+        pxf_protocol 'http', pxf_port '5889', ext_protocol_version 'v1'
     );
 
 CREATE SERVER pxf_ext_v1_server
@@ -26,7 +28,7 @@ set client_min_messages = info;
 
 INSERT INTO test_t VALUES('hello world', 1);
 
-1:!& curl http://localhost:5888/shutdown;
+1:!& curl http://localhost:5889/shutdown;
 
 2<:
 
