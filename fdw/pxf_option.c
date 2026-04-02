@@ -45,6 +45,7 @@
 #define FDW_OPTION_REJECT_LIMIT "reject_limit"
 #define FDW_OPTION_REJECT_LIMIT_TYPE "reject_limit_type"
 #define FDW_OPTION_RESOURCE "resource"
+#define FDW_OPTION_EXT_PROTOCOL_VERSION "ext_protocol_version"
 
 #define FDW_COPY_OPTION_FORMAT "format"
 #define FDW_COPY_OPTION_HEADER "header"
@@ -69,6 +70,7 @@ struct PxfFdwOption
 
 static const struct PxfFdwOption valid_options[] = {
 	{FDW_OPTION_PROTOCOL, ForeignDataWrapperRelationId},
+	{FDW_OPTION_EXT_PROTOCOL_VERSION, ForeignDataWrapperRelationId},
 	{FDW_OPTION_RESOURCE, ForeignTableRelationId},
 	{FDW_OPTION_FORMAT, ForeignTableRelationId},
 	{FDW_OPTION_CONFIG, ForeignServerRelationId},
@@ -147,6 +149,7 @@ Datum
 pxf_fdw_validator(PG_FUNCTION_ARGS)
 {
 	char	   *protocol = NULL;
+	char	   *ext_protocol_version = NULL;
 	char	   *resource = NULL;
 	char	   *reject_limit_type = FDW_OPTION_REJECT_LIMIT_ROWS;
 	bool		log_errors_set = false;
@@ -169,6 +172,8 @@ pxf_fdw_validator(PG_FUNCTION_ARGS)
 
 		if (strcmp(def->defname, FDW_OPTION_PROTOCOL) == 0)
 			protocol = defGetString(def);
+		else if(strcmp(def->defname, FDW_OPTION_EXT_PROTOCOL_VERSION) == 0)
+			ext_protocol_version = defGetString(def);
 		else if (strcmp(def->defname, FDW_OPTION_RESOURCE) == 0)
 			resource = defGetString(def);
 		else if (strcmp(def->defname, FDW_OPTION_MPP_EXECUTE) == 0)
@@ -483,6 +488,8 @@ PxfGetOptions(Oid foreigntableid)
 			opt->pxf_ssl_verify_peer = defGetBoolean(def);
 		else if (strcmp(def->defname, FDW_OPTION_PROTOCOL) == 0)
 			opt->protocol = defGetString(def);
+		else if (strcmp(def->defname, FDW_OPTION_EXT_PROTOCOL_VERSION) == 0)
+			opt->ext_protocol_version = defGetString(def);
 		else if (strcmp(def->defname, FDW_OPTION_RESOURCE) == 0)
 			opt->resource = defGetString(def);
 		else if (strcmp(def->defname, FDW_OPTION_REJECT_LIMIT) == 0)
@@ -624,4 +631,11 @@ ValidateOption(char *option, Oid catalog)
 							RelationGetRelationName(rel))));
 		}
 	}
+}
+
+bool
+IsExtProtocolV1(PxfOptions *options)
+{
+	return  options->ext_protocol_version != NULL &&
+		!strcmp(options->ext_protocol_version, PXF_EXTPROTOCOL_VERSION_V1);
 }

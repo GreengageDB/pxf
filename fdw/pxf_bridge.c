@@ -44,10 +44,11 @@ static void PxfBridgeCancelCleanup(PxfFdwCancelState *pxfcstate);
 static void BuildUriForCancel(PxfFdwCancelState *pxfcstate);
 static void BuildUriForRead(PxfFdwScanState *pxfsstate);
 static void BuildUriForWrite(PxfFdwModifyState *pxfmstate);
+static void BuildUriForCommit(PxfFdwModifyState *pxfmstate);
 #if PG_VERSION_NUM >= 90600
-static size_t FillBuffer(PxfFdwScanState *pxfsstate, char *start, int minlen, int maxlen);
+static size_t FillBuffer(CHURL_HANDLE churl_handle, char *start, int minlen, int maxlen);
 #else
-static size_t FillBuffer(PxfFdwScanState *pxfsstate, char *start, size_t size);
+static size_t FillBuffer(CHURL_HANDLE churl_handle, char *start, size_t size);
 #endif
 
 static churl_ssl_options *churl_make_ssl_options(PxfOptions *options)
@@ -323,9 +324,9 @@ PxfBridgeRead(void *outbuf, int datasize, void *extra)
 	PxfFdwScanState *pxfsstate = (PxfFdwScanState *) extra;
 
 #if PG_VERSION_NUM >= 90600
-	n = FillBuffer(pxfsstate, outbuf, minlen, maxlen);
+	n = FillBuffer(pxfsstate->churl_handle, outbuf, minlen, maxlen);
 #else
-	n = FillBuffer(pxfsstate, outbuf, datasize);
+	n = FillBuffer(pxfsstate->churl_handle, outbuf, datasize);
 #endif
 
 	if (n == 0)
@@ -356,6 +357,39 @@ PxfBridgeWrite(PxfFdwModifyState *pxfmstate, char *databuf, int datalen)
 
 	return (int) n;
 }
+
+/* Receive metadata */
+int
+PxfBridgeRecieveMetadata(PxfFdwModifyState *pxfmstate, StringInfo out_buf)
+{
+	char chunk [1024];
+
+	if (out_buf == NULL) {
+		return 0;
+	}
+
+	while (true)
+	{
+#if PG_VERSION_NUM >= 90600
+		size_t		n = FillBuffer(pxfmstate->churl_handle, chunk, 4, sizeof(outbuf));
+#else
+		size_t		n = FillBuffer(pxfmstate->churl_handle, chunk, sizeof(chunk));
+#endif
+		if (n == 0)
+		{
+			/* check if the connection terminated with an error */
+			churl_read_check_connectivity(pxfmstate->churl_handle);
+			break;
+		} else {
+			appendBinaryStringInfo(out_buf, chunk, n);
+		}
+	}
+	elog(DEBUG2, "pxf PxfBridgeRead: segment %d read %d metadata bytes from %s",
+		 PXF_SEGMENT_ID, out_buf->len, pxfmstate->options->resource);
+
+	return out_buf->len;
+}
+
 
 /*
  * Format the URI for cancel by adding PXF service endpoint details
@@ -400,17 +434,44 @@ BuildUriForWrite(PxfFdwModifyState *pxfmstate)
 {
 	PxfOptions *options = pxfmstate->options;
 	const char *protocol = IsProtocolHttps(options->pxf_protocol) ? "https" : "http";
+	bool use_extprotocol = IsExtProtocolV1(options);
 
 	resetStringInfo(&pxfmstate->uri);
-	appendStringInfo(&pxfmstate->uri, "%s://%s:%d/%s/write", 
-		protocol, options->pxf_host, options->pxf_port, PXF_SERVICE_PREFIX);
+	appendStringInfo(&pxfmstate->uri, "%s://%s:%d/%s/%s%swrite", 
+		protocol, options->pxf_host, options->pxf_port,
+		PXF_SERVICE_PREFIX,
+		use_extprotocol ? options->ext_protocol_version : "",
+		use_extprotocol ? "/" : ""
+		);
 
 	if ((LOG >= log_min_messages) || (LOG >= client_min_messages))
 	{
 		appendStringInfo(&pxfmstate->uri, "?trace=true");
 	}
 
-	elog(DEBUG2, "pxf_fdw: uri %s with file name for write: %s", pxfmstate->uri.data, options->resource);
+	elog(DEBUG2, "pxf_fdw: uri %s with file name for write: %s %s",
+		pxfmstate->uri.data, options->resource,
+		use_extprotocol ? "using extprotocol " PXF_EXTPROTOCOL_VERSION : ""
+	);
+}
+
+
+static void
+BuildUriForCommit(PxfFdwModifyState *pxfmstate)
+{
+	PxfOptions *options = pxfmstate->options;
+	const char *protocol = IsProtocolHttps(options->pxf_protocol) ? "https" : "http";
+
+	resetStringInfo(&pxfmstate->uri);
+	appendStringInfo(&pxfmstate->uri, "%s://%s:%d/%s/%s/commit",
+		protocol, options->pxf_host, options->pxf_port, PXF_SERVICE_PREFIX, PXF_EXTPROTOCOL_VERSION_V1);
+
+	if ((LOG >= log_min_messages) || (LOG >= client_min_messages))
+	{
+		appendStringInfo(&pxfmstate->uri, "?trace=true");
+	}
+
+	elog(DEBUG2, "pxf_fdw: uri %s for commit", pxfmstate->uri.data);
 }
 
 /*
@@ -418,9 +479,9 @@ BuildUriForWrite(PxfFdwModifyState *pxfmstate)
  */
 static size_t
 #if PG_VERSION_NUM >= 90600
-FillBuffer(PxfFdwScanState *pxfsstate, char *start, int minlen, int maxlen)
+FillBuffer(CHURL_HANDLE handle, char *start, int minlen, int maxlen)
 #else
-FillBuffer(PxfFdwScanState *pxfsstate, char *start, size_t size)
+FillBuffer(CHURL_HANDLE churl_handle, char *start, size_t size)
 #endif
 {
 	size_t		n = 0;
@@ -431,13 +492,13 @@ FillBuffer(PxfFdwScanState *pxfsstate, char *start, size_t size)
 
 	while (ptr < minend)
 	{
-		n = churl_read(pxfsstate->churl_handle, ptr, maxend - ptr);
+		n = churl_read(churl_handle, ptr, maxend - ptr);
 #else
 	char	   *end = ptr + size;
 
 	while (ptr < end)
 	{
-		n = churl_read(pxfsstate->churl_handle, ptr, end - ptr);
+		n = churl_read(churl_handle, ptr, end - ptr);
 #endif
 		if (n == 0)
 			break;
@@ -446,4 +507,40 @@ FillBuffer(PxfFdwScanState *pxfsstate, char *start, size_t size)
 	}
 
 	return ptr - start;
+}
+
+/*
+ * Upload metadata to the master PXF server
+*/
+void
+PxfBridgeCommitStart(PxfFdwModifyState *pxfmstate)
+{
+	churl_ssl_options *ssl_options = NULL; /* NULL if SSL not used */
+
+	Assert(Gp_role == GP_ROLE_DISPATCH);
+	Assert(pxfmstate != NULL);
+	Assert(pxfmstate->churl_headers == NULL);
+
+	BuildUriForCommit(pxfmstate);
+	pxfmstate->churl_headers = churl_headers_init();
+
+	BuildHttpHeaders(pxfmstate->churl_headers,
+					 pxfmstate->options,
+					 NULL, // Relation is not available at this point
+					 NULL,
+					 NULL,
+					 NULL);
+
+	if (IsProtocolHttps(pxfmstate->options->pxf_protocol)) {
+		ssl_options = churl_make_ssl_options(pxfmstate->options);
+	}
+
+	pxfmstate->churl_handle = churl_init_upload_ssl(pxfmstate->uri.data,
+		pxfmstate->churl_headers, ssl_options);
+
+	if (ssl_options != NULL) {
+		free_churl_ssl_options(ssl_options);
+	}
+
+	elog(DEBUG2, "pxf_fdw: PxfBridgeCommitStart ends on segment: %d", PXF_SEGMENT_ID);
 }

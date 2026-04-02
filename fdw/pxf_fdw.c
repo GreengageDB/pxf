@@ -16,6 +16,7 @@
 #if PG_VERSION_NUM >= 90600
 #include "access/table.h"
 #endif
+#include "access/xact.h"
 #include "cdb/cdbsreh.h"
 #include "cdb/cdbvars.h"
 #include "commands/copy.h"
@@ -23,6 +24,7 @@
 #include "commands/explain.h"
 #include "foreign/fdwapi.h"
 #include "foreign/foreign.h"
+#include "libpq/libpq.h"
 #include "nodes/pg_list.h"
 #if PG_VERSION_NUM >= 90600
 #include "optimizer/optimizer.h"
@@ -94,6 +96,7 @@ static void pxfEndForeignModify(EState *estate, ResultRelInfo *resultRelInfo);
 
 static int	pxfIsForeignRelUpdatable(Relation rel);
 
+
 /*
  * Helper functions
  */
@@ -104,7 +107,10 @@ static void InitCopyStateForModify(PxfFdwModifyState *pxfmstate);
 static CopyState BeginCopyTo(Relation forrel, List *options);
 static void PxfBeginScanErrorCallback(void *arg);
 static void PxfCopyFromErrorCallback(void *arg);
-
+static void PxfXactCallback(XactEvent event, void *arg);
+static void CollectMetadata(StringInfo msgbuf);
+static void PxfPrepareCollectMetadata(PxfFdwModifyState *pxfmstate);
+static void PxfCollectMetadata(PxfFdwModifyState *pxfmstate);
 /*
  * Foreign-data wrapper handler functions:
  * returns a struct with pointers to the
@@ -648,6 +654,7 @@ InitForeignModify(Relation relation)
 	Oid			foreigntableid;
 	PxfOptions *options = NULL;
 	PxfFdwModifyState *pxfmstate = NULL;
+	MemoryContext oldcontext = NULL;
 #if PG_VERSION_NUM < 90600
 	TupleDesc	tupDesc;
 #endif
@@ -658,16 +665,26 @@ InitForeignModify(Relation relation)
 
 	foreigntableid = RelationGetRelid(relation);
 	rel = GetForeignTable(foreigntableid);
+	options = PxfGetOptions(foreigntableid);
 
-	if (Gp_role == GP_ROLE_DISPATCH && rel->exec_location == FTEXECLOCATION_ALL_SEGMENTS)
+	if (Gp_role == GP_ROLE_DISPATCH && IsExtProtocolV1(options))
+	{
+		elog(DEBUG5, "pxf_fdw: InitForeignModify on segment: %d", PXF_SEGMENT_ID);
+		oldcontext = MemoryContextSwitchTo(CurTransactionContext);
+
+		pfree(options);
+		options = PxfGetOptions(foreigntableid);
+	}
+
+	if (Gp_role == GP_ROLE_DISPATCH && rel->exec_location == FTEXECLOCATION_ALL_SEGMENTS && oldcontext == NULL)
 		/* master does not process any data when exec_location is all segments */
 		return NULL;
 
 #if PG_VERSION_NUM < 90600
 	tupDesc = RelationGetDescr(relation);
 #endif
-	options = PxfGetOptions(foreigntableid);
-	pxfmstate = palloc(sizeof(PxfFdwModifyState));
+
+	pxfmstate = palloc0(sizeof(PxfFdwModifyState));
 
 	initStringInfo(&pxfmstate->uri);
 	pxfmstate->relation = relation;
@@ -677,7 +694,23 @@ InitForeignModify(Relation relation)
 	pxfmstate->nulls = (bool *) palloc(tupDesc->natts * sizeof(bool));
 #endif
 
-	InitCopyStateForModify(pxfmstate);
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		PQCreateMetadataQueue(PXF_METADATA_QUEUE_ID);
+	}
+
+	if (!(Gp_role == GP_ROLE_DISPATCH && rel->exec_location == FTEXECLOCATION_ALL_SEGMENTS))
+	{
+		InitCopyStateForModify(pxfmstate);
+	}
+
+	/*
+	 * Register a callback to be called at the end of the transaction.
+	 */
+	RegisterXactCallback(PxfXactCallback, pxfmstate);
+
+	if (oldcontext != NULL)
+		MemoryContextSwitchTo(oldcontext);
 
 	elog(DEBUG5, "pxf_fdw: pxfBeginForeignModify ends on segment: %d", PXF_SEGMENT_ID);
 	return pxfmstate;
@@ -782,10 +815,32 @@ FinishForeignModify(PxfFdwModifyState *pxfmstate)
 	if (pxfmstate == NULL)
 		return;
 
-	EndCopyFrom(pxfmstate->cstate);
-	pxfmstate->cstate = NULL;
-	PxfBridgeCleanup(pxfmstate);
+	if (IsExtProtocolV1(pxfmstate->options))
+	{
+		if (Gp_role == GP_ROLE_DISPATCH)
+		{
+			return;
+		}
+		else if (Gp_role == GP_ROLE_EXECUTE)
+		{
+			StringInfoData buf;
+			initStringInfo(&buf);
 
+			if (PxfBridgeRecieveMetadata(pxfmstate, &buf) > 0)
+			{
+				pq_metadatasend(buf.data, buf.len, PXF_METADATA_QUEUE_ID);
+			}
+
+			pfree(buf.data);
+		}
+	}
+
+	if (pxfmstate->cstate != NULL)
+	{
+		EndCopyFrom(pxfmstate->cstate);
+		pxfmstate->cstate = NULL;
+	}
+	PxfBridgeCleanup(pxfmstate);
 }
 
 /*
@@ -1105,4 +1160,73 @@ PxfCopyFromErrorCallback(void *arg)
             }
         }
     }
+}
+
+static void
+PxfPrepareCollectMetadata(PxfFdwModifyState *pxfmstate)
+{
+	PxfBridgeCommitStart(pxfmstate);
+}
+
+static void
+PxfCollectMetadata(PxfFdwModifyState *pxfmstate)
+{
+	StringInfoData	fe_msgbuf;
+
+	initStringInfo(&fe_msgbuf);
+
+	CollectMetadata(&fe_msgbuf);
+
+	int			bytes_written = PxfBridgeWrite(pxfmstate, fe_msgbuf.data, fe_msgbuf.len);
+
+	if (bytes_written == -1)
+	{
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not write to foreign resource: %m")));
+	}
+
+	elog(DEBUG2, "pxf_fdw %d bytes metadata written at commit", bytes_written);
+}
+
+static void
+PxfXactCallback(XactEvent event, void *arg)
+{
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		PxfFdwModifyState *pxfmstate = arg;
+
+		switch (event)
+		{
+		case XACT_EVENT_PRE_COMMIT:
+			PxfPrepareCollectMetadata(pxfmstate);
+			break;
+		case XACT_EVENT_COMMIT:
+			PxfCollectMetadata(pxfmstate);
+			/* fall through */
+		case XACT_EVENT_ABORT:
+			PxfBridgeCleanup(pxfmstate);
+			pfree(pxfmstate);
+			PQDeleteMetadataQueue(PXF_METADATA_QUEUE_ID);
+		default:
+			break;
+		}
+	}
+}
+
+
+static void
+CollectMetadata(StringInfo msgbuf)
+{
+	ggMetadataChunkIterator it = PQMetadataWalk(PXF_METADATA_QUEUE_ID);
+
+	for (; it; it = PQgetNextMetadata(it))
+	{
+		ggMetadataDescriptor metadata;
+
+		PQgetMetadata(it, &metadata);
+
+		appendBinaryStringInfo(msgbuf, &metadata.metadataLen, sizeof(metadata.metadataLen));
+		appendBinaryStringInfo(msgbuf, metadata.data, metadata.metadataLen);
+	}
 }
