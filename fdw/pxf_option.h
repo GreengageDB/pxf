@@ -71,6 +71,10 @@ typedef struct PxfOptions
 
 /* Functions prototypes for pxf_option.c file */
 PxfOptions *PxfGetOptions(Oid foreigntableid);
-bool IsExtProtocolV1(PxfOptions *options);
+
+#define IsExtProtocol(options) ((options)->ext_protocol_version != NULL)
+#define ExtProtocolVersion(options) (IsExtProtocol(options) ? (options)->ext_protocol_version : NULL)
+
+bool IsExtCommitMetadataSupported(PxfOptions *options);
 
 #endif							/* _PXF_OPTION_H */

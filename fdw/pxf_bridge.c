@@ -364,7 +364,8 @@ PxfBridgeReceiveMetadata(PxfFdwModifyState *pxfmstate, StringInfo out_buf)
 {
 	char chunk [1024];
 
-	if (out_buf == NULL) {
+	if (out_buf == NULL)
+	{
 		return 0;
 	}
 
@@ -436,7 +437,7 @@ BuildUriForWrite(PxfFdwModifyState *pxfmstate)
 {
 	PxfOptions *options = pxfmstate->options;
 	const char *protocol = IsProtocolHttps(options->pxf_protocol) ? "https" : "http";
-	bool use_extprotocol = IsExtProtocolV1(options);
+	bool use_extprotocol = IsExtProtocol(options);
 
 	resetStringInfo(&pxfmstate->uri);
 	appendStringInfo(&pxfmstate->uri, "%s://%s:%d/%s/%s%swrite", 
@@ -533,14 +534,16 @@ PxfBridgeCommitStart(PxfFdwModifyState *pxfmstate)
 					 NULL,
 					 NULL);
 
-	if (IsProtocolHttps(pxfmstate->options->pxf_protocol)) {
+	if (IsProtocolHttps(pxfmstate->options->pxf_protocol))
+	{
 		ssl_options = churl_make_ssl_options(pxfmstate->options);
 	}
 
 	pxfmstate->churl_handle = churl_init_upload_ssl(pxfmstate->uri.data,
 		pxfmstate->churl_headers, ssl_options);
 
-	if (ssl_options != NULL) {
+	if (ssl_options != NULL)
+	{
 		free_churl_ssl_options(ssl_options);
 	}
 

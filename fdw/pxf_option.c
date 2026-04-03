@@ -634,8 +634,8 @@ ValidateOption(char *option, Oid catalog)
 }
 
 bool
-IsExtProtocolV1(PxfOptions *options)
+IsExtCommitMetadataSupported(PxfOptions *options)
 {
-	return  options->ext_protocol_version != NULL &&
-		!strcmp(options->ext_protocol_version, PXF_EXTPROTOCOL_VERSION_V1);
+	return  IsExtProtocol(options) &&
+		!strcmp(ExtProtocolVersion(options), PXF_EXTPROTOCOL_VERSION_V1);
 }

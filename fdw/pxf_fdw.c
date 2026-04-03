@@ -96,7 +96,6 @@ static void pxfEndForeignModify(EState *estate, ResultRelInfo *resultRelInfo);
 
 static int	pxfIsForeignRelUpdatable(Relation rel);
 
-
 /*
  * Helper functions
  */
@@ -667,9 +666,9 @@ InitForeignModify(Relation relation)
 	rel = GetForeignTable(foreigntableid);
 	options = PxfGetOptions(foreigntableid);
 
-	if (Gp_role == GP_ROLE_DISPATCH && IsExtProtocolV1(options))
+	if (Gp_role == GP_ROLE_DISPATCH && IsExtCommitMetadataSupported(options))
 	{
-		elog(DEBUG5, "pxf_fdw: InitForeignModify on segment: %d", PXF_SEGMENT_ID);
+		elog(DEBUG5, "pxf_fdw: Use extended commit protocol");
 		oldcontext = MemoryContextSwitchTo(CurTransactionContext);
 
 		pfree(options);
@@ -818,13 +817,13 @@ FinishForeignModify(PxfFdwModifyState *pxfmstate)
 	if (pxfmstate == NULL)
 		return;
 
-	if (IsExtProtocolV1(pxfmstate->options))
+	if (IsExtCommitMetadataSupported(pxfmstate->options))
 	{
 		if (Gp_role == GP_ROLE_DISPATCH)
 		{
 			return;
 		}
-		else if (Gp_role == GP_ROLE_EXECUTE)
+		if (Gp_role == GP_ROLE_EXECUTE)
 		{
 			StringInfoData buf;
 			initStringInfo(&buf);
