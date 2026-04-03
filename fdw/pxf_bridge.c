@@ -360,7 +360,7 @@ PxfBridgeWrite(PxfFdwModifyState *pxfmstate, char *databuf, int datalen)
 
 /* Receive metadata */
 int
-PxfBridgeRecieveMetadata(PxfFdwModifyState *pxfmstate, StringInfo out_buf)
+PxfBridgeReceiveMetadata(PxfFdwModifyState *pxfmstate, StringInfo out_buf)
 {
 	char chunk [1024];
 
@@ -371,7 +371,7 @@ PxfBridgeRecieveMetadata(PxfFdwModifyState *pxfmstate, StringInfo out_buf)
 	while (true)
 	{
 #if PG_VERSION_NUM >= 90600
-		size_t		n = FillBuffer(pxfmstate->churl_handle, chunk, 4, sizeof(outbuf));
+		size_t		n = FillBuffer(pxfmstate->churl_handle, chunk, 4, sizeof(chunk));
 #else
 		size_t		n = FillBuffer(pxfmstate->churl_handle, chunk, sizeof(chunk));
 #endif
@@ -380,7 +380,9 @@ PxfBridgeRecieveMetadata(PxfFdwModifyState *pxfmstate, StringInfo out_buf)
 			/* check if the connection terminated with an error */
 			churl_read_check_connectivity(pxfmstate->churl_handle);
 			break;
-		} else {
+		} 
+		else
+		{
 			appendBinaryStringInfo(out_buf, chunk, n);
 		}
 	}

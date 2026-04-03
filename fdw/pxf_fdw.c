@@ -829,7 +829,7 @@ FinishForeignModify(PxfFdwModifyState *pxfmstate)
 			StringInfoData buf;
 			initStringInfo(&buf);
 
-			if (PxfBridgeRecieveMetadata(pxfmstate, &buf) > 0)
+			if (PxfBridgeReceiveMetadata(pxfmstate, &buf) > 0)
 			{
 				pq_metadatasend(buf.data, buf.len, PXF_METADATA_QUEUE_ID);
 			}

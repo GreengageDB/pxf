@@ -99,6 +99,6 @@ int			PxfBridgeRead(void *outbuf, int datasize, void *extra);
 int			PxfBridgeWrite(PxfFdwModifyState *context, char *databuf, int datalen);
 
 /* Reads metadata from the PXF server v1 and sends it to the coordinator */
-int PxfBridgeRecieveMetadata(PxfFdwModifyState *pxfmstate, StringInfo buf);
+int PxfBridgeReceiveMetadata(PxfFdwModifyState *pxfmstate, StringInfo buf);
 
 #endif							/* _PXFBRIDGE_H */
