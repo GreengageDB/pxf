@@ -15,7 +15,7 @@ class Metadata:
             self.value = value
 
         def __str__(self):
-            return f"<MetdataItem: '{self.value} ({self.length})'>"
+            return f"<MetdataItem: {self.value} ({self.length})>"
 
     def __init__(self, metadata):
         self.metadata = metadata
