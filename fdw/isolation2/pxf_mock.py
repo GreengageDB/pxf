@@ -7,6 +7,41 @@ from urllib.parse import urlparse, parse_qs
 PXF_PORT=5889
 print_headers = False
 
+class Metadata:
+
+    class MetdataItem:
+        def __init__(self, length, value):
+            self.length = length
+            self.value = value
+
+        def __str__(self):
+            return f"<MetdataItem: '{self.value} ({self.length})'>"
+
+    def __init__(self, metadata):
+        self.metadata = metadata
+        self.items = []
+        self._parse()
+
+    def _parse(self):
+        # Read metadata item length from binary form
+        i = 0
+        while i < len(self.metadata):
+            length = self.metadata[i:i+4]
+            length = int.from_bytes(length, byteorder='little')
+
+            i = i+4
+            value = self.metadata[i:i+length]
+            self.items.append(Metadata.MetdataItem(length, value))
+            i = i+length
+
+    def contains(self, key):
+        for item in self.items:
+            if item.value == key:
+                return True
+    
+    def sorted(self):
+        return sorted(self.items, key=lambda item: item.value)
+
 class MockPXFHandler(BaseHTTPRequestHandler):
 
     def __init__(self, request, client_address, server):
@@ -88,16 +123,18 @@ class MockPXFHandler(BaseHTTPRequestHandler):
 
         if parsed_path.path == "/pxf/v1/write":
             self.read_chunked()
-            # Send some test metadata
-            metadata = "Some test metadata"
+            # Send some test metadata            
+            metadata = "Some test metadata for " + self.headers.get("X-GP-SEGMENT-ID", "<invalid segment>")
             self._send_ok(metadata.encode('utf-8'))
             return
 
         if parsed_path.path == "/pxf/v1/commit":
             self._log_request()
             self._log_body()
-            metadata = self.read_chunked()
-            print(f"Metadata: {metadata}")
+            raw_metadata = self.read_chunked()
+            metadata = Metadata(raw_metadata)
+            for item in metadata.sorted():
+                print(item)
 
         # Send response
         self.send_response(200)

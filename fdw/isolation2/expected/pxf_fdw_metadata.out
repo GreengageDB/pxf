@@ -50,7 +50,9 @@ Starting mock PXF server on port 5889...
 Method: POST
 Path: /pxf/v1/commit
 Query Params: {}
-Metadata: b'\x12\x00\x00\x00Some test metadata\x12\x00\x00\x00Some test metadata\x12\x00\x00\x00Some test metadata'
+<MetdataItem: b'Some test metadata for 0' (24)>
+<MetdataItem: b'Some test metadata for 1' (24)>
+<MetdataItem: b'Some test metadata for 2' (24)>
 "POST /pxf/v1/commit HTTP/1.1" 200 -
 
 --- Incoming Request ---
