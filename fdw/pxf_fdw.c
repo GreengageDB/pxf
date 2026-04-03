@@ -707,7 +707,10 @@ InitForeignModify(Relation relation)
 	/*
 	 * Register a callback to be called at the end of the transaction.
 	 */
-	RegisterXactCallback(PxfXactCallback, pxfmstate);
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		RegisterXactCallback(PxfXactCallback, pxfmstate);
+	}
 
 	if (oldcontext != NULL)
 		MemoryContextSwitchTo(oldcontext);
@@ -1192,25 +1195,24 @@ PxfCollectMetadata(PxfFdwModifyState *pxfmstate)
 static void
 PxfXactCallback(XactEvent event, void *arg)
 {
-	if (Gp_role == GP_ROLE_DISPATCH)
-	{
-		PxfFdwModifyState *pxfmstate = arg;
+	Assert(Gp_role == GP_ROLE_DISPATCH);
 
-		switch (event)
-		{
-		case XACT_EVENT_PRE_COMMIT:
-			PxfPrepareCollectMetadata(pxfmstate);
-			break;
-		case XACT_EVENT_COMMIT:
-			PxfCollectMetadata(pxfmstate);
-			/* fall through */
-		case XACT_EVENT_ABORT:
-			PxfBridgeCleanup(pxfmstate);
-			pfree(pxfmstate);
-			PQDeleteMetadataQueue(PXF_METADATA_QUEUE_ID);
-		default:
-			break;
-		}
+	PxfFdwModifyState *pxfmstate = arg;
+
+	switch (event)
+	{
+	case XACT_EVENT_PRE_COMMIT:
+		PxfPrepareCollectMetadata(pxfmstate);
+		break;
+	case XACT_EVENT_COMMIT:
+		PxfCollectMetadata(pxfmstate);
+		/* fall through */
+	case XACT_EVENT_ABORT:
+		PxfBridgeCleanup(pxfmstate);
+		pfree(pxfmstate);
+		PQDeleteMetadataQueue(PXF_METADATA_QUEUE_ID);
+	default:
+		break;
 	}
 }
 
