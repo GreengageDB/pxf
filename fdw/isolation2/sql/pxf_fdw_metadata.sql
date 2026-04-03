@@ -1,6 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS pxf_fdw;
 
-2:!& python3 test/mock_server/pxf_mock.py > /tmp/pxf_mock.log 2>&1;
+2:!& python3 pxf_mock.py > /tmp/pxf_mock.log 2>&1;
 
 select pg_sleep(1);
 

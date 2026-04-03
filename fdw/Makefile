@@ -9,7 +9,6 @@ is_ssl_supported :=$(filter https,$(PXF_PROTOCOL))
 REGRESS_SSL := $(if $(is_ssl_supported), pxf_fdw_ssl)
 REGRESS     = pxf_fdw_wrapper pxf_fdw_server pxf_fdw_user_mapping pxf_fdw_foreign_table \
 		$(REGRESS_SSL)
-ISOLATIONCHECKS = pxf_fdw_metadata
 SHLIB_LINK += -lcurl
 
 PXF_API_VERSION := $(shell cat ../api_version)
@@ -41,5 +40,7 @@ test: install installcheck
 
 installcheck: isolationcheck
 
-isolationcheck: submake
-	$(pg_isolation2_regress_installcheck) $(ISOLATIONCHECKS)
+ISOLATION2_ROOT=$(pgxsdir)/src/test/isolation2
+
+isolationcheck: submake	
+	make ISOLATION2_ROOT=$(ISOLATION2_ROOT) -C isolation2 isolationcheck
