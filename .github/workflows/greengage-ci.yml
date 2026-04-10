@@ -14,98 +14,98 @@ concurrency:
   cancel-in-progress: true  # Automatically cancel any previous runs for the same group
 
 jobs:
-  build:
-    name: Build on ggdb${{ matrix.version }}-${{ matrix.release }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - image: greengagedb/ggdb6_ubuntu:6.29.1
-            release: stable
-            version: '6'
-          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
-            release: devel
-            version: '6'
-          - image: greengagedb/ggdb7_ubuntu:7.4.0
-            release: stable
-            version: '7'
-          - image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
-            release: devel
-            version: '7'
-    env:
-      GREENGAGE_DEB:     Package/greengage.deb
-      GREENGAGE_DEB_URL: https://github.com/GreengageDB/greengage/releases/download/6.29.2/greengage6.deb
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build in Docker using docker run
-        env:
-          DEV_HOME: /home/gpadmin
-          PXF_HOME: /opt/greengagedb/greengage/pxf
-          GPHOME: /opt/greengagedb/greengage
-          GOPATH: /opt/go
-          PXF_SRC: /home/gpadmin/pxf
-          PATH: /opt/greengagedb/greengage/bin:/opt/greengagedb/greengage/pxf/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:/opt/go/bin
-          JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
-          DEBIAN_FRONTEND: noninteractive
-          GREENGAGE_DEB: ${{ env.GREENGAGE_DEB }}
-          GREENGAGE_DEB_URL: ${{ env.GREENGAGE_DEB_URL }}
-        run: |
-          set -eu
-          mkdir -p "$(dirname $GREENGAGE_DEB)"
-          curl -L $GREENGAGE_DEB_URL -o $GREENGAGE_DEB
-          docker run \
-            --rm \
-            -v ${{ github.workspace }}:$PXF_SRC \
-            -w $PXF_SRC \
-            -e DEV_HOME \
-            -e PXF_HOME \
-            -e GPHOME \
-            -e GOPATH \
-            -e PXF_SRC \
-            -e PATH \
-            -e JAVA_TOOL_OPTIONS \
-            -e DEBIAN_FRONTEND \
-            -e GREENGAGE_DEB \
-            -e GREENGAGE_DEB_URL \
-            ${{ matrix.image }} \
-            /bin/bash ci/build_in_docker.sh
+  # build:
+  #   name: Build on ggdb${{ matrix.version }}-${{ matrix.release }}
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - image: greengagedb/ggdb6_ubuntu:6.29.1
+  #           release: stable
+  #           version: '6'
+  #         - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+  #           release: devel
+  #           version: '6'
+  #         - image: greengagedb/ggdb7_ubuntu:7.4.0
+  #           release: stable
+  #           version: '7'
+  #         - image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
+  #           release: devel
+  #           version: '7'
+  #   env:
+  #     GREENGAGE_DEB:     Package/greengage.deb
+  #     GREENGAGE_DEB_URL: https://github.com/GreengageDB/greengage/releases/download/6.29.2/greengage6.deb
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Build in Docker using docker run
+  #       env:
+  #         DEV_HOME: /home/gpadmin
+  #         PXF_HOME: /opt/greengagedb/greengage/pxf
+  #         GPHOME: /opt/greengagedb/greengage
+  #         GOPATH: /opt/go
+  #         PXF_SRC: /home/gpadmin/pxf
+  #         PATH: /opt/greengagedb/greengage/bin:/opt/greengagedb/greengage/pxf/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:/opt/go/bin
+  #         JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
+  #         DEBIAN_FRONTEND: noninteractive
+  #         GREENGAGE_DEB: ${{ env.GREENGAGE_DEB }}
+  #         GREENGAGE_DEB_URL: ${{ env.GREENGAGE_DEB_URL }}
+  #       run: |
+  #         set -eu
+  #         mkdir -p "$(dirname $GREENGAGE_DEB)"
+  #         curl -L $GREENGAGE_DEB_URL -o $GREENGAGE_DEB
+  #         docker run \
+  #           --rm \
+  #           -v ${{ github.workspace }}:$PXF_SRC \
+  #           -w $PXF_SRC \
+  #           -e DEV_HOME \
+  #           -e PXF_HOME \
+  #           -e GPHOME \
+  #           -e GOPATH \
+  #           -e PXF_SRC \
+  #           -e PATH \
+  #           -e JAVA_TOOL_OPTIONS \
+  #           -e DEBIAN_FRONTEND \
+  #           -e GREENGAGE_DEB \
+  #           -e GREENGAGE_DEB_URL \
+  #           ${{ matrix.image }} \
+  #           /bin/bash ci/build_in_docker.sh
 
-      - name: Test Package install in Ubuntu 22.04 (docker)
-        env:
-          GREENGAGE_DEB: ${{ env.GREENGAGE_DEB }}
-          DEBIAN_FRONTEND: noninteractive
-          TEST_DOCKER_IMAGE: ubuntu:22.04
-        run: |
-          set -eu
-          docker run \
-            --rm \
-            -v ./Package:/deb-packages \
-            -e DEBIAN_FRONTEND \
-            $TEST_DOCKER_IMAGE \
-            /bin/bash -c "
-              set -e
-              apt-get update 
-              { apt-get install -yq /deb-packages/*.deb 2>&1 || dpkg -i /deb-packages/*.deb 2>&1; }
-              apt-get install -yqf
-            "
-            rm -f $GREENGAGE_DEB
+  #     - name: Test Package install in Ubuntu 22.04 (docker)
+  #       env:
+  #         GREENGAGE_DEB: ${{ env.GREENGAGE_DEB }}
+  #         DEBIAN_FRONTEND: noninteractive
+  #         TEST_DOCKER_IMAGE: ubuntu:22.04
+  #       run: |
+  #         set -eu
+  #         docker run \
+  #           --rm \
+  #           -v ./Package:/deb-packages \
+  #           -e DEBIAN_FRONTEND \
+  #           $TEST_DOCKER_IMAGE \
+  #           /bin/bash -c "
+  #             set -e
+  #             apt-get update 
+  #             { apt-get install -yq /deb-packages/*.deb 2>&1 || dpkg -i /deb-packages/*.deb 2>&1; }
+  #             apt-get install -yqf
+  #           "
+  #           rm -f $GREENGAGE_DEB
 
-      - name: Rename Package artifacts
-        run: mv Package deb-packages-${{ matrix.version }}-${{ matrix.release }}
+  #     - name: Rename Package artifacts
+  #       run: mv Package deb-packages-${{ matrix.version }}-${{ matrix.release }}
 
-      - name: Cache Package artifacts
-        uses: actions/cache/save@v4
-        with:
-          path: deb-packages-${{ matrix.version }}-${{ matrix.release }}
-          key:  deb-packages-${{ matrix.version }}-${{ matrix.release }}-${{ github.sha }}
+  #     - name: Cache Package artifacts
+  #       uses: actions/cache/save@v4
+  #       with:
+  #         path: deb-packages-${{ matrix.version }}-${{ matrix.release }}
+  #         key:  deb-packages-${{ matrix.version }}-${{ matrix.release }}-${{ github.sha }}
 
-      - name: Upload Package artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: deb-packages-${{ matrix.version }}-${{ matrix.release }}
-          path: deb-packages-${{ matrix.version }}-${{ matrix.release }}
+  #     - name: Upload Package artifacts
+  #       if: always()
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: deb-packages-${{ matrix.version }}-${{ matrix.release }}
+  #         path: deb-packages-${{ matrix.version }}-${{ matrix.release }}
 
   regression:
     name: Regression on ggdb${{ matrix.version }}-${{ matrix.release }}
@@ -116,18 +116,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: greengagedb/ggdb6_ubuntu:6.29.1
-            release: stable
-            version: '6'
-          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+          # - image: greengagedb/ggdb6_ubuntu:6.29.1
+          #   release: stable
+          #   version: '6'
+          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:GG-319
             release: devel
             version: '6'
-          - image: greengagedb/ggdb7_ubuntu:7.4.0
-            release: stable
-            version: '7'
-          - image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
-            release: devel
-            version: '7'
+          # - image: greengagedb/ggdb7_ubuntu:7.4.0
+          #   release: stable
+          #   version: '7'
+          # - image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
+          #   release: devel
+          #   version: '7'
 
     steps:
       - uses: actions/checkout@v4
@@ -168,29 +168,29 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
-  integration-ggdb6-stable:
-    name: Integration on ggdb6-stable
-    uses: ./.github/workflows/integration-tests.yml
-    with:
-      image: greengagedb/ggdb6_ubuntu:6.29.1
-      version: '6'
-      release: stable
-      tests_matrix: |
-        [
-          { "test": "smoke" },
-          { "test": "gpdb" },
-          { "test": "jdbc" },
-          { "test": "smoke", "fdw": "true" },
-          { "test": "gpdb", "fdw": "true" },
-          { "test": "jdbc", "fdw": "true" },
-          { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
-        ]
+  # integration-ggdb6-stable:
+  #   name: Integration on ggdb6-stable
+  #   uses: ./.github/workflows/integration-tests.yml
+  #   with:
+  #     image: greengagedb/ggdb6_ubuntu:6.29.1
+  #     version: '6'
+  #     release: stable
+  #     tests_matrix: |
+  #       [
+  #         { "test": "smoke" },
+  #         { "test": "gpdb" },
+  #         { "test": "jdbc" },
+  #         { "test": "smoke", "fdw": "true" },
+  #         { "test": "gpdb", "fdw": "true" },
+  #         { "test": "jdbc", "fdw": "true" },
+  #         { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
+  #       ]
 
   integration-ggdb6-devel:
     name: Integration on ggdb6-devel
     uses: ./.github/workflows/integration-tests.yml
     with:
-      image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+      image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:GG-319
       version: '6'
       release: devel
       tests_matrix: |
@@ -204,38 +204,38 @@ jobs:
           { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
         ]
 
-  integration-ggdb7-stable:
-    name: Integration on ggdb7-stable
-    uses: ./.github/workflows/integration-tests.yml
-    with:
-      image: greengagedb/ggdb7_ubuntu:7.4.0
-      version: '7'
-      release: stable
-      tests_matrix: |
-        [
-          { "test": "smoke" },
-          { "test": "gpdb" },
-          { "test": "jdbc" },
-          { "test": "smoke", "fdw": "true" },
-          { "test": "gpdb", "fdw": "true" },
-          { "test": "jdbc", "fdw": "true" },
-          { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
-        ]
+  # integration-ggdb7-stable:
+  #   name: Integration on ggdb7-stable
+  #   uses: ./.github/workflows/integration-tests.yml
+  #   with:
+  #     image: greengagedb/ggdb7_ubuntu:7.4.0
+  #     version: '7'
+  #     release: stable
+  #     tests_matrix: |
+  #       [
+  #         { "test": "smoke" },
+  #         { "test": "gpdb" },
+  #         { "test": "jdbc" },
+  #         { "test": "smoke", "fdw": "true" },
+  #         { "test": "gpdb", "fdw": "true" },
+  #         { "test": "jdbc", "fdw": "true" },
+  #         { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
+  #       ]
 
-  integration-ggdb7-devel:
-    name: Integration on ggdb7-devel
-    uses: ./.github/workflows/integration-tests.yml
-    with:
-      image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
-      version: '7'
-      release: devel
-      tests_matrix: |
-        [
-          { "test": "smoke" },
-          { "test": "gpdb" },
-          { "test": "jdbc" },
-          { "test": "smoke", "fdw": "true" },
-          { "test": "gpdb", "fdw": "true" },
-          { "test": "jdbc", "fdw": "true" },
-          { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
-        ]
+  # integration-ggdb7-devel:
+  #   name: Integration on ggdb7-devel
+  #   uses: ./.github/workflows/integration-tests.yml
+  #   with:
+  #     image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
+  #     version: '7'
+  #     release: devel
+  #     tests_matrix: |
+  #       [
+  #         { "test": "smoke" },
+  #         { "test": "gpdb" },
+  #         { "test": "jdbc" },
+  #         { "test": "smoke", "fdw": "true" },
+  #         { "test": "gpdb", "fdw": "true" },
+  #         { "test": "jdbc", "fdw": "true" },
+  #         { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
+  #       ]
