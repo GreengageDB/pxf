@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   build:
-    if: env.GG_CUSTOM_BRANCH == ''
+    if: $GG_CUSTOM_BRANCH == ''
     name: Build on ggdb${{ matrix.version }}-${{ matrix.release }}
     runs-on: ubuntu-latest
     strategy:
@@ -111,7 +111,7 @@ jobs:
           path: deb-packages-${{ matrix.version }}-${{ matrix.release }}
 
   regression:
-    if: env.GG_CUSTOM_BRANCH == ''
+    if: $GG_CUSTOM_BRANCH == ''
     name: Regression on ggdb${{ matrix.version }}-${{ matrix.release }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
@@ -173,7 +173,7 @@ jobs:
           if-no-files-found: warn
 
   integration-ggdb6-stable:
-    if: env.GG_CUSTOM_BRANCH == ''
+    if: $GG_CUSTOM_BRANCH == ''
     name: Integration on ggdb6-stable
     uses: ./.github/workflows/integration-tests.yml
     with:
@@ -192,7 +192,7 @@ jobs:
         ]
 
   integration-ggdb6-devel:
-    if: env.GG_CUSTOM_BRANCH == ''
+    if: $GG_CUSTOM_BRANCH == ''
     name: Integration on ggdb6-devel
     uses: ./.github/workflows/integration-tests.yml
     with:
@@ -211,7 +211,7 @@ jobs:
         ]
 
   integration-ggdb7-stable:
-    if: env.GG_CUSTOM_BRANCH == ''
+    if: $GG_CUSTOM_BRANCH == ''
     name: Integration on ggdb7-stable
     uses: ./.github/workflows/integration-tests.yml
     with:
@@ -230,7 +230,7 @@ jobs:
         ]
 
   integration-ggdb7-devel:
-    if: env.GG_CUSTOM_BRANCH == ''
+    if: $GG_CUSTOM_BRANCH == ''
     name: Integration on ggdb7-devel
     uses: ./.github/workflows/integration-tests.yml
     with:
@@ -249,11 +249,11 @@ jobs:
         ]
 
   integration-ggdb6-custom:
-    if: env.GG_CUSTOM_BRANCH != ''
-    name: Integration on ggdb6-stable
+    if: $GG_CUSTOM_BRANCH != ''
+    name: Integration on ggdb6-custom '$GG_CUSTOM_BRANCH'
     uses: ./.github/workflows/integration-tests.yml
     with:
-      image: greengagedb/ggdb6_ubuntu:${env.GG_CUSTOM_BRANCH}
+      image: greengagedb/ggdb6_ubuntu:$GG_CUSTOM_BRANCH
       version: '6'
       release: custom
       tests_matrix: |
@@ -268,11 +268,11 @@ jobs:
         ]
 
   integration-ggdb7-custom:
-    if: env.GG_CUSTOM_BRANCH != ''
-    name: Integration on ggdb6-stable
+    if: $GG_CUSTOM_BRANCH != ''
+    name: Integration on ggdb7-custom '${{env.GG_CUSTOM_BRANCH}}''
     uses: ./.github/workflows/integration-tests.yml
     with:
-      image: greengagedb/ggdb7_ubuntu:${env.GG_CUSTOM_BRANCH}
+      image: greengagedb/ggdb7_ubuntu:$GG_CUSTOM_BRANCH
       version: '7'
       release: custom
       tests_matrix: |
