@@ -269,7 +269,7 @@ jobs:
 
   integration-ggdb7-custom:
     if: $GG_CUSTOM_BRANCH != ''
-    name: Integration on ggdb7-custom '${{env.GG_CUSTOM_BRANCH}}''
+    name: Integration on ggdb7-custom '$GG_CUSTOM_BRANCH'
     uses: ./.github/workflows/integration-tests.yml
     with:
       image: greengagedb/ggdb7_ubuntu:$GG_CUSTOM_BRANCH
