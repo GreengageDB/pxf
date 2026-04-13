@@ -9,13 +9,13 @@ print_headers = False
 
 class Metadata:
 
-    class MetdataItem:
+    class MetadataItem:
         def __init__(self, length, value):
             self.length = length
             self.value = value
 
         def __str__(self):
-            return f"<MetdataItem: {self.value} ({self.length})>"
+            return f"<MetadataItem: {self.value} ({self.length})>"
 
     def __init__(self, metadata):
         self.metadata = metadata
@@ -31,7 +31,7 @@ class Metadata:
 
             i = i+4
             value = self.metadata[i:i+length]
-            self.items.append(Metadata.MetdataItem(length, value))
+            self.items.append(Metadata.MetadataItem(length, value))
             i = i+length
 
     def contains(self, key):
