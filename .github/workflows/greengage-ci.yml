@@ -190,7 +190,7 @@ jobs:
     name: Integration on ggdb6-devel
     uses: ./.github/workflows/integration-tests.yml
     with:
-      image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
+      image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:GG-246
       version: '6'
       release: devel
       tests_matrix: |
