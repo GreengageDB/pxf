@@ -514,7 +514,7 @@ FillBuffer(CHURL_HANDLE churl_handle, char *start, size_t size)
 
 /*
  * Upload metadata to the master PXF server
-*/
+ */
 void
 PxfBridgeCommitStart(PxfFdwModifyState *pxfmstate)
 {
