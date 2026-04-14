@@ -74,7 +74,7 @@ jobs:
           if-no-files-found: warn
 
   integration:
-    needs: setup
+    needs: check
     if: needs.check.outputs.enabled == 'true'
     name: Integration on ggdb${VERSION}_ubuntu:${TAG}
     uses: ./.github/workflows/integration-tests.yml
