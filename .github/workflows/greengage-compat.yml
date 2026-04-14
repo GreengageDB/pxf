@@ -31,7 +31,7 @@ jobs:
   regression:
     needs: check
     if: needs.check.outputs.enabled == 'true'
-    name: Regression on ggdb${VERSION}_ubuntu:${TAG}
+    name: Regression on ggdb${{ env.VERSION }}_ubuntu:${{ env.TAG }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -42,10 +42,10 @@ jobs:
           context: .
           file: ./ci/Dockerfile.${{ github.job }}
           push: false
-          tags: greengagedb/ggdb${VERSION}_pxf_regression:${TAG}
-          build-args: GGDB_IMAGE=ghcr.io/greengagedb/greengage/ggdb${VERSION}_ubuntu:${TAG}
+          tags: greengagedb/ggdb${{ env.VERSION }}_pxf_regression:${{ env.TAG }}
+          build-args: GGDB_IMAGE=ghcr.io/greengagedb/greengage/ggdb${{ env.VERSION }}_ubuntu:${{ env.TAG }}
 
-      - name: Run regression on greengagedb/ggdb${VERSION}_pxf_regression:${TAG}
+      - name: Run regression on greengagedb/ggdb${{ env.VERSION }}_pxf_regression:${{ env.TAG }}
         shell: bash
         run: |
           mkdir logs
@@ -68,7 +68,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: regression-ggdb${VERSION}-${TAG}
+          name: regression-ggdb${{ env.VERSION }}-${{ env.TAG }}
           path: logs
           retention-days: 7
           if-no-files-found: warn
@@ -76,11 +76,11 @@ jobs:
   integration:
     needs: check
     if: needs.check.outputs.enabled == 'true'
-    name: Integration on ggdb${VERSION}_ubuntu:${TAG}
+    name: Integration on ggdb${{ env.VERSION }}_ubuntu:${{ env.TAG }}
     uses: ./.github/workflows/integration-tests.yml
     with:
-      image: ghcr.io/greengagedb/greengage/ggdb${VERSION}_ubuntu:${TAG}
-      version: ${VERSION}
+      image: ghcr.io/greengagedb/greengage/ggdb${{ env.VERSION }}_ubuntu:${{ env.TAG }}
+      version: ${{ env.VERSION }}
       release: compat
       tests_matrix: |
         [
