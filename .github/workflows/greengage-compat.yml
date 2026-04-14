@@ -3,7 +3,7 @@ name: Greengage compatible tests
 
 # Runs automatically on pull requests if GG_BRANCH is defined
 env:
-  TAG: ''
+  TAG: 'GG-246'
   VERSION: '6'
 
 on:
