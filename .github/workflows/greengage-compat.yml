@@ -6,7 +6,7 @@ name: Greengage compatible tests
 # To disable automatic testing, set either GG_BRANCH or GG_VERSION to empty string.
 # Can also be triggered manually via workflow_dispatch with explicit inputs.
 env:
-  GG_BRANCH: GG-246
+  GG_BRANCH: ''
   GG_VERSION: '6'
 
 on:
