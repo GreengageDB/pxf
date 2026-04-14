@@ -1,28 +1,14 @@
 # .github/workflows/greengage-compat.yml
 name: Greengage compatible tests
 
-# Greengage compatibility tests workflow.
-# Runs automatically on pull requests if both GG_BRANCH and GG_VERSION are set.
-# To disable automatic testing, set either GG_BRANCH or GG_VERSION to empty string.
-# Can also be triggered manually via workflow_dispatch with explicit inputs.
+# Runs automatically on pull requests if GG_BRANCH is defined
 env:
-  GG_BRANCH: ''
-  GG_VERSION: '6'
+  TAG: ''
+  VERSION: '6'
 
 on:
   pull_request:
     branches: ['**'] # Trigger on pull requests for all branches
-  workflow_dispatch:
-    inputs:
-      gg_branch:
-        description: 'Greengage tag (e.g. GG-246)'
-        required: false
-        default: 'GG-246'
-      gg_version:
-        description: 'GGDB version'
-        type: choice
-        options: ['6', '7']
-        default: '6'
 
 # Concurrency control to cancel previous runs on new push to same PR
 concurrency:
@@ -30,37 +16,22 @@ concurrency:
   cancel-in-progress: true  # Automatically cancel any previous runs for the same group
 
 jobs:
-  setup:
+  check:
     runs-on: ubuntu-latest
     outputs:
-      TAG: ${{ steps.check.outputs.TAG }}
-      VERSION: ${{ steps.check.outputs.VERSION }}
       enabled: ${{ steps.check.outputs.enabled }}
     steps:
-      - name: Check mode and setup environment
-        id: check
+      - id: check
         run: |
           echo ">>> DEBUG <<<"
-          echo ">>> TAG=$GG_BRANCH"
-          echo ">>> VERSION=$GG_VERSION"
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "TAG=${{ inputs.gg_branch }}" >> $GITHUB_OUTPUT
-            echo "VERSION=${{ inputs.gg_version }}" >> $GITHUB_OUTPUT
-            echo "enabled=true" >> $GITHUB_OUTPUT
-          else
-            if [[ -n "$GG_BRANCH" && -n "$GG_VERSION" ]]; then
-              echo "TAG=$GG_BRANCH" >> $GITHUB_OUTPUT
-              echo "VERSION=$GG_VERSION" >> $GITHUB_OUTPUT
-              echo "enabled=true" >> $GITHUB_OUTPUT
-            else
-              echo "enabled=false" >> $GITHUB_OUTPUT
-            fi
-          fi
-
+          echo ">>> TAG=$TAG"
+          echo ">>> VERSION=$VERSION"
+          [ -n "$BRANCH" ] && enabled='true' ||  enabled='false'
+          echo "enabled=$enabled" >> $GITHUB_OUTPUT
   regression:
-    needs: setup
-    if: needs.setup.outputs.enabled == 'true'
-    name: Regression on ggdb${{ needs.setup.outputs.VERSION }}_ubuntu:${{ needs.setup.outputs.TAG }}
+    needs: check
+    if: needs.check.outputs.enabled == 'true'
+    name: Regression on ggdb${VERSION}_ubuntu:${TAG}
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -71,10 +42,10 @@ jobs:
           context: .
           file: ./ci/Dockerfile.${{ github.job }}
           push: false
-          tags: greengagedb/ggdb${{ needs.setup.outputs.VERSION }}_pxf_regression:${{ needs.setup.outputs.TAG }}
-          build-args: GGDB_IMAGE=ghcr.io/greengagedb/greengage/ggdb${{ needs.setup.outputs.VERSION }}_ubuntu:${{ needs.setup.outputs.TAG }}
+          tags: greengagedb/ggdb${VERSION}_pxf_regression:${TAG}
+          build-args: GGDB_IMAGE=ghcr.io/greengagedb/greengage/ggdb${VERSION}_ubuntu:${TAG}
 
-      - name: Run regression on greengagedb/ggdb${{ needs.setup.outputs.VERSION }}_pxf_regression:${{ needs.setup.outputs.TAG }}
+      - name: Run regression on greengagedb/ggdb${VERSION}_pxf_regression:${TAG}
         shell: bash
         run: |
           mkdir logs
@@ -82,7 +53,7 @@ jobs:
             -v ./logs:/logs \
             --sysctl 'kernel.sem=500 1024000 200 4096' \
             --privileged \
-            greengagedb/ggdb${{ needs.setup.outputs.VERSION }}_pxf_regression:${{ needs.setup.outputs.TAG }} \
+            greengagedb/ggdb${VERSION}_pxf_regression:${TAG} \
             bash -c "
               set +e
               cd /tmp/build || status=1
@@ -97,19 +68,19 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: regression-ggdb${{ needs.setup.outputs.VERSION }}-${{ needs.setup.outputs.TAG }}
+          name: regression-ggdb${VERSION}-${TAG}
           path: logs
           retention-days: 7
           if-no-files-found: warn
 
   integration:
     needs: setup
-    if: needs.setup.outputs.enabled == 'true'
-    name: Integration on ggdb${{ needs.setup.outputs.VERSION }}_ubuntu:${{ needs.setup.outputs.TAG }}
+    if: needs.check.outputs.enabled == 'true'
+    name: Integration on ggdb${VERSION}_ubuntu:${TAG}
     uses: ./.github/workflows/integration-tests.yml
     with:
-      image: ghcr.io/greengagedb/greengage/ggdb${{ needs.setup.outputs.VERSION }}_ubuntu:${{ needs.setup.outputs.TAG }}
-      version: ${{ needs.setup.outputs.VERSION }}
+      image: ghcr.io/greengagedb/greengage/ggdb${VERSION}_ubuntu:${TAG}
+      version: ${VERSION}
       release: compat
       tests_matrix: |
         [
