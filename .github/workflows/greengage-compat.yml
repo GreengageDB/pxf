@@ -1,7 +1,7 @@
 # .github/workflows/greengage-compat.yml
 name: Greengage compatible tests
 
-# Runs automatically on pull requests if GG_BRANCH is defined
+# Runs automatically on pull requests if TAG and VERSION is defined
 env:
   TAG: 'GG-246'
   VERSION: '6'
@@ -26,7 +26,7 @@ jobs:
           echo ">>> DEBUG <<<"
           echo ">>> TAG=$TAG"
           echo ">>> VERSION=$VERSION"
-          [ -n "$BRANCH" ] && enabled='true' ||  enabled='false'
+          [[ -n "$TAG" && -n "$VERSION" ]] && enabled='true' ||  enabled='false'
           echo "enabled=$enabled" >> $GITHUB_OUTPUT
   regression:
     needs: check
