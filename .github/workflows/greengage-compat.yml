@@ -1,10 +1,8 @@
 # .github/workflows/greengage-compat.yml
 name: Greengage compatible tests
 
-# Greengage compatibility tests workflow.
 # Runs automatically on pull requests if both GG_BRANCH and GG_VERSION are set.
 # To disable automatic testing, set either GG_BRANCH or GG_VERSION to empty string.
-# Can also be triggered manually via workflow_dispatch with explicit inputs.
 env:
   GG_BRANCH: GG-246
   GG_VERSION: '6'
@@ -12,17 +10,6 @@ env:
 on:
   pull_request:
     branches: ['**'] # Trigger on pull requests for all branches
-  workflow_dispatch:
-    inputs:
-      gg_branch:
-        description: 'Greengage tag (e.g. GG-246)'
-        required: false
-        default: 'GG-246'
-      gg_version:
-        description: 'GGDB version'
-        type: choice
-        options: ['6', '7']
-        default: '6'
 
 # Concurrency control to cancel previous runs on new push to same PR
 concurrency:
@@ -43,18 +30,12 @@ jobs:
           echo ">>> DEBUG <<<"
           echo ">>> TAG=$GG_BRANCH"
           echo ">>> VERSION=$GG_VERSION"
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "TAG=${{ inputs.gg_branch }}" >> $GITHUB_OUTPUT
-            echo "VERSION=${{ inputs.gg_version }}" >> $GITHUB_OUTPUT
+          echo "TAG=$GG_BRANCH" >> $GITHUB_OUTPUT
+          echo "VERSION=$GG_VERSION" >> $GITHUB_OUTPUT
+          if [[ -n "$GG_BRANCH" && -n "$GG_VERSION" ]]; then
             echo "enabled=true" >> $GITHUB_OUTPUT
           else
-            if [[ -n "$GG_BRANCH" && -n "$GG_VERSION" ]]; then
-              echo "TAG=$GG_BRANCH" >> $GITHUB_OUTPUT
-              echo "VERSION=$GG_VERSION" >> $GITHUB_OUTPUT
-              echo "enabled=true" >> $GITHUB_OUTPUT
-            else
-              echo "enabled=false" >> $GITHUB_OUTPUT
-            fi
+            echo "enabled=false" >> $GITHUB_OUTPUT
           fi
 
   regression:
