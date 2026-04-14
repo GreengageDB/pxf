@@ -4,7 +4,7 @@ name: Greengage compatible tests
 # Runs automatically on pull requests if both GG_BRANCH and GG_VERSION are set.
 # To disable automatic testing, set either GG_BRANCH or GG_VERSION to empty string.
 env:
-  GG_BRANCH: GG-246
+  GG_BRANCH: ''
   GG_VERSION: '6'
 
 on:
