@@ -57,7 +57,7 @@ runs:
         curl -L "$GREENGAGE_DEB_URL" -o "$GREENGAGE_DEB"
         docker run \
           --rm \
-          -v apt/sources.list:/etc/apt/sources.list \
+          -v ./apt/sources.list:/etc/apt/sources.list \
           -v "${{ github.workspace }}:$PXF_SRC" \
           -w "$PXF_SRC" \
           -e DEV_HOME \
@@ -83,7 +83,7 @@ runs:
         set -eu
         docker run \
           --rm \
-          -v apt/sources.list:/etc/apt/sources.list \
+          -v ./apt/sources.list:/etc/apt/sources.list \
           -v ./Package:/deb-packages \
           -e DEBIAN_FRONTEND \
           "$TEST_DOCKER_IMAGE" \
