@@ -3,12 +3,32 @@ description: Builds a Greengage DEB package inside Docker and tests it
 
 inputs:
   version:
-    description: Full GGDB version (e.g. 6.30.1)
     required: true
+    description: Full GGDB version (e.g. 6.30.1)
+  docker_repo:
+    required: false
+    default: 'greengagedb'
+    description: |
+      Source Docker repository
+      (e.g.
+        'greengagedb' - DockerHub,
+        'ghcr.io/greengagedb/greengage' - GHCR
+      )
+  target_os:
+    required: false
+    default: 'ubuntu'
+    description: 'Target OS for test (e.g., ubuntu)'
+  target_os_version:
+    required: false
+    default: '22.04'
+    description: 'Target OS version (e.g., 22.04, 24.04)'
 
 runs:
   using: composite
   steps:
+    - uses: greengagedb/greengage-ci/.github/actions/apt/sources@feat/apt-source
+      with:
+        os_version: ${{ inputs.target_os_version }}
     - name: Build in Docker
       shell: bash
       env:
@@ -29,14 +49,15 @@ runs:
             ''
           ) }}
       run: |
-        set -eu
-        export GREENGAGE_IMAGE=greengagedb/ggdb${GREENGAGE_VERSION}_ubuntu:${{ inputs.version }}
+        set -eux
+        export GREENGAGE_IMAGE=${{ inputs.docker_repo }}/ggdb${GREENGAGE_VERSION}_ubuntu:${{ inputs.version }}
         export GREENGAGE_DEB_URL=$GREENGAGE_RELEASE/${{ inputs.version }}/greengage${GREENGAGE_VERSION}.deb
 
         mkdir -p "$(dirname $GREENGAGE_DEB)"
         curl -L "$GREENGAGE_DEB_URL" -o "$GREENGAGE_DEB"
         docker run \
           --rm \
+          -v apt/sources.list:/etc/apt/sources.list \
           -v "${{ github.workspace }}:$PXF_SRC" \
           -w "$PXF_SRC" \
           -e DEV_HOME \
@@ -52,16 +73,17 @@ runs:
           $GREENGAGE_IMAGE \
           /bin/bash ci/build_in_docker.sh
 
-    - name: Test package install in Ubuntu 22.04
+    - name: Test package install in ${{ inputs.target_os }} ${{ inputs.target_os_version }}
       shell: bash
       env:
         DEBIAN_FRONTEND:   noninteractive
         GREENGAGE_DEB:     Package/greengage.deb
-        TEST_DOCKER_IMAGE: ubuntu:22.04
+        TEST_DOCKER_IMAGE: ${{ inputs.target_os }}:${{ inputs.target_os_version }}
       run: |
         set -eu
         docker run \
           --rm \
+          -v apt/sources.list:/etc/apt/sources.list \
           -v ./Package:/deb-packages \
           -e DEBIAN_FRONTEND \
           "$TEST_DOCKER_IMAGE" \
@@ -75,17 +97,17 @@ runs:
 
     - name: Rename package artifacts
       shell: bash
-      run: mv Package deb-packages-${{ inputs.version }}
+      run: mv Package deb-packages-${{ inputs.target_os }}-${{ inputs.target_os_version }}-${{ inputs.version }}
 
     - name: Cache package artifacts
       uses: actions/cache/save@v4
       with:
-        path: deb-packages-${{ inputs.version }}
-        key:  deb-packages-${{ inputs.version }}-${{ github.sha }}
+        path: deb-packages-${{ inputs.target_os }}-${{ inputs.target_os_version }}-${{ inputs.version }}
+        key:  deb-packages-${{ inputs.target_os }}-${{ inputs.target_os_version }}-${{ inputs.version }}-${{ github.sha }}
 
     - name: Upload package artifacts
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: deb-packages-${{ inputs.version }}
-        path: deb-packages-${{ inputs.version }}
+        name: deb-packages-${{ inputs.target_os }}-${{ inputs.target_os_version }}-${{ inputs.version }}
+        path: deb-packages-${{ inputs.target_os }}-${{ inputs.target_os_version }}-${{ inputs.version }}
