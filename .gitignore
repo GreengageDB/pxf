@@ -116,3 +116,8 @@ tmp/
 !**/debian/co*
 !**/debian/lint*
 !**/debian/rules
+
+########################################
+# Disable ignore .github
+########################################
+!/.github/**

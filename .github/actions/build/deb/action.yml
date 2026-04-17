@@ -1,0 +1,91 @@
+name: Build DEB package
+description: Builds a Greengage DEB package inside Docker and tests it
+
+inputs:
+  version:
+    description: Full GGDB version (e.g. 6.30.1)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Build in Docker
+      shell: bash
+      env:
+        DEV_HOME:          /home/gpadmin
+        PXF_HOME:          /opt/greengagedb/greengage/pxf
+        GPHOME:            /opt/greengagedb/greengage
+        GOPATH:            /opt/go
+        PXF_SRC:           /home/gpadmin/pxf
+        PATH:              /opt/greengagedb/greengage/bin:/opt/greengagedb/greengage/pxf/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:/opt/go/bin
+        JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
+        DEBIAN_FRONTEND:   noninteractive
+        GREENGAGE_DEB:     Package/greengage.deb
+        GREENGAGE_RELEASE: https://github.com/GreengageDB/greengage/releases/download
+        GREENGAGE_VERSION: |-
+          ${{ case(
+            startsWith(inputs.version, '6'), '6',
+            startsWith(inputs.version, '7'), '7',
+            ''
+          ) }}
+      run: |
+        set -eu
+        export GREENGAGE_IMAGE=greengagedb/ggdb${GREENGAGE_VERSION}_ubuntu:${{ inputs.version }}
+        export GREENGAGE_DEB_URL=$GREENGAGE_RELEASE/${{ inputs.version }}/greengage${GREENGAGE_VERSION}.deb
+
+        mkdir -p "$(dirname $GREENGAGE_DEB)"
+        curl -L "$GREENGAGE_DEB_URL" -o "$GREENGAGE_DEB"
+        docker run \
+          --rm \
+          -v "${{ github.workspace }}:$PXF_SRC" \
+          -w "$PXF_SRC" \
+          -e DEV_HOME \
+          -e PXF_HOME \
+          -e GPHOME \
+          -e GOPATH \
+          -e PXF_SRC \
+          -e PATH \
+          -e JAVA_TOOL_OPTIONS \
+          -e DEBIAN_FRONTEND \
+          -e GREENGAGE_DEB \
+          -e GREENGAGE_DEB_URL \
+          $GREENGAGE_IMAGE \
+          /bin/bash ci/build_in_docker.sh
+
+    - name: Test package install in Ubuntu 22.04
+      shell: bash
+      env:
+        DEBIAN_FRONTEND:   noninteractive
+        GREENGAGE_DEB:     Package/greengage.deb
+        TEST_DOCKER_IMAGE: ubuntu:22.04
+      run: |
+        set -eu
+        docker run \
+          --rm \
+          -v ./Package:/deb-packages \
+          -e DEBIAN_FRONTEND \
+          "$TEST_DOCKER_IMAGE" \
+          /bin/bash -c "
+            set -e
+            apt-get update
+            { apt-get install -yq /deb-packages/*.deb 2>&1 || dpkg -i /deb-packages/*.deb 2>&1; }
+            apt-get install -yqf
+          "
+        rm -f "$GREENGAGE_DEB"
+
+    - name: Rename package artifacts
+      shell: bash
+      run: mv Package deb-packages-${{ inputs.version }}
+
+    - name: Cache package artifacts
+      uses: actions/cache/save@v4
+      with:
+        path: deb-packages-${{ inputs.version }}
+        key:  deb-packages-${{ inputs.version }}-${{ github.sha }}
+
+    - name: Upload package artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: deb-packages-${{ inputs.version }}
+        path: deb-packages-${{ inputs.version }}
