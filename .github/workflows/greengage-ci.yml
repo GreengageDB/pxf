@@ -41,7 +41,12 @@ jobs:
     steps:
       - name: Set matrix from env
         id: set-matrix
-        run: echo "matrix=${{ toJSON(fromJSON(env.GREENGAGE)) }}" >> $GITHUB_OUTPUT
+        run: |
+          cat > /tmp/matrix.json << 'JSON_END'
+          ${{ env.GREENGAGE }}
+          JSON_END
+          COMPRESSED=$(jq -c . /tmp/matrix.json)
+          echo "matrix=$COMPRESSED" >> $GITHUB_OUTPUT
 
   regression:
     needs: generate-matrix
