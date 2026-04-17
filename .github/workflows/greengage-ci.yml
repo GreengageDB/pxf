@@ -34,14 +34,24 @@ jobs:
           version: ${{ fromJson(env.GREENGAGE)[0].version }}
           tag:     ${{ fromJson(env.GREENGAGE)[0].tag }}
 
+  generate-matrix:
+    runs-on: ubuntu-24.04
+    outputs:
+      greengage_matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Set matrix from env
+        id: set-matrix
+        run: echo "matrix=${{ env.GREENGAGE }}" >> $GITHUB_OUTPUT
+
   regression:
+    needs: generate-matrix
     name: Regression on ggdb${{ matrix.version }}-${{ matrix.tag || 'latest' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJson(env.GREENGAGE) }}
+        include: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/tests/regression
