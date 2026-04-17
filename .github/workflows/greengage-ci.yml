@@ -41,7 +41,7 @@ jobs:
     steps:
       - name: Set matrix from env
         id: set-matrix
-        run: echo "matrix=${{ env.GREENGAGE }}" >> $GITHUB_OUTPUT
+        run: echo -n 'matrix=${{ env.GREENGAGE }}' >> $GITHUB_OUTPUT
 
   regression:
     needs: generate-matrix
