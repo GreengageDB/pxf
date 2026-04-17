@@ -18,9 +18,8 @@ env:
     [
       { "version": "6", "image": "greengagedb/ggdb", "tag": "6.30.1"  },
       { "version": "7", "image": "greengagedb/ggdb", "tag": "7.4.0"   },
-      { "version": "6", "image": "ghcr.io/greengagedb/greengage/ggdb" },
       { "version": "6", "image": "ghcr.io/greengagedb/greengage/ggdb", "tag": "GG-246" },
-      { "version": "7", "image": "ghcr.io/greengagedb/greengage/ggdb" }
+      { "version": "7", "image": "ghcr.io/greengagedb/greengage/ggdb", "tag": "latest" }
     ]
 
 jobs:
