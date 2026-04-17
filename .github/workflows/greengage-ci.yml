@@ -22,7 +22,7 @@ jobs:
       - uses: ./.github/actions/build/deb
         with:
           version: '6.30.1'
-
+          docker_repo: ghcr.io/greengagedb/greengage
   regression:
     name: Regression on ggdb${{ matrix.version }}-${{ matrix.release }}
     runs-on: ubuntu-latest
