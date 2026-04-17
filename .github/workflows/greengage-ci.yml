@@ -50,7 +50,7 @@ jobs:
 
   regression:
     needs: generate-matrix
-    name: Regression on ggdb${{ matrix.version }}-${{ matrix.tag || 'latest' }}
+    name: Regression on ggdb${{ matrix.version }}:${{ matrix.tag || 'latest' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     strategy:
