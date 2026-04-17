@@ -15,97 +15,13 @@ concurrency:
 
 jobs:
   build:
-    name: Build on ggdb${{ matrix.version }}-${{ matrix.release }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - image: greengagedb/ggdb6_ubuntu:6.29.1
-            release: stable
-            version: '6'
-          - image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu
-            release: devel
-            version: '6'
-          - image: greengagedb/ggdb7_ubuntu:7.4.0
-            release: stable
-            version: '7'
-          - image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
-            release: devel
-            version: '7'
-    env:
-      GREENGAGE_DEB:     Package/greengage.deb
-      GREENGAGE_DEB_URL: https://github.com/GreengageDB/greengage/releases/download/6.29.2/greengage6.deb
+    name: Build DEB package
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Build in Docker using docker run
-        env:
-          DEV_HOME: /home/gpadmin
-          PXF_HOME: /opt/greengagedb/greengage/pxf
-          GPHOME: /opt/greengagedb/greengage
-          GOPATH: /opt/go
-          PXF_SRC: /home/gpadmin/pxf
-          PATH: /opt/greengagedb/greengage/bin:/opt/greengagedb/greengage/pxf/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:/opt/go/bin
-          JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
-          DEBIAN_FRONTEND: noninteractive
-          GREENGAGE_DEB: ${{ env.GREENGAGE_DEB }}
-          GREENGAGE_DEB_URL: ${{ env.GREENGAGE_DEB_URL }}
-        run: |
-          set -eu
-          mkdir -p "$(dirname $GREENGAGE_DEB)"
-          curl -L $GREENGAGE_DEB_URL -o $GREENGAGE_DEB
-          docker run \
-            --rm \
-            -v ${{ github.workspace }}:$PXF_SRC \
-            -w $PXF_SRC \
-            -e DEV_HOME \
-            -e PXF_HOME \
-            -e GPHOME \
-            -e GOPATH \
-            -e PXF_SRC \
-            -e PATH \
-            -e JAVA_TOOL_OPTIONS \
-            -e DEBIAN_FRONTEND \
-            -e GREENGAGE_DEB \
-            -e GREENGAGE_DEB_URL \
-            ${{ matrix.image }} \
-            /bin/bash ci/build_in_docker.sh
-
-      - name: Test Package install in Ubuntu 22.04 (docker)
-        env:
-          GREENGAGE_DEB: ${{ env.GREENGAGE_DEB }}
-          DEBIAN_FRONTEND: noninteractive
-          TEST_DOCKER_IMAGE: ubuntu:22.04
-        run: |
-          set -eu
-          docker run \
-            --rm \
-            -v ./Package:/deb-packages \
-            -e DEBIAN_FRONTEND \
-            $TEST_DOCKER_IMAGE \
-            /bin/bash -c "
-              set -e
-              apt-get update 
-              { apt-get install -yq /deb-packages/*.deb 2>&1 || dpkg -i /deb-packages/*.deb 2>&1; }
-              apt-get install -yqf
-            "
-            rm -f $GREENGAGE_DEB
-
-      - name: Rename Package artifacts
-        run: mv Package deb-packages-${{ matrix.version }}-${{ matrix.release }}
-
-      - name: Cache Package artifacts
-        uses: actions/cache/save@v4
+      - uses: ./.github/actions/build/deb
         with:
-          path: deb-packages-${{ matrix.version }}-${{ matrix.release }}
-          key:  deb-packages-${{ matrix.version }}-${{ matrix.release }}-${{ github.sha }}
-
-      - name: Upload Package artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: deb-packages-${{ matrix.version }}-${{ matrix.release }}
-          path: deb-packages-${{ matrix.version }}-${{ matrix.release }}
+          version: '6.30.1'
 
   regression:
     name: Regression on ggdb${{ matrix.version }}-${{ matrix.release }}
