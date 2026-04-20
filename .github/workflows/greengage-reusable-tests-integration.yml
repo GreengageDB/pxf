@@ -13,7 +13,7 @@ on:
       tag:
         required: true
         type: string
-      tests_matrix:
+      tests:
         required: true
         type: string  # JSON string with test matrix
 
@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJson(inputs.tests_matrix) }}
+        include: ${{ fromJson(inputs.tests) }}
 
     name: IT '${{ matrix.test }}'${{ matrix.fdw && ' FDW' || '' }}${{ matrix.ssl && ' SSL' || '' }} on ${{ inputs.image }}
 
