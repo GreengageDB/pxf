@@ -23,17 +23,6 @@ env:
     ]
 
 jobs:
-  build:
-    name: Build DEB package
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/build/deb
-        with:
-          image:   ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].image }}
-          version: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].version }}
-          tag:     ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].tag }}
-
   generate-matrix:
     runs-on: ubuntu-24.04
     outputs:
@@ -47,6 +36,18 @@ jobs:
           JSON_END
           COMPRESSED=$(jq -c . /tmp/matrix.json)
           echo "matrix=$COMPRESSED" >> $GITHUB_OUTPUT
+
+  build:
+    needs: generate-matrix
+    name: Build DEB package
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build/deb
+        with:
+          image:   ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].image }}
+          version: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].version }}
+          tag:     ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].tag }}
 
   regression:
     needs: generate-matrix
