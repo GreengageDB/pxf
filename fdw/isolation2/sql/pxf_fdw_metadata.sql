@@ -28,6 +28,12 @@ set client_min_messages = info;
 
 INSERT INTO test_t VALUES('hello world', 1);
 
+SELECT * FROM test_t ORDER BY t0;
+
+INSERT INTO test_t VALUES('hello world', 1);
+
+SELECT * FROM test_t ORDER BY t0;
+
 1:!& curl http://localhost:5889/shutdown;
 
 2<:

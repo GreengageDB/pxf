@@ -106,9 +106,7 @@ static void InitCopyStateForModify(PxfFdwModifyState *pxfmstate);
 static CopyState BeginCopyTo(Relation forrel, List *options);
 static void PxfBeginScanErrorCallback(void *arg);
 static void PxfCopyFromErrorCallback(void *arg);
-static void PxfXactCallback(XactEvent event, void *arg);
 static void CollectMetadata(StringInfo msgbuf);
-static void PxfPrepareCollectMetadata(PxfFdwModifyState *pxfmstate);
 static void PxfCollectMetadata(PxfFdwModifyState *pxfmstate);
 /*
  * Foreign-data wrapper handler functions:
@@ -703,14 +701,6 @@ InitForeignModify(Relation relation)
 		InitCopyStateForModify(pxfmstate);
 	}
 
-	/*
-	 * Register a callback to be called at the end of the transaction.
-	 */
-	if (Gp_role == GP_ROLE_DISPATCH)
-	{
-		RegisterXactCallback(PxfXactCallback, pxfmstate);
-	}
-
 	if (oldcontext != NULL)
 		MemoryContextSwitchTo(oldcontext);
 
@@ -821,7 +811,9 @@ FinishForeignModify(PxfFdwModifyState *pxfmstate)
 	{
 		if (Gp_role == GP_ROLE_DISPATCH)
 		{
-			return;
+			PxfBridgeCommitStart(pxfmstate);
+			PxfCollectMetadata(pxfmstate);
+			PQDeleteMetadataQueue(PXF_METADATA_QUEUE_ID);
 		}
 		if (Gp_role == GP_ROLE_EXECUTE)
 		{
@@ -1165,12 +1157,6 @@ PxfCopyFromErrorCallback(void *arg)
 }
 
 static void
-PxfPrepareCollectMetadata(PxfFdwModifyState *pxfmstate)
-{
-	PxfBridgeCommitStart(pxfmstate);
-}
-
-static void
 PxfCollectMetadata(PxfFdwModifyState *pxfmstate)
 {
 	StringInfoData	fe_msgbuf;
@@ -1190,31 +1176,6 @@ PxfCollectMetadata(PxfFdwModifyState *pxfmstate)
 
 	elog(DEBUG2, "pxf_fdw %d bytes metadata written at commit", bytes_written);
 }
-
-static void
-PxfXactCallback(XactEvent event, void *arg)
-{
-	Assert(Gp_role == GP_ROLE_DISPATCH);
-
-	PxfFdwModifyState *pxfmstate = arg;
-
-	switch (event)
-	{
-	case XACT_EVENT_PRE_COMMIT:
-		PxfPrepareCollectMetadata(pxfmstate);
-		break;
-	case XACT_EVENT_COMMIT:
-		PxfCollectMetadata(pxfmstate);
-		/* fall through */
-	case XACT_EVENT_ABORT:
-		PxfBridgeCleanup(pxfmstate);
-		pfree(pxfmstate);
-		PQDeleteMetadataQueue(PXF_METADATA_QUEUE_ID);
-	default:
-		break;
-	}
-}
-
 
 static void
 CollectMetadata(StringInfo msgbuf)

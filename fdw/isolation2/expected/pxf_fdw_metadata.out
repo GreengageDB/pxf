@@ -29,6 +29,25 @@ SET
 INSERT INTO test_t VALUES('hello world', 1);
 INSERT 1
 
+SELECT * FROM test_t ORDER BY t0;
+ t0 | a1 
+----+----
+ t0 | 1  
+ t0 | 1  
+ t0 | 1  
+(3 rows)
+
+INSERT INTO test_t VALUES('hello world', 1);
+INSERT 1
+
+SELECT * FROM test_t ORDER BY t0;
+ t0 | a1 
+----+----
+ t0 | 1  
+ t0 | 1  
+ t0 | 1  
+(3 rows)
+
 1:!& curl http://localhost:5889/shutdown; 
 2<:  <... completed>
 FAILED:  Execution failed
@@ -54,6 +73,54 @@ Query Params: {}
 <MetadataItem: b'Some test metadata for 1' (24)>
 <MetadataItem: b'Some test metadata for 2' (24)>
 "POST /pxf/v1/commit HTTP/1.1" 200 -
+
+--- Incoming Request ---
+Method: GET
+Path: /pxf/read
+Query Params: {}
+"GET /pxf/read HTTP/1.1" 200 -
+
+--- Incoming Request ---
+Method: GET
+Path: /pxf/read
+Query Params: {}
+"GET /pxf/read HTTP/1.1" 200 -
+
+--- Incoming Request ---
+Method: GET
+Path: /pxf/read
+Query Params: {}
+"GET /pxf/read HTTP/1.1" 200 -
+"POST /pxf/v1/write HTTP/1.1" 200 -
+"POST /pxf/v1/write HTTP/1.1" 200 -
+"POST /pxf/v1/write HTTP/1.1" 200 -
+
+--- Incoming Request ---
+Method: POST
+Path: /pxf/v1/commit
+Query Params: {}
+<MetadataItem: b'Some test metadata for 0' (24)>
+<MetadataItem: b'Some test metadata for 1' (24)>
+<MetadataItem: b'Some test metadata for 2' (24)>
+"POST /pxf/v1/commit HTTP/1.1" 200 -
+
+--- Incoming Request ---
+Method: GET
+Path: /pxf/read
+Query Params: {}
+"GET /pxf/read HTTP/1.1" 200 -
+
+--- Incoming Request ---
+Method: GET
+Path: /pxf/read
+Query Params: {}
+"GET /pxf/read HTTP/1.1" 200 -
+
+--- Incoming Request ---
+Method: GET
+Path: /pxf/read
+Query Params: {}
+"GET /pxf/read HTTP/1.1" 200 -
 
 --- Incoming Request ---
 Method: GET
