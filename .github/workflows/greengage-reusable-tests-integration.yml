@@ -1,4 +1,5 @@
-name: Integration Tests (Reusable)
+# greengage-reusable-tests-integration.yml
+name: Greengage PXF Reusable Integration Tests
 
 on:
   workflow_call:
