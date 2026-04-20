@@ -24,10 +24,11 @@ env:
 
 jobs:
   generate-matrix:
-    name: Generate Greengage Images matrix
+    name: Generate CI matrix
     runs-on: ubuntu-24.04
     outputs:
       greengage_matrix: ${{ steps.set-matrix.outputs.matrix }}
+      tests_matrix:     ${{ steps.set-matrix.outputs.tests_matrix }}
     steps:
       - name: Set matrix from env
         id: set-matrix
@@ -35,8 +36,12 @@ jobs:
           cat > /tmp/matrix.json << 'JSON_END'
           ${{ env.GREENGAGE }}
           JSON_END
-          COMPRESSED=$(jq -c . /tmp/matrix.json)
-          echo "matrix=$COMPRESSED" >> $GITHUB_OUTPUT
+          echo "matrix=$(jq -c . /tmp/matrix.json)" >> $GITHUB_OUTPUT
+
+          cat > /tmp/tests.json << 'JSON_END'
+          ${{ env.TESTS_MATRIX }}
+          JSON_END
+          echo "tests_matrix=$(jq -c . /tmp/tests.json)" >> $GITHUB_OUTPUT
 
   build:
     needs: generate-matrix
@@ -75,70 +80,34 @@ jobs:
       image:   ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].image }}
       version: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].version }}
       tag:     ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].tag }}
-      tests_matrix: |
-        [
-          { "test": "smoke" },
-          { "test": "gpdb" },
-          { "test": "jdbc" },
-          { "test": "smoke", "fdw": "true" },
-          { "test": "gpdb", "fdw": "true" },
-          { "test": "jdbc", "fdw": "true" },
-          { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
-        ]
+      tests_matrix: ${{ needs.generate-matrix.outputs.tests_matrix }}
 
   integration-ggdb6-devel:
     needs: generate-matrix
-    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].version }}:${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].tag }}
+    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[1].version }}:${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[1].tag }}
     uses: ./.github/workflows/greengage-reusable-tests-integration.yml
     with:
       image:   ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[1].image }}
       version: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[1].version }}
       tag:     ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[1].tag }}
-      tests_matrix: |
-        [
-          { "test": "smoke" },
-          { "test": "gpdb" },
-          { "test": "jdbc" },
-          { "test": "smoke", "fdw": "true" },
-          { "test": "gpdb", "fdw": "true" },
-          { "test": "jdbc", "fdw": "true" },
-          { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
-        ]
+      tests_matrix: ${{ needs.generate-matrix.outputs.tests_matrix }}
 
   integration-ggdb7-stable:
     needs: generate-matrix
-    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].version }}:${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].tag }}
+    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[2].version }}:${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[2].tag }}
     uses: ./.github/workflows/greengage-reusable-tests-integration.yml
     with:
       image:   ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[2].image }}
       version: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[2].version }}
       tag:     ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[2].tag }}
-      tests_matrix: |
-        [
-          { "test": "smoke" },
-          { "test": "gpdb" },
-          { "test": "jdbc" },
-          { "test": "smoke", "fdw": "true" },
-          { "test": "gpdb", "fdw": "true" },
-          { "test": "jdbc", "fdw": "true" },
-          { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
-        ]
+      tests_matrix: ${{ needs.generate-matrix.outputs.tests_matrix }}
 
   integration-ggdb7-devel:
     needs: generate-matrix
-    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].version }}:${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].tag }}
+    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[3].version }}:${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[3].tag }}
     uses: ./.github/workflows/greengage-reusable-tests-integration.yml
     with:
       image:   ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[3].image }}
       version: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[3].version }}
       tag:     ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[3].tag }}
-      tests_matrix: |
-        [
-          { "test": "smoke" },
-          { "test": "gpdb" },
-          { "test": "jdbc" },
-          { "test": "smoke", "fdw": "true" },
-          { "test": "gpdb", "fdw": "true" },
-          { "test": "jdbc", "fdw": "true" },
-          { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
-        ]
+      tests_matrix: ${{ needs.generate-matrix.outputs.tests_matrix }}
