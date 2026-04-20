@@ -1,5 +1,5 @@
 # Release creation workflow
-name: Greengage release
+name: Greengage PXF Release
 
 on:
   release:

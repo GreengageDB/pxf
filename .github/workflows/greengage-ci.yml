@@ -1,5 +1,5 @@
 # .github/workflows/greengage-ci.yml
-name: Greengage CI
+name: Greengage PXF CI
 
 on:
   push:
