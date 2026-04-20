@@ -70,7 +70,7 @@ jobs:
 
   regression:
     needs: generate-matrix
-    name: Regression on ggdb${{ matrix.version }}:${{ matrix.tag || 'latest' }}
+    name: Regression on ggdb${{ matrix.version }}:${{ matrix.tag }}
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     strategy:
@@ -83,7 +83,7 @@ jobs:
         with:
           image:   ${{ matrix.image }}
           version: ${{ matrix.version }}
-          tag:     ${{ matrix.tag || 'latest' }}
+          tag:     ${{ matrix.tag }}
 
   integration-0:
     needs: generate-matrix
