@@ -85,7 +85,7 @@ jobs:
           version: ${{ matrix.version }}
           tag:     ${{ matrix.tag || 'latest' }}
 
-  integration-ggdb6-stable:
+  integration-0:
     needs: generate-matrix
     name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.images)[0].version }}:${{ fromJson(needs.generate-matrix.outputs.images)[0].tag }}
     uses: ./.github/workflows/greengage-reusable-tests-integration.yml
@@ -95,7 +95,7 @@ jobs:
       tag:     ${{ fromJson(needs.generate-matrix.outputs.images)[0].tag }}
       tests: ${{ needs.generate-matrix.outputs.tests }}
 
-  integration-ggdb6-devel:
+  integration-1:
     needs: generate-matrix
     name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.images)[1].version }}:${{ fromJson(needs.generate-matrix.outputs.images)[1].tag }}
     uses: ./.github/workflows/greengage-reusable-tests-integration.yml
@@ -105,7 +105,7 @@ jobs:
       tag:     ${{ fromJson(needs.generate-matrix.outputs.images)[1].tag }}
       tests: ${{ needs.generate-matrix.outputs.tests }}
 
-  integration-ggdb7-stable:
+  integration-2:
     needs: generate-matrix
     name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.images)[2].version }}:${{ fromJson(needs.generate-matrix.outputs.images)[2].tag }}
     uses: ./.github/workflows/greengage-reusable-tests-integration.yml
@@ -115,7 +115,7 @@ jobs:
       tag:     ${{ fromJson(needs.generate-matrix.outputs.images)[2].tag }}
       tests: ${{ needs.generate-matrix.outputs.tests }}
 
-  integration-ggdb7-devel:
+  integration-3:
     needs: generate-matrix
     name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.images)[3].version }}:${{ fromJson(needs.generate-matrix.outputs.images)[3].tag }}
     uses: ./.github/workflows/greengage-reusable-tests-integration.yml
