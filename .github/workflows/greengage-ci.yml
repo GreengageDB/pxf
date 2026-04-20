@@ -30,9 +30,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build/deb
         with:
-          image:   ${{ fromJson(env.GREENGAGE)[0].image }}
-          version: ${{ fromJson(env.GREENGAGE)[0].version }}
-          tag:     ${{ fromJson(env.GREENGAGE)[0].tag }}
+          image:   ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].image }}
+          version: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].version }}
+          tag:     ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].tag }}
 
   generate-matrix:
     runs-on: ubuntu-24.04
@@ -69,9 +69,9 @@ jobs:
     name: Integration on ggdb6-stable
     uses: ./.github/workflows/tests/integration.yml
     with:
-      image:   ${{ fromJson(env.GREENGAGE)[0].image }}
-      version: ${{ fromJson(env.GREENGAGE)[0].version }}
-      tag:     ${{ fromJson(env.GREENGAGE)[0].tag }}
+      image:   ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].image }}
+      version: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].version }}
+      tag:     ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].tag }}
       tests_matrix: |
         [
           { "test": "smoke" },
@@ -87,9 +87,9 @@ jobs:
     name: Integration on ggdb6-devel
     uses: ./.github/workflows/tests/integration.yml
     with:
-      image:   ${{ fromJson(env.GREENGAGE)[1].image }}
-      version: ${{ fromJson(env.GREENGAGE)[1].version }}
-      tag:     ${{ fromJson(env.GREENGAGE)[1].tag }}
+      image:   ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[1].image }}
+      version: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[1].version }}
+      tag:     ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[1].tag }}
       tests_matrix: |
         [
           { "test": "smoke" },
@@ -105,9 +105,9 @@ jobs:
     name: Integration on ggdb7-stable
     uses: ./.github/workflows/tests/integration.yml
     with:
-      image:   ${{ fromJson(env.GREENGAGE)[2].image }}
-      version: ${{ fromJson(env.GREENGAGE)[2].version }}
-      tag:     ${{ fromJson(env.GREENGAGE)[2].tag }}
+      image:   ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[2].image }}
+      version: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[2].version }}
+      tag:     ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[2].tag }}
       tests_matrix: |
         [
           { "test": "smoke" },
@@ -123,9 +123,9 @@ jobs:
     name: Integration on ggdb7-devel
     uses: ./.github/workflows/tests/integration.yml
     with:
-      image:   ${{ fromJson(env.GREENGAGE)[3].image }}
-      version: ${{ fromJson(env.GREENGAGE)[3].version }}
-      tag:     ${{ fromJson(env.GREENGAGE)[3].tag }}
+      image:   ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[3].image }}
+      version: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[3].version }}
+      tag:     ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[3].tag }}
       tests_matrix: |
         [
           { "test": "smoke" },
