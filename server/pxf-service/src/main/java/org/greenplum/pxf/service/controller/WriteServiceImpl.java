@@ -43,7 +43,7 @@ public class WriteServiceImpl extends BaseServiceImpl<OperationStats> implements
 
     @Override
     public String writeData(RequestContext context, InputStream inputStream) throws Exception {
-        OperationStats stats = processData(context, () -> readStream(context, inputStream));
+        OperationStats stats = processData(context, OperationStats.Operation.WRITE, () -> readStream(context, inputStream));
 
         String censuredPath = Utilities.maskNonPrintables(context.getDataSource());
         String returnMsg = String.format("wrote %d records to %s", stats.getRecordCount(), censuredPath);
@@ -94,7 +94,7 @@ public class WriteServiceImpl extends BaseServiceImpl<OperationStats> implements
         CountingInputStream countingInputStream = new CountingInputStream(inputStream);
         try (DataInputStream dataStream = new DataInputStream(countingInputStream)) {
             // open the output file, returns true or throws an error
-            bridge.beginIteration();
+            metricsReporter.reportTimer(MetricsReporter.PxfMetric.BRIDGE_BEGIN, context, bridge::beginIteration);
             while (bridge.setNext(dataStream)) {
                 operationStats.reportCompletedRecord(countingInputStream.getCount());
             }

@@ -8,5 +8,14 @@ package org.greenplum.pxf.service.utilities;
  */
 @FunctionalInterface
 public interface ThrowingSupplier<T, E extends Exception> {
+
     T get() throws E;
+
+    default T getWithoutException() {
+        try {
+            return get();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

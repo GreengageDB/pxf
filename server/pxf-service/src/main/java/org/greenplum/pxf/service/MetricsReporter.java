@@ -1,17 +1,16 @@
 package org.greenplum.pxf.service;
 
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tags;
-import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.greenplum.pxf.api.model.RequestContext;
+import org.greenplum.pxf.service.utilities.ThrowingSupplier;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.time.Instant;
 
 /**
  * Service responsible for submitting metrics to MeterRegistry.
@@ -63,6 +62,27 @@ public class MetricsReporter {
     }
 
     /**
+     * Reports long task timer metric.
+     *
+     * @param metric    metric to apply
+     * @param context   request context
+     * @param supplier  code to run
+     */
+    public <T> T longTaskTimer(PxfMetric metric, RequestContext context, Tags extraTags, ThrowingSupplier<T, Exception> supplier) {
+        if(!isMetricAvailable(metric)) {
+            return supplier.getWithoutException();
+        }
+        Tags tags = (extraTags == null) ? getTags(context) : getTags(context).and(extraTags);
+        try {
+            LongTaskTimer timer = registry.more().longTaskTimer(metric.metricName, tags);
+            return timer.record(supplier::getWithoutException);
+        } catch (Exception e) {
+            log.warn("Unable to report timer {} {}.", metric.metricName, tags);
+            throw e;
+        }
+    }
+
+    /**
      * Reports timer metric with a given name, duration and additional tags to the registry.
      * Applies custom tags before reporting and adds a success outcome tag.
      *
@@ -74,11 +94,10 @@ public class MetricsReporter {
     private void reportTimer(PxfMetric metric, Duration duration, RequestContext context, Tags extraTags) {
         String metricName = metric.getMetricName();
         long durationMs = duration.toMillis();
-        if (!env.getProperty(metric.getEnabledPropertyName(), Boolean.class, Boolean.FALSE)) {
+        if(!isMetricAvailable(metric)) {
             log.trace("Skipping reporting metric {} with duration={}ms", metricName, durationMs);
             return;
         }
-
         Tags tags = (extraTags == null) ? getTags(context) : getTags(context).and(extraTags);
         try {
             Timer timer = Timer.builder(metricName).tags(tags).register(registry);
@@ -90,6 +109,24 @@ public class MetricsReporter {
             log.warn(String.format("Unable to report timer %s%s with duration=%dms.", metricName, tags, durationMs), e);
         }
     }
+
+    private boolean isMetricAvailable(PxfMetric metric) {
+        return env.getProperty(metric.getEnabledPropertyName(), Boolean.class, Boolean.FALSE);
+    }
+
+    public <T> T reportTimer(MetricsReporter.PxfMetric metric, RequestContext context, ThrowingSupplier<T, Exception> supplier) throws Exception {
+        Instant start = Instant.now();
+        T result;
+        boolean success = false;
+        try {
+            result = supplier.get();
+            success = true;
+        } finally {
+            reportTimer(metric, Duration.between(start, Instant.now()), context, success);
+        }
+        return result;
+    }
+
 
     /**
      * Reports counter metric with a given name and the increment to the registry.
@@ -142,7 +179,8 @@ public class MetricsReporter {
                 .and("user", StringUtils.defaultIfBlank(context.getUser(), UNKNOWN_VALUE))
                 .and("segment", String.valueOf(context.getSegmentId()))
                 .and("profile", StringUtils.defaultIfBlank(context.getProfile(), UNKNOWN_VALUE))
-                .and("server", StringUtils.defaultIfBlank(context.getServerName(), "default"));
+                .and("server", StringUtils.defaultIfBlank(context.getServerName(), "default"))
+                .and("datasource", StringUtils.defaultIfBlank(context.getDataSource(), UNKNOWN_VALUE));
     }
 
     /**
@@ -154,7 +192,10 @@ public class MetricsReporter {
         RECORDS_SENT("pxf.records.sent", "pxf.metrics.records.enabled"),
         RECORDS_RECEIVED("pxf.records.received", "pxf.metrics.records.enabled"),
         BYTES_SENT("pxf.bytes.sent", "pxf.metrics.bytes.enabled"),
-        BYTES_RECEIVED("pxf.bytes.received", "pxf.metrics.bytes.enabled");
+        BYTES_RECEIVED("pxf.bytes.received", "pxf.metrics.bytes.enabled"),
+        OPERATION("pxf.operation", "pxf.metrics.operations.enabled"),
+        FRAGMENTER_CALL("pxf.fragmenter.call", "pxf.metrics.fragmenter.enabled"),
+        BRIDGE_BEGIN("pxf.bridge.begin", "pxf.metrics.bridge.enabled");
 
         private final String metricName;
         private final String enabledPropertyName;

@@ -14,6 +14,7 @@ import org.greenplum.pxf.service.MetricsReporter;
 import org.greenplum.pxf.service.bridge.Bridge;
 import org.greenplum.pxf.service.bridge.BridgeFactory;
 import org.greenplum.pxf.service.security.SecurityService;
+import org.greenplum.pxf.service.utilities.ThrowingSupplier;
 import org.springframework.stereotype.Service;
 
 import java.io.DataOutputStream;
@@ -58,7 +59,7 @@ public class ReadServiceImpl extends BaseServiceImpl<OperationStats> implements 
         // wrapping the invocation of processData(..) with the error reporting logic
         // since any exception thrown from it must be logged, as this method is called asynchronously
         // and is the last opportunity to log the exception while having MDC logging context defined
-        invokeWithErrorHandling(() -> processData(context, () -> writeStream(context, outputStream)));
+        invokeWithErrorHandling(() -> processData(context, OperationStats.Operation.READ, () -> writeStream(context, outputStream)));
     }
 
     @Override
@@ -107,7 +108,8 @@ public class ReadServiceImpl extends BaseServiceImpl<OperationStats> implements 
         CountingOutputStream countingOutputStream = new CountingOutputStream(outputStream);
         String sourceName = null;
         try {
-            List<Fragment> fragments = fragmenterService.getFragmentsForSegment(context);
+            List<Fragment> fragments = metricsReporter.reportTimer(MetricsReporter.PxfMetric.FRAGMENTER_CALL, context,
+                    () -> fragmenterService.getFragmentsForSegment(context) );
             for (int i = 0; i < fragments.size(); i++) {
                 Fragment fragment = fragments.get(i);
                 sourceName = fragment.getSourceName();
@@ -123,7 +125,10 @@ public class ReadServiceImpl extends BaseServiceImpl<OperationStats> implements 
                 context.setDataSource(fragment.getSourceName());
                 context.setFragmentIndex(fragment.getIndex());
                 context.setFragmentMetadata(fragment.getMetadata());
-                processFragment(countingOutputStream, context, queryStats);
+                metricsReporter.longTaskTimer(MetricsReporter.PxfMetric.FRAGMENTS_SENT, context, null, (ThrowingSupplier<Void, Exception>) () -> {
+                    processFragment(countingOutputStream, context, queryStats);
+                    return null;
+                });
 
                 // In cases where we have hundreds of thousands of fragments,
                 // we want to release the fragment reference as soon as we are
@@ -193,13 +198,13 @@ public class ReadServiceImpl extends BaseServiceImpl<OperationStats> implements 
 
         OperationStats fragmentStats = new OperationStats(OperationStats.Operation.READ, metricsReporter, context);
         long previousStreamByteCount = countingOutputStream.getCount();
-        boolean success = false;
         Instant startTime = Instant.now();
         Bridge bridge = null;
         try {
             bridge = getBridge(context);
             registerExecution(context, bridge);
-            if (!bridge.beginIteration()) {
+            boolean hasData = metricsReporter.reportTimer(MetricsReporter.PxfMetric.BRIDGE_BEGIN, context, bridge::beginIteration);
+            if (!hasData) {
                 log.debug("Skipping streaming fragment {} of resource {}",
                         context.getFragmentIndex(), context.getDataSource());
             } else {
@@ -211,7 +216,6 @@ public class ReadServiceImpl extends BaseServiceImpl<OperationStats> implements 
                     fragmentStats.reportCompletedRecord(countingOutputStream.getCount() - previousStreamByteCount);
                 }
             }
-            success = true;
         } finally {
             if (bridge != null) {
                 try {
@@ -235,7 +239,6 @@ public class ReadServiceImpl extends BaseServiceImpl<OperationStats> implements 
 
             log.debug("Finished processing fragment {} of resource {} in {} ms, wrote {} records and {} bytes.",
                     context.getFragmentIndex(), context.getDataSource(), duration.toMillis(), fragmentStats.getRecordCount(), fragmentStats.getByteCount());
-            metricsReporter.reportTimer(MetricsReporter.PxfMetric.FRAGMENTS_SENT, duration, context, success);
         }
     }
 

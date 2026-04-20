@@ -1,5 +1,7 @@
 package org.greenplum.pxf.service.controller;
 
+import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.hadoop.conf.Configuration;
 import org.greenplum.pxf.api.error.PxfRuntimeException;
 import org.greenplum.pxf.api.io.Writable;
@@ -16,8 +18,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
+import org.springframework.core.env.StandardEnvironment;
 
 import java.io.DataOutputStream;
 import java.io.OutputStream;
@@ -47,8 +51,6 @@ public class ReadServiceImplTest {
     @Mock
     private FragmenterService mockFragmenterService;
     @Mock
-    private MetricsReporter mockMetricReporter;
-    @Mock
     private OutputStream mockOutputStream;
     @Mock
     private Configuration mockConfiguration;
@@ -62,6 +64,8 @@ public class ReadServiceImplTest {
     private Writable mockRecord1, mockRecord2, mockRecord3;
     @Mock
     private RequestContext mockContext;
+    @Spy
+    private MetricsReporter metricReporter = new MetricsReporter(new SimpleMeterRegistry(), new StandardEnvironment());
 
     private ReadServiceImpl readService;
 
@@ -74,12 +78,12 @@ public class ReadServiceImplTest {
             return action.run();
         });
 
-        readService = new ReadServiceImpl(mockConfigurationFactory, mockBridgeFactory, mockSecurityService, mockFragmenterService, mockMetricReporter);
+        readService = new ReadServiceImpl(mockConfigurationFactory, mockBridgeFactory, mockSecurityService, mockFragmenterService, metricReporter);
     }
 
     @Test
     public void testReadDataOneFragOneRecord() throws Exception {
-        when(mockMetricReporter.getReportFrequency()).thenReturn(1L);
+        when(metricReporter.getReportFrequency()).thenReturn(1L);
         when(mockFragmentList.size()).thenReturn(1);
         when(mockFragmentList.get(0)).thenReturn(mockFragment1);
         when(mockBridgeFactory.getBridge(mockContext)).thenReturn(mockBridge1);
@@ -89,17 +93,20 @@ public class ReadServiceImplTest {
 
         readService.readData(mockContext, mockOutputStream);
 
-        InOrder inOrder = inOrder(mockOutputStream, mockMetricReporter);
+        InOrder inOrder = inOrder(mockOutputStream, metricReporter);
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.OPERATION), same(mockContext), any(Tags.class), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTER_CALL), any(Duration.class), same(mockContext), eq(true));
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), same(mockContext), any(), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.BRIDGE_BEGIN), any(Duration.class), same(mockContext), eq(true));
         inOrder.verify(mockOutputStream).write("hello".getBytes(StandardCharsets.UTF_8), 0, 5);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 1, mockContext);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 5, mockContext);
-        inOrder.verify(mockMetricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), any(Duration.class), same(mockContext), eq(true));
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 1, mockContext);
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 5, mockContext);
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testReadDataOneFragMultiRecordsReportBatch() throws Exception {
-        when(mockMetricReporter.getReportFrequency()).thenReturn(2L);
+        when(metricReporter.getReportFrequency()).thenReturn(2L);
         when(mockFragmentList.size()).thenReturn(1);
         when(mockFragmentList.get(0)).thenReturn(mockFragment1);
         when(mockBridgeFactory.getBridge(mockContext)).thenReturn(mockBridge1);
@@ -110,18 +117,22 @@ public class ReadServiceImplTest {
 
         readService.readData(mockContext, mockOutputStream);
 
-        InOrder inOrder = inOrder(mockOutputStream, mockMetricReporter);
+        InOrder inOrder = inOrder(mockOutputStream, metricReporter);
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.OPERATION), same(mockContext), any(Tags.class), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTER_CALL), any(Duration.class), same(mockContext), eq(true));
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), same(mockContext), any(), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.BRIDGE_BEGIN), any(Duration.class), same(mockContext), eq(true));
         inOrder.verify(mockOutputStream).write("hello".getBytes(StandardCharsets.UTF_8), 0, 5);
         inOrder.verify(mockOutputStream).write("world!".getBytes(StandardCharsets.UTF_8), 0, 6);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 2, mockContext);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 11, mockContext);
-        inOrder.verify(mockMetricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), any(Duration.class), same(mockContext), eq(true));
+        // batch flush fires during iteration (count=2, 2%2==0) — counters appear before BRIDGE_BEGIN
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 2, mockContext);
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 11, mockContext);
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testReadDataOneFragMultiRecordsRemainder() throws Exception {
-        when(mockMetricReporter.getReportFrequency()).thenReturn(5L);
+        when(metricReporter.getReportFrequency()).thenReturn(5L);
         when(mockFragmentList.size()).thenReturn(1);
         when(mockFragmentList.get(0)).thenReturn(mockFragment1);
         when(mockBridgeFactory.getBridge(mockContext)).thenReturn(mockBridge1);
@@ -132,18 +143,22 @@ public class ReadServiceImplTest {
 
         readService.readData(mockContext, mockOutputStream);
 
-        InOrder inOrder = inOrder(mockOutputStream, mockMetricReporter);
+        InOrder inOrder = inOrder(mockOutputStream, metricReporter);
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.OPERATION), same(mockContext), any(Tags.class), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTER_CALL), any(Duration.class), same(mockContext), eq(true));
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), same(mockContext), any(), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.BRIDGE_BEGIN), any(Duration.class), same(mockContext), eq(true));
         inOrder.verify(mockOutputStream).write("hello".getBytes(StandardCharsets.UTF_8), 0, 5);
         inOrder.verify(mockOutputStream).write("world!".getBytes(StandardCharsets.UTF_8), 0, 6);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 2, mockContext);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 11, mockContext);
-        inOrder.verify(mockMetricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), any(Duration.class), same(mockContext), eq(true));
+        // no batch flush (2 records < frequency 5) — BRIDGE_BEGIN fires in inner finally before outer-finally flush
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 2, mockContext);
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 11, mockContext);
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testReadDataOneFragMultiRecordsRemainderAfterBatch() throws Exception {
-        when(mockMetricReporter.getReportFrequency()).thenReturn(2L);
+        when(metricReporter.getReportFrequency()).thenReturn(2L);
         when(mockFragmentList.size()).thenReturn(1);
         when(mockFragmentList.get(0)).thenReturn(mockFragment1);
         when(mockBridgeFactory.getBridge(mockContext)).thenReturn(mockBridge1);
@@ -155,21 +170,26 @@ public class ReadServiceImplTest {
 
         readService.readData(mockContext, mockOutputStream);
 
-        InOrder inOrder = inOrder(mockOutputStream, mockMetricReporter);
+        InOrder inOrder = inOrder(mockOutputStream, metricReporter);
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.OPERATION), same(mockContext), any(Tags.class), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTER_CALL), any(Duration.class), same(mockContext), eq(true));
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), same(mockContext), any(), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.BRIDGE_BEGIN), any(Duration.class), same(mockContext), eq(true));
         inOrder.verify(mockOutputStream).write("hello".getBytes(StandardCharsets.UTF_8), 0, 5);
         inOrder.verify(mockOutputStream).write("world!".getBytes(StandardCharsets.UTF_8), 0, 6);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 2, mockContext);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 11, mockContext);
+        // batch flush fires at count=2 — counters appear before "Boo!" write
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 2, mockContext);
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 11, mockContext);
         inOrder.verify(mockOutputStream).write("Boo!".getBytes(StandardCharsets.UTF_8), 0, 4);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 1, mockContext);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 4, mockContext);
-        inOrder.verify(mockMetricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), any(Duration.class), same(mockContext), eq(true));
+        // BRIDGE_BEGIN fires in inner finally (after all records) — before outer-finally flush for remainder
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 1, mockContext);
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 4, mockContext);
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testReadDataOneFragRecordsException() throws Exception {
-        when(mockMetricReporter.getReportFrequency()).thenReturn(5L);
+        when(metricReporter.getReportFrequency()).thenReturn(5L);
         when(mockFragmentList.size()).thenReturn(1);
         when(mockFragmentList.get(0)).thenReturn(mockFragment1);
         when(mockBridgeFactory.getBridge(mockContext)).thenReturn(mockBridge1);
@@ -178,17 +198,20 @@ public class ReadServiceImplTest {
         doAnswer(writeTestData("hello")).when(mockRecord1).write(any(DataOutputStream.class));
 
         assertThrows(PxfRuntimeException.class, () -> readService.readData(mockContext, mockOutputStream));
-        InOrder inOrder = inOrder(mockOutputStream, mockMetricReporter);
+        InOrder inOrder = inOrder(mockOutputStream, metricReporter);
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.OPERATION), same(mockContext), any(Tags.class), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTER_CALL), any(Duration.class), same(mockContext), eq(true));
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), same(mockContext), any(), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.BRIDGE_BEGIN), any(Duration.class), same(mockContext), eq(true));
         inOrder.verify(mockOutputStream).write("hello".getBytes(StandardCharsets.UTF_8), 0, 5);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 1, mockContext);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 5, mockContext);
-        inOrder.verify(mockMetricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), any(Duration.class), same(mockContext), eq(false));
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 1, mockContext);
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 5, mockContext);
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testReadDataMultiFragmentMultiRecord() throws Exception {
-        when(mockMetricReporter.getReportFrequency()).thenReturn(2L);
+        when(metricReporter.getReportFrequency()).thenReturn(2L);
         when(mockFragmentList.size()).thenReturn(2);
         when(mockBridgeFactory.getBridge(mockContext)).thenReturn(mockBridge1, mockBridge2);
 
@@ -207,22 +230,28 @@ public class ReadServiceImplTest {
 
         readService.readData(mockContext, mockOutputStream);
 
-        InOrder inOrder = inOrder(mockOutputStream, mockMetricReporter);
+        InOrder inOrder = inOrder(mockOutputStream, metricReporter);
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.OPERATION), same(mockContext), any(Tags.class), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTER_CALL), any(Duration.class), same(mockContext), eq(true));
+        // Fragment 1: 1 record, no batch flush — BRIDGE_BEGIN fires before outer-finally flush
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), same(mockContext), any(), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.BRIDGE_BEGIN), any(Duration.class), same(mockContext), eq(true));
         inOrder.verify(mockOutputStream).write("hello".getBytes(StandardCharsets.UTF_8), 0, 5);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 1, mockContext);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 5, mockContext);
-        inOrder.verify(mockMetricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), any(Duration.class), same(mockContext), eq(true));
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 1, mockContext);
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 5, mockContext);
+        // Fragment 2: 2 records, batch flush at count=2 — counters appear before BRIDGE_BEGIN
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), same(mockContext), any(), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.BRIDGE_BEGIN), any(Duration.class), same(mockContext), eq(true));
         inOrder.verify(mockOutputStream).write("world!".getBytes(StandardCharsets.UTF_8), 0, 6);
         inOrder.verify(mockOutputStream).write("Boo!".getBytes(StandardCharsets.UTF_8), 0, 4);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 2, mockContext);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 10, mockContext);
-        inOrder.verify(mockMetricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), any(Duration.class), same(mockContext), eq(true));
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 2, mockContext);
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 10, mockContext);
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testReadDataZeroReportFrequency() throws Exception {
-        when(mockMetricReporter.getReportFrequency()).thenReturn(0L);
+        when(metricReporter.getReportFrequency()).thenReturn(0L);
         when(mockFragmentList.size()).thenReturn(1);
         when(mockFragmentList.get(0)).thenReturn(mockFragment1);
         when(mockBridgeFactory.getBridge(mockContext)).thenReturn(mockBridge1);
@@ -232,15 +261,18 @@ public class ReadServiceImplTest {
 
         readService.readData(mockContext, mockOutputStream);
 
-        InOrder inOrder = inOrder(mockOutputStream, mockMetricReporter);
+        InOrder inOrder = inOrder(mockOutputStream, metricReporter);
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.OPERATION), same(mockContext), any(Tags.class), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTER_CALL), any(Duration.class), same(mockContext), eq(true));
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), same(mockContext), any(), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.BRIDGE_BEGIN), any(Duration.class), same(mockContext), eq(true));
         inOrder.verify(mockOutputStream).write("hello".getBytes(StandardCharsets.UTF_8), 0, 5);
-        inOrder.verify(mockMetricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), any(Duration.class), same(mockContext), eq(true));
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testReadDataBeginIterationFalse() throws Exception {
-        when(mockMetricReporter.getReportFrequency()).thenReturn(1L);
+        when(metricReporter.getReportFrequency()).thenReturn(1L);
         when(mockFragmentList.size()).thenReturn(1);
         when(mockFragmentList.get(0)).thenReturn(mockFragment1);
         when(mockBridgeFactory.getBridge(mockContext)).thenReturn(mockBridge1);
@@ -248,15 +280,18 @@ public class ReadServiceImplTest {
 
         readService.readData(mockContext, mockOutputStream);
 
-        InOrder inOrder = inOrder(mockBridge1, mockMetricReporter);
+        InOrder inOrder = inOrder(mockBridge1, metricReporter);
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.OPERATION), same(mockContext), any(Tags.class), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTER_CALL), any(Duration.class), same(mockContext), eq(true));
+        inOrder.verify(metricReporter).longTaskTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), same(mockContext), any(), any());
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.BRIDGE_BEGIN), any(Duration.class), same(mockContext), eq(true));
         inOrder.verify(mockBridge1).endIteration();
-        inOrder.verify(mockMetricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTS_SENT), any(Duration.class), same(mockContext), eq(true));
         inOrder.verifyNoMoreInteractions();
     }
 
     @Test
     public void testReadWithCancel() throws Exception {
-        when(mockMetricReporter.getReportFrequency()).thenReturn(1L);
+        when(metricReporter.getReportFrequency()).thenReturn(1L);
         when(mockFragmentList.size()).thenReturn(1);
         when(mockFragmentList.get(0)).thenReturn(mockFragment1);
         when(mockBridgeFactory.getBridge(mockContext)).thenReturn(mockBridge1);
@@ -275,10 +310,11 @@ public class ReadServiceImplTest {
         readService.cancelRead(mockContext);
 
 
-        InOrder inOrder = inOrder(mockOutputStream, mockMetricReporter, mockBridge1);
+        InOrder inOrder = inOrder(mockOutputStream, metricReporter, mockBridge1);
+        inOrder.verify(metricReporter).reportTimer(same(MetricsReporter.PxfMetric.FRAGMENTER_CALL), any(Duration.class), same(mockContext), eq(true));
         inOrder.verify(mockOutputStream).write("hello".getBytes(StandardCharsets.UTF_8), 0, 5);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 1, mockContext);
-        inOrder.verify(mockMetricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 5, mockContext);
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.RECORDS_SENT, 1, mockContext);
+        inOrder.verify(metricReporter).reportCounter(MetricsReporter.PxfMetric.BYTES_SENT, 5, mockContext);
         inOrder.verify(mockBridge1).cancelIteration();
         inOrder.verifyNoMoreInteractions();
     }

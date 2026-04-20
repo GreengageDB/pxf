@@ -1,5 +1,6 @@
 package org.greenplum.pxf.service.controller;
 
+import io.micrometer.core.instrument.Tags;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.conf.Configuration;
 import org.greenplum.pxf.api.model.ConfigurationFactory;
@@ -55,7 +56,7 @@ public abstract class BaseServiceImpl<T> extends PxfErrorReporter<T> {
      * @param action  action to execute
      * @return operation statistics
      */
-    protected OperationStats processData(RequestContext context, PrivilegedAction<OperationResult> action) throws Exception {
+    protected OperationStats processData(RequestContext context, OperationStats.Operation operation, PrivilegedAction<OperationResult> action) throws Exception {
         log.debug("{} service is called for resource {} using profile {}",
                 serviceName, context.getDataSource(), context.getProfile());
 
@@ -67,43 +68,66 @@ public abstract class BaseServiceImpl<T> extends PxfErrorReporter<T> {
                         context.getUser(),
                         context.getAdditionalConfigProps());
         context.setConfiguration(configuration);
+        Tags tags = Tags.of("operation", operation.name().toLowerCase());
+        var operationResult = metricsReporter.longTaskTimer(MetricsReporter.PxfMetric.OPERATION, context, tags, () -> {
+            Instant startTime = Instant.now();
 
-        Instant startTime = Instant.now();
+            // execute processing action with a proper identity
+            OperationResult result = null;
+            try {
+                result = securityService.doAs(context, action);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
 
-        // execute processing action with a proper identity
-        OperationResult result = securityService.doAs(context, action);
+            // obtain results after executing the action
+            OperationStats stats = result.getStats();
+            Exception exception = result.getException();
+            String status = (exception == null) ? "Completed" :
+                    (Utilities.isClientDisconnectException(exception)) ? "Aborted" : "Failed";
 
-        // obtain results after executing the action
-        OperationStats stats = result.getStats();
-        Exception exception = result.getException();
-        String status = (exception == null) ? "Completed" :
-                (Utilities.isClientDisconnectException(exception)) ? "Aborted" : "Failed";
+            // log action status and stats
+            long recordCount = stats.getRecordCount();
+            long byteCount = stats.getByteCount();
+            long durationMs = Duration.between(startTime, Instant.now()).toMillis();
+            double rate = durationMs == 0 ? 0 : (1000.0 * recordCount / durationMs);
+            double byteRate = durationMs == 0 ? 0 : (1000.0 * byteCount / durationMs);
 
-        // log action status and stats
-        long recordCount = stats.getRecordCount();
-        long byteCount = stats.getByteCount();
-        long durationMs = Duration.between(startTime, Instant.now()).toMillis();
-        double rate = durationMs == 0 ? 0 : (1000.0 * recordCount / durationMs);
-        double byteRate = durationMs == 0 ? 0 : (1000.0 * byteCount / durationMs);
+            log.info("{} {} operation [{} ms, {} record{}, {} records/sec, {} bytes, {} bytes/sec]{}",
+                    status,
+                    stats.getOperation().name().toLowerCase(),
+                    durationMs,
+                    recordCount,
+                    recordCount == 1 ? "" : "s",
+                    String.format("%.2f", rate),
+                    byteCount,
+                    String.format("%.2f", byteRate),
+                    (exception == null) ? "" : " for " + result.getSourceName());
 
-        log.info("{} {} operation [{} ms, {} record{}, {} records/sec, {} bytes, {} bytes/sec]{}",
-                status,
-                stats.getOperation().name().toLowerCase(),
-                durationMs,
-                recordCount,
-                recordCount == 1 ? "" : "s",
-                String.format("%.2f", rate),
-                byteCount,
-                String.format("%.2f", byteRate),
-                (exception == null) ? "" : " for " + result.getSourceName());
+            return result;
+
+        });
 
         // re-throw the exception if the operation failed
-        if (exception != null) {
-            throw exception;
+        var error = getException(operationResult);
+        if (error != null) {
+            throw error;
         }
 
         // return operation stats
-        return stats;
+        return operationResult.getStats();
+    }
+
+    private Exception getException(OperationResult operationResult) {
+        var error = operationResult.getException();
+        if(error == null) {
+            return null;
+        }
+        if(error instanceof RuntimeException re
+                && re.getCause() instanceof Exception ce) {
+            return ce;
+        }
+        return error;
     }
 
     /**
