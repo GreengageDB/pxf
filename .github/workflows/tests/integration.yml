@@ -9,7 +9,7 @@ on:
       version:
         required: true
         type: string
-      release:
+      tag:
         required: true
         type: string
       tests_matrix:
@@ -35,8 +35,8 @@ jobs:
       USE_FDW: ${{ matrix.fdw }}
       USE_SSL: ${{ matrix.ssl }}
       GGDB_IMAGE: ${{ inputs.image }}
-      IT_IMAGE: greengagedb/ggdb${{ inputs.version }}_pxf_automation_${{ inputs.release }}
-      IT_TAG: it
+      IT_IMAGE: greengagedb/ggdb${{ inputs.version }}_pxf_automation
+      IT_TAG: ${{ inputs.tag }}
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
 
@@ -65,6 +65,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: integration-ggdb${{ inputs.version }}-${{ inputs.release }}-${{ matrix.test }}${{ matrix.fdw && '-fdw' || '' }}${{ matrix.ssl && '-ssl' || '' }}
+          name: integration-ggdb${{ inputs.version }}-${{ inputs.tag }}-${{ matrix.test }}${{ matrix.fdw && '-fdw' || '' }}${{ matrix.ssl && '-ssl' || '' }}
           path: automation/env/artifacts/
           retention-days: 7

@@ -67,11 +67,11 @@ jobs:
 
   integration-ggdb6-stable:
     name: Integration on ggdb6-stable
-    uses: ./.github/workflows/integration-tests.yml
+    uses: ./.github/workflows/tests/integration.yml
     with:
-      image: greengagedb/ggdb6_ubuntu:6.29.1
-      version: '6'
-      release: stable
+      image:   ${{ fromJson(env.GREENGAGE)[0].image }}
+      version: ${{ fromJson(env.GREENGAGE)[0].version }}
+      tag:     ${{ fromJson(env.GREENGAGE)[0].tag }}
       tests_matrix: |
         [
           { "test": "smoke" },
@@ -85,11 +85,11 @@ jobs:
 
   integration-ggdb6-devel:
     name: Integration on ggdb6-devel
-    uses: ./.github/workflows/integration-tests.yml
+    uses: ./.github/workflows/tests/integration.yml
     with:
-      image: ghcr.io/greengagedb/greengage/ggdb6_ubuntu:GG-246
-      version: '6'
-      release: devel
+      image:   ${{ fromJson(env.GREENGAGE)[1].image }}
+      version: ${{ fromJson(env.GREENGAGE)[1].version }}
+      tag:     ${{ fromJson(env.GREENGAGE)[1].tag }}
       tests_matrix: |
         [
           { "test": "smoke" },
@@ -103,11 +103,11 @@ jobs:
 
   integration-ggdb7-stable:
     name: Integration on ggdb7-stable
-    uses: ./.github/workflows/integration-tests.yml
+    uses: ./.github/workflows/tests/integration.yml
     with:
-      image: greengagedb/ggdb7_ubuntu:7.4.0
-      version: '7'
-      release: stable
+      image:   ${{ fromJson(env.GREENGAGE)[2].image }}
+      version: ${{ fromJson(env.GREENGAGE)[2].version }}
+      tag:     ${{ fromJson(env.GREENGAGE)[2].tag }}
       tests_matrix: |
         [
           { "test": "smoke" },
@@ -121,11 +121,11 @@ jobs:
 
   integration-ggdb7-devel:
     name: Integration on ggdb7-devel
-    uses: ./.github/workflows/integration-tests.yml
+    uses: ./.github/workflows/tests/integration.yml
     with:
-      image: ghcr.io/greengagedb/greengage/ggdb7_ubuntu
-      version: '7'
-      release: devel
+      image:   ${{ fromJson(env.GREENGAGE)[3].image }}
+      version: ${{ fromJson(env.GREENGAGE)[3].version }}
+      tag:     ${{ fromJson(env.GREENGAGE)[3].tag }}
       tests_matrix: |
         [
           { "test": "smoke" },
