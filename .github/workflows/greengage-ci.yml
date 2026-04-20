@@ -24,6 +24,7 @@ env:
 
 jobs:
   generate-matrix:
+    name: Generate Greengage Images matrix
     runs-on: ubuntu-24.04
     outputs:
       greengage_matrix: ${{ steps.set-matrix.outputs.matrix }}
