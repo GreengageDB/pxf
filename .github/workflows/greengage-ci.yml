@@ -14,12 +14,22 @@ concurrency:
   cancel-in-progress: true  # Automatically cancel any previous runs for the same group
 
 env:
-  GREENGAGE: |
+  IMAGES: |
     [
       { "version": "6", "image": "greengagedb/ggdb", "tag": "6.30.1"  },
       { "version": "7", "image": "greengagedb/ggdb", "tag": "7.4.0"   },
       { "version": "6", "image": "ghcr.io/greengagedb/greengage/ggdb", "tag": "GG-246" },
       { "version": "7", "image": "ghcr.io/greengagedb/greengage/ggdb", "tag": "latest" }
+    ]
+  TESTS: |
+    [
+      { "test": "smoke" },
+      { "test": "gpdb" },
+      { "test": "jdbc" },
+      { "test": "smoke",   "fdw": "true" },
+      { "test": "gpdb",    "fdw": "true" },
+      { "test": "jdbc",    "fdw": "true" },
+      { "test": "ggdbssl", "fdw": "true", "ssl": "true" }
     ]
 
 jobs:
@@ -27,19 +37,22 @@ jobs:
     name: Generate CI matrix
     runs-on: ubuntu-24.04
     outputs:
-      greengage_matrix: ${{ steps.set-matrix.outputs.matrix }}
-      tests_matrix:     ${{ steps.set-matrix.outputs.tests_matrix }}
+      images_matrix: ${{ steps.images.outputs.matrix }}
+      tests_matrix:  ${{ steps.tests.outputs.tests_matrix }}
     steps:
-      - name: Set matrix from env
-        id: set-matrix
+      - name: Generate images mtrix
+        id: images
         run: |
-          cat > /tmp/matrix.json << 'JSON_END'
-          ${{ env.GREENGAGE }}
+          cat > /tmp/images.json << 'JSON_END'
+          ${{ env.IMAGES }}
           JSON_END
-          echo "matrix=$(jq -c . /tmp/matrix.json)" >> $GITHUB_OUTPUT
+          echo "matrix=$(jq -c . /tmp/images.json)" >> $GITHUB_OUTPUT
 
+      - name: Generate tests mtrix
+        id: tests
+        run: |
           cat > /tmp/tests.json << 'JSON_END'
-          ${{ env.TESTS_MATRIX }}
+          ${{ env.TESTS }}
           JSON_END
           echo "tests_matrix=$(jq -c . /tmp/tests.json)" >> $GITHUB_OUTPUT
 
@@ -51,9 +64,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build/deb
         with:
-          image:   ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].image }}
-          version: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].version }}
-          tag:     ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].tag }}
+          image:   ${{ fromJson(needs.generate-matrix.outputs.images_matrix)[0].image }}
+          version: ${{ fromJson(needs.generate-matrix.outputs.images_matrix)[0].version }}
+          tag:     ${{ fromJson(needs.generate-matrix.outputs.images_matrix)[0].tag }}
 
   regression:
     needs: generate-matrix
@@ -63,7 +76,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix) }}
+        include: ${{ fromJson(needs.generate-matrix.outputs.images_matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/tests/regression
@@ -74,40 +87,40 @@ jobs:
 
   integration-ggdb6-stable:
     needs: generate-matrix
-    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].version }}:${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].tag }}
+    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.images_matrix)[0].version }}:${{ fromJson(needs.generate-matrix.outputs.images_matrix)[0].tag }}
     uses: ./.github/workflows/greengage-reusable-tests-integration.yml
     with:
-      image:   ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].image }}
-      version: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].version }}
-      tag:     ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[0].tag }}
+      image:   ${{ fromJson(needs.generate-matrix.outputs.images_matrix)[0].image }}
+      version: ${{ fromJson(needs.generate-matrix.outputs.images_matrix)[0].version }}
+      tag:     ${{ fromJson(needs.generate-matrix.outputs.images_matrix)[0].tag }}
       tests_matrix: ${{ needs.generate-matrix.outputs.tests_matrix }}
 
   integration-ggdb6-devel:
     needs: generate-matrix
-    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[1].version }}:${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[1].tag }}
+    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.images_matrix)[1].version }}:${{ fromJson(needs.generate-matrix.outputs.images_matrix)[1].tag }}
     uses: ./.github/workflows/greengage-reusable-tests-integration.yml
     with:
-      image:   ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[1].image }}
-      version: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[1].version }}
-      tag:     ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[1].tag }}
+      image:   ${{ fromJson(needs.generate-matrix.outputs.images_matrix)[1].image }}
+      version: ${{ fromJson(needs.generate-matrix.outputs.images_matrix)[1].version }}
+      tag:     ${{ fromJson(needs.generate-matrix.outputs.images_matrix)[1].tag }}
       tests_matrix: ${{ needs.generate-matrix.outputs.tests_matrix }}
 
   integration-ggdb7-stable:
     needs: generate-matrix
-    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[2].version }}:${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[2].tag }}
+    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.images_matrix)[2].version }}:${{ fromJson(needs.generate-matrix.outputs.images_matrix)[2].tag }}
     uses: ./.github/workflows/greengage-reusable-tests-integration.yml
     with:
-      image:   ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[2].image }}
-      version: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[2].version }}
-      tag:     ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[2].tag }}
+      image:   ${{ fromJson(needs.generate-matrix.outputs.images_matrix)[2].image }}
+      version: ${{ fromJson(needs.generate-matrix.outputs.images_matrix)[2].version }}
+      tag:     ${{ fromJson(needs.generate-matrix.outputs.images_matrix)[2].tag }}
       tests_matrix: ${{ needs.generate-matrix.outputs.tests_matrix }}
 
   integration-ggdb7-devel:
     needs: generate-matrix
-    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[3].version }}:${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[3].tag }}
+    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.images_matrix)[3].version }}:${{ fromJson(needs.generate-matrix.outputs.images_matrix)[3].tag }}
     uses: ./.github/workflows/greengage-reusable-tests-integration.yml
     with:
-      image:   ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[3].image }}
-      version: ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[3].version }}
-      tag:     ${{ fromJson(needs.generate-matrix.outputs.greengage_matrix)[3].tag }}
+      image:   ${{ fromJson(needs.generate-matrix.outputs.images_matrix)[3].image }}
+      version: ${{ fromJson(needs.generate-matrix.outputs.images_matrix)[3].version }}
+      tag:     ${{ fromJson(needs.generate-matrix.outputs.images_matrix)[3].tag }}
       tests_matrix: ${{ needs.generate-matrix.outputs.tests_matrix }}
