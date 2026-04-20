@@ -35,8 +35,8 @@ jobs:
       GROUP: ${{ matrix.test }}
       USE_FDW: ${{ matrix.fdw }}
       USE_SSL: ${{ matrix.ssl }}
-      GGDB_IMAGE: ${{ inputs.image }}
-      IT_IMAGE: greengagedb/ggdb${{ inputs.version }}_pxf_automation
+      GGDB_IMAGE: ${{ inputs.image }}${{ inputs.version }}_ubuntu:${{ inputs.tag }}
+      IT_IMAGE: ${{ inputs.image }}${{ inputs.version }}_ubuntu_pxf_automation
       IT_TAG: ${{ inputs.tag }}
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
