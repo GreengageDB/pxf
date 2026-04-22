@@ -117,3 +117,4 @@ tmp/
 !**/debian/lint*
 !**/debian/rules
 !**/debian/*.install
+!**/debian/*.install.in

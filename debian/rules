@@ -2,8 +2,10 @@
 
 DH_VERBOSE = 1
 
-GPHOME   ?= /opt/greengagedb/greengage
+GPHOME   ?= /opt/greengagedb/greengage6
 PXF_HOME ?= $(GPHOME)/pxf
+GPHOME_REL := $(GPHOME:/%=%)
+GP_MAJORVERSION ?= $(shell basename $(GPHOME) | grep -oP '\d+$$')
 
 export DH_OPTIONS = -v
 export DEB_BUILD_OPTIONS = nocheck
@@ -17,22 +19,35 @@ override_dh_auto_clean:
 	@echo "Skipping clean"
 
 override_dh_auto_configure:
-	@echo "Skipping configure"
+	@echo "=== Generating control and .install files for GP$(GP_MAJORVERSION) ==="
+	sed 's|@GP_MAJORVERSION@|$(GP_MAJORVERSION)|g' debian/control.in > debian/control
+	sed 's|@GPHOME_REL@|$(GPHOME_REL)|g' debian/pxf-server.install.in > debian/pxf-server.install
+	sed 's|@GPHOME_REL@|$(GPHOME_REL)|g' debian/pxf-cli.install.in    > debian/pxf-cli.install
+	sed 's|@GPHOME_REL@|$(GPHOME_REL)|g' debian/pxf-fdw.install.in    > debian/pxf-fdw-gg$(GP_MAJORVERSION).install
 
 override_dh_auto_build:
 	@echo "Skipping autobuild"
 
 override_dh_auto_install:
-	@echo "=== DeBuilder Installing PXF modules into $$PXF_HOME ==="
-	env -u CFLAGS -u CPPFLAGS -u CXXFLAGS -u LDFLAGS -u MAKEOVERRIDES \
-	PATH=$(GPHOME)/bin:/usr/local/go/bin:$(PATH) \
-	PYTHONPATH=$(PYTHONPATH) \
-	LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) \
-	$(MAKE) install \
-		DESTDIR=$(CURDIR)/debian/tmp \
-		GPHOME=$(GPHOME) \
-		PXF_HOME=$(PXF_HOME) \
-		SKIP_TESTS=true
+	@echo "=== Installing pxf-server ==="
+	$(MAKE) -C server install \
+	    DESTDIR=$(CURDIR)/debian/tmp \
+	    GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME) SKIP_TESTS=true
+	$(MAKE) -C cli install \
+	    DESTDIR=$(CURDIR)/debian/tmp \
+	    GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME)
+
+	@echo "=== Installing pxf-fdw ==="
+ifeq ($(SKIP_FDW_BUILD_REASON),)
+	$(MAKE) -C fdw install \
+	    DESTDIR=$(CURDIR)/debian/tmp \
+	    GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME)
+	$(MAKE) -C external-table install \
+	    DESTDIR=$(CURDIR)/debian/tmp \
+	    GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME)
+else
+	@echo "Skipping FDW: $(SKIP_FDW_BUILD_REASON)"
+endif
 
 override_dh_dwz:
 	@echo "Skipping debug simbols compression (not working properly with Golang)"
