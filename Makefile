@@ -33,7 +33,7 @@ export SKIP_FDW_PACKAGE_REASON
 export GP_MAJORVERSION
 export GP_BUILD_ARCH
 
-PACKAGE_NAME := $(shell grep '^Source:' debian/control | awk '{print $$2}')
+PACKAGE_NAME := $(shell grep '^Source:' debian/control.in | awk '{print $$2}')
 PXF_PACKAGE_NAME := $(PACKAGE_NAME)-$(PXF_VERSION)-$(GP_BUILD_ARCH)
 export PXF_PACKAGE_NAME
 
@@ -128,15 +128,16 @@ ARTIFACTS_DIR := $(CURDIR)/./Package
 	@cat $@
 version-vars: ./version
 	$(eval FULL_VERSION    := $(shell perl -pe 's, ,-,g' ./version))
-	$(eval PACKAGE_VERSION := $(shell perl -pe 's, .*,,g' ./version))
-	$(eval DEB_VERSION     := $(shell echo "$(PACKAGE_VERSION)" | sed 's/-SNAPSHOT/~snapshot/'))
-	$(eval IS_RELEASE      := $(if $(findstring +dev,$(PACKAGE_VERSION)),no,yes))
+	$(eval PACKAGE_VERSION := $(shell perl -pe 's, .*,,g; s/-SNAPSHOT/~snapshot/' ./version))
+	$(eval DISTRO_CODENAME := $(shell lsb_release -sc))
+	$(eval IS_RELEASE      := $(if $(findstring ~snapshot,$(PACKAGE_VERSION)),no,yes))
 	$(eval STABILITY       := $(if $(filter yes,$(IS_RELEASE)),stable,unstable))
 	$(eval BUILD_TYPE      := $(if $(filter yes,$(IS_RELEASE)),Release build,Development build))
 
 version-info : version-vars
 	@echo "PACKAGE_VERSION: $(PACKAGE_VERSION)"
 	@echo "FULL_VERSION: $(FULL_VERSION)"
+	@echo "DISTRO_CODENAME: $(DISTRO_CODENAME)"
 	@echo "IS_RELEASE: $(IS_RELEASE)"
 	@echo "STABILITY: $(STABILITY)"
 	@echo "BUILD_TYPE: $(BUILD_TYPE)"
@@ -151,7 +152,7 @@ changelog : debian/changelog
 debian/changelog: version-vars debian/control
 	$(eval PACKAGE_NAME := $(shell grep '^Source:' debian/control | awk '{print $$2}'))
 	$(eval MAINTAINER   := $(shell grep '^Maintainer:' debian/control | sed 's/Maintainer: //'))
-	@echo "$(PACKAGE_NAME) ($(DEB_VERSION)) $(STABILITY); urgency=low" > $@
+	@echo "$(PACKAGE_NAME) ($(PACKAGE_VERSION)) $(DISTRO_CODENAME); urgency=low" > $@
 	@echo "" >> $@
 	@echo "  * $(BUILD_TYPE)" >> $@
 	@echo "" >> $@
