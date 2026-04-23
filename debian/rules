@@ -2,15 +2,14 @@
 
 DH_VERBOSE = 1
 
-GPHOME   ?= /opt/greengagedb/greengage6
+GPHOME ?= /opt/greengagedb/greengage$(GP_MAJORVERSION)
 PXF_HOME ?= $(GPHOME)/pxf
 GPHOME_REL := $(GPHOME:/%=%)
-GP_MAJORVERSION ?= $(shell basename $(GPHOME) | grep -oP '\d+$$')
 
 export DH_OPTIONS = -v
 export DEB_BUILD_OPTIONS = nocheck
 export PG_CONFIG=$(GPHOME)/bin/pg_config
-export PATH := /usr/local/go/bin:$(PATH)
+export PATH := $(GPHOME)/bin:/usr/local/go/bin:$(PATH)
 
 %:
 	dh $@
@@ -19,8 +18,7 @@ override_dh_auto_clean:
 	@echo "Skipping clean"
 
 override_dh_auto_configure:
-	@echo "=== Generating control and .install files for GP$(GP_MAJORVERSION) ==="
-	sed 's|@GP_MAJORVERSION@|$(GP_MAJORVERSION)|g' debian/control.in > debian/control
+	@echo "=== Generating .install files for GP$(GP_MAJORVERSION) ==="
 	sed 's|@GPHOME_REL@|$(GPHOME_REL)|g' debian/pxf-server.install.in > debian/pxf-server.install
 	sed 's|@GPHOME_REL@|$(GPHOME_REL)|g' debian/pxf-cli.install.in    > debian/pxf-cli.install
 	sed 's|@GPHOME_REL@|$(GPHOME_REL)|g' debian/pxf-fdw.install.in    > debian/pxf-fdw-gg$(GP_MAJORVERSION).install
@@ -30,6 +28,7 @@ override_dh_auto_build:
 
 override_dh_auto_install:
 	@echo "=== Installing pxf-server ==="
+	env -u CFLAGS -u CPPFLAGS -u CXXFLAGS -u LDFLAGS -u MAKEOVERRIDES \
 	$(MAKE) -C server install \
 	    DESTDIR=$(CURDIR)/debian/tmp \
 	    GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME) SKIP_TESTS=true

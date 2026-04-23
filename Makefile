@@ -119,8 +119,6 @@ endif
 #---------------------------------------------------------------------
 
 # Metadata vars
-PACKAGE_NAME := $(shell grep '^Source:' debian/control | head -1 | awk '{print $$2}')
-MAINTAINER := $(shell grep '^Maintainer:' debian/control | sed 's/Maintainer: //')
 DATE_RFC := $(shell date -R)
 ARTIFACTS_DIR := $(CURDIR)/./Package
 
@@ -128,13 +126,13 @@ ARTIFACTS_DIR := $(CURDIR)/./Package
 # 	@echo "Update $@"
 # 	./getversion > $@
 	@cat $@
-
-version-vars : ./version
-	$(eval FULL_VERSION := $(shell [ -f ./version ] && perl -pe 's, ,-,g' ./version))
-	$(eval PACKAGE_VERSION := $(shell [ -f ./version ] && perl -pe 's, .*,,g' ./version))
-	$(eval IS_RELEASE := $(if $(findstring +dev,$(PACKAGE_VERSION)),no,yes))
-	$(eval STABILITY := $(if $(filter yes,$(IS_RELEASE)),stable,unstable))
-	$(eval BUILD_TYPE := $(if $(filter yes,$(IS_RELEASE)),Release build,Development build))
+version-vars: ./version
+	$(eval FULL_VERSION    := $(shell perl -pe 's, ,-,g' ./version))
+	$(eval PACKAGE_VERSION := $(shell perl -pe 's, .*,,g' ./version))
+	$(eval DEB_VERSION     := $(shell echo "$(PACKAGE_VERSION)" | sed 's/-SNAPSHOT/~snapshot/'))
+	$(eval IS_RELEASE      := $(if $(findstring +dev,$(PACKAGE_VERSION)),no,yes))
+	$(eval STABILITY       := $(if $(filter yes,$(IS_RELEASE)),stable,unstable))
+	$(eval BUILD_TYPE      := $(if $(filter yes,$(IS_RELEASE)),Release build,Development build))
 
 version-info : version-vars
 	@echo "PACKAGE_VERSION: $(PACKAGE_VERSION)"
@@ -143,10 +141,17 @@ version-info : version-vars
 	@echo "STABILITY: $(STABILITY)"
 	@echo "BUILD_TYPE: $(BUILD_TYPE)"
 
+# Generate control file
+debian/control: debian/control.in
+	@echo "=== Generating debian/control for GP$(GP_MAJORVERSION) ==="
+	sed 's|@GP_MAJORVERSION@|$(GP_MAJORVERSION)|g' $< > $@
+
 # Generate package control files
 changelog : debian/changelog
-debian/changelog : version-vars
-	@echo "$(PACKAGE_NAME) ($(PACKAGE_VERSION)) $(STABILITY); urgency=low" > $@
+debian/changelog: version-vars debian/control
+	$(eval PACKAGE_NAME := $(shell grep '^Source:' debian/control | awk '{print $$2}'))
+	$(eval MAINTAINER   := $(shell grep '^Maintainer:' debian/control | sed 's/Maintainer: //'))
+	@echo "$(PACKAGE_NAME) ($(DEB_VERSION)) $(STABILITY); urgency=low" > $@
 	@echo "" >> $@
 	@echo "  * $(BUILD_TYPE)" >> $@
 	@echo "" >> $@
@@ -156,9 +161,9 @@ debian/changelog : version-vars
 pkg : pkg-deb
 
 # Build Debian package
-pkg-deb : debian/changelog
+pkg-deb : debian/changelog debian/control
 	@echo "Building with GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME), PACKAGE_NAME=$(PACKAGE_NAME)"
-	@GPHOME="$(GPHOME)" PXF_HOME="$(PXF_HOME)" debuild --preserve-env -us -uc -b
+	@GPHOME="$(GPHOME)" PXF_HOME="$(PXF_HOME)" GP_MAJORVERSION="$(GP_MAJORVERSION)" debuild --preserve-env -us -uc -b
 	@mkdir -p $(ARTIFACTS_DIR)
 	@find $(CURDIR)/../ -maxdepth 1 -type f \( -name "*.deb" \
 											-o -name "*.ddeb" \
