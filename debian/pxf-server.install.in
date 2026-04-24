@@ -1,8 +1,8 @@
-@GPHOME_REL@/pxf/application/*
-@GPHOME_REL@/pxf/conf/*
-@GPHOME_REL@/pxf/lib/*
-@GPHOME_REL@/pxf/templates/*
-@GPHOME_REL@/pxf/share/*
-@GPHOME_REL@/pxf/bin/kill-pxf.sh
-@GPHOME_REL@/pxf/bin/merge-pxf-config.sh
-@GPHOME_REL@/pxf/version
+@PXF_HOME_REL@/application/*
+@PXF_HOME_REL@/conf/*
+@PXF_HOME_REL@/lib/*
+@PXF_HOME_REL@/templates/*
+@PXF_HOME_REL@/share/*
+@PXF_HOME_REL@/bin/kill-pxf.sh
+@PXF_HOME_REL@/bin/merge-pxf-config.sh
+@PXF_HOME_REL@/version

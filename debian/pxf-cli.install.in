@@ -1,4 +1,4 @@
-@GPHOME_REL@/pxf/bin/pxf
-@GPHOME_REL@/pxf/bin/pxf-cli
-@GPHOME_REL@/pxf/bin/pxf-pre-gpupgrade
-@GPHOME_REL@/pxf/bin/pxf-post-gpupgrade
+@PXF_HOME_REL@/bin/pxf
+@PXF_HOME_REL@/bin/pxf-cli
+@PXF_HOME_REL@/bin/pxf-pre-gpupgrade
+@PXF_HOME_REL@/bin/pxf-post-gpupgrade

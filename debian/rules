@@ -3,13 +3,9 @@
 DH_VERBOSE = 1
 
 GPHOME ?= /opt/greengagedb/greengage$(GP_MAJORVERSION)
-PXF_HOME ?= $(GPHOME)/pxf
+PXF_HOME ?= /opt/greengagedb/pxf
 GPHOME_REL := $(GPHOME:/%=%)
-
-$(info >>> GP_MAJORVERSION=$(GP_MAJORVERSION))
-$(info >>> GPHOME=$(GPHOME))
-$(info >>> PXF_HOME=$(PXF_HOME))
-$(info >>> GPHOME_REL=$(GPHOME_REL))
+PXF_HOME_REL := $(PXF_HOME:/%=%)
 
 export DH_OPTIONS = -v
 export DEB_BUILD_OPTIONS = nocheck
@@ -24,9 +20,9 @@ override_dh_auto_clean:
 
 override_dh_auto_configure:
 	@echo "=== Generating .install files for GP$(GP_MAJORVERSION) ==="
-	sed 's|@GPHOME_REL@|$(GPHOME_REL)|g' debian/pxf-server.install.in > debian/pxf-server.install
-	sed 's|@GPHOME_REL@|$(GPHOME_REL)|g' debian/pxf-cli.install.in    > debian/pxf-cli.install
-	sed 's|@GPHOME_REL@|$(GPHOME_REL)|g' debian/pxf-fdw.install.in    > debian/pxf-fdw-gg$(GP_MAJORVERSION).install
+	sed 's|@PXF_HOME_REL@|$(PXF_HOME_REL)|g' debian/pxf-server.install.in > debian/pxf-server.install
+	sed 's|@PXF_HOME_REL@|$(PXF_HOME_REL)|g' debian/pxf-cli.install.in    > debian/pxf-cli.install
+	sed 's|@GPHOME_REL@|$(GPHOME_REL)|g'     debian/pxf-fdw.install.in    > debian/pxf-fdw-gg$(GP_MAJORVERSION).install
 
 override_dh_auto_build:
 	@echo "Skipping autobuild"
