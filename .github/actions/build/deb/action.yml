@@ -46,7 +46,7 @@ runs:
         JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
         DEBIAN_FRONTEND:   noninteractive
         GREENGAGE_DEB:     Package/greengage${{ inputs.version }}.deb
-        GREENGAGE_RELEASE: https://github.com/GreengageDB/greengage/releases/download
+        GREENGAGE_RELEASE: https://github.com/GreengageDB/greengage-ci/releases/download
       run: |
         set -eux
         export GREENGAGE_IMAGE=${{ inputs.image }}${{ inputs.version }}_ubuntu:${{ inputs.tag }}
