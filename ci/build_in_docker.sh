@@ -8,7 +8,7 @@
 
 # shellcheck disable=SC2086
 
-set -eu
+set -eux
 
 : "${GPHOME:?GPHOME must be set}"
 
@@ -39,6 +39,7 @@ mime_type='application/vnd.debian.binary-package'
 if [ ! -r "$GREENGAGE_DEB" ] ; then
   echo -n "GreengageDB deb-package file '$GREENGAGE_DEB' "
   echo -n "not exists or not readable. Try to download from $GREENGAGE_DEB_URL "
+  mkdir -p "$(dirname $GREENGAGE_DEB)"
   curl -L "$GREENGAGE_DEB_URL" -o "$GREENGAGE_DEB" &>/dev/null
     if [ ! -r "$GREENGAGE_DEB" ] ; then
       echo "failed. Exiting"

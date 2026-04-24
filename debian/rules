@@ -6,6 +6,11 @@ GPHOME ?= /opt/greengagedb/greengage$(GP_MAJORVERSION)
 PXF_HOME ?= $(GPHOME)/pxf
 GPHOME_REL := $(GPHOME:/%=%)
 
+$(info >>> GP_MAJORVERSION=$(GP_MAJORVERSION))
+$(info >>> GPHOME=$(GPHOME))
+$(info >>> PXF_HOME=$(PXF_HOME))
+$(info >>> GPHOME_REL=$(GPHOME_REL))
+
 export DH_OPTIONS = -v
 export DEB_BUILD_OPTIONS = nocheck
 export PG_CONFIG=$(GPHOME)/bin/pg_config
@@ -31,19 +36,24 @@ override_dh_auto_install:
 	env -u CFLAGS -u CPPFLAGS -u CXXFLAGS -u LDFLAGS -u MAKEOVERRIDES \
 	$(MAKE) -C server install \
 	    DESTDIR=$(CURDIR)/debian/tmp \
-	    GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME) SKIP_TESTS=true
+	    GPHOME=$(GPHOME) \
+			PXF_HOME=$(PXF_HOME) \
+			SKIP_TESTS=true
 	$(MAKE) -C cli install \
 	    DESTDIR=$(CURDIR)/debian/tmp \
-	    GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME)
+	    GPHOME=$(GPHOME) \
+			PXF_HOME=$(PXF_HOME)
 
 	@echo "=== Installing pxf-fdw ==="
 ifeq ($(SKIP_FDW_BUILD_REASON),)
 	$(MAKE) -C fdw install \
 	    DESTDIR=$(CURDIR)/debian/tmp \
-	    GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME)
+	    GPHOME=$(GPHOME) \
+			PXF_HOME=$(PXF_HOME)
 	$(MAKE) -C external-table install \
 	    DESTDIR=$(CURDIR)/debian/tmp \
-	    GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME)
+	    GPHOME=$(GPHOME) \
+			PXF_HOME=$(PXF_HOME)
 else
 	@echo "Skipping FDW: $(SKIP_FDW_BUILD_REASON)"
 endif
