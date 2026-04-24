@@ -1,4 +1,5 @@
-name: Integration Tests (Reusable)
+# greengage-reusable-tests-integration.yml
+name: Greengage PXF Reusable Integration Tests
 
 on:
   workflow_call:
@@ -9,10 +10,10 @@ on:
       version:
         required: true
         type: string
-      release:
+      tag:
         required: true
         type: string
-      tests_matrix:
+      tests:
         required: true
         type: string  # JSON string with test matrix
 
@@ -21,9 +22,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJson(inputs.tests_matrix) }}
+        include: ${{ fromJson(inputs.tests) }}
 
-    name: IT '${{ matrix.test }}'${{ matrix.fdw && ' FDW' || '' }}${{ matrix.ssl && ' SSL' || '' }} on ${{ inputs.image }}
+    name: Test ${{ matrix.test }}${{ matrix.fdw && ' FDW' || '' }}${{ matrix.ssl && ' SSL' || '' }} on ${{ inputs.image }}${{ inputs.version }}_ubuntu:${{ inputs.tag }}
 
     runs-on: ubuntu-latest
     env:
@@ -34,9 +35,9 @@ jobs:
       GROUP: ${{ matrix.test }}
       USE_FDW: ${{ matrix.fdw }}
       USE_SSL: ${{ matrix.ssl }}
-      GGDB_IMAGE: ${{ inputs.image }}
-      IT_IMAGE: greengagedb/ggdb${{ inputs.version }}_pxf_automation_${{ inputs.release }}
-      IT_TAG: it
+      GGDB_IMAGE: ${{ inputs.image }}${{ inputs.version }}_ubuntu:${{ inputs.tag }}
+      IT_IMAGE: ${{ inputs.image }}${{ inputs.version }}_ubuntu_pxf_automation
+      IT_TAG: ${{ inputs.tag }}
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
       DEBIAN_FRONTEND: noninteractive
 
@@ -47,7 +48,7 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      - name: Build '${{ env.IT_IMAGE }}:${{ env.IT_TAG }}' image
+      - name: Build ${{ env.IT_IMAGE }}:${{ env.IT_TAG }} image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -55,7 +56,7 @@ jobs:
           tags: ${{ env.IT_IMAGE }}:${{ env.IT_TAG }}
           build-args: GGDB_IMAGE=${{ env.GGDB_IMAGE }}
 
-      - name: Run '${{ matrix.test }}' integration test
+      - name: Run ${{ matrix.test }} integration test
         run: |
           set -ex
           cd automation/env
@@ -65,6 +66,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: integration-ggdb${{ inputs.version }}-${{ inputs.release }}-${{ matrix.test }}${{ matrix.fdw && '-fdw' || '' }}${{ matrix.ssl && '-ssl' || '' }}
+          name: integration-ggdb${{ inputs.version }}-${{ inputs.tag }}-${{ matrix.test }}${{ matrix.fdw && '-fdw' || '' }}${{ matrix.ssl && '-ssl' || '' }}
           path: automation/env/artifacts/
           retention-days: 7

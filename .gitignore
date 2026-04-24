@@ -118,3 +118,8 @@ tmp/
 !**/debian/rules
 !**/debian/*.install
 !**/debian/*.install.in
+
+########################################
+# Disable ignore .github
+########################################
+!/.github/**
