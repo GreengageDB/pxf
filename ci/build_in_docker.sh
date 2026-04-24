@@ -10,6 +10,8 @@
 
 set -eu
 
+: "${GPHOME:?GPHOME must be set}"
+
 export JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:-'-Dfile.encoding=UTF8'}
 export DEBIAN_FRONTEND=${DEBIAN_FRONTEND:-noninteractive}
 
@@ -75,16 +77,6 @@ localedef -c -i ru_RU -f CP1251 ru_RU.CP1251
 
 # Install Greengage package
 apt-get install -yf "$(realpath "$GREENGAGE_DEB")"
-
-known_locations='/opt /usr/lib'
-GPHOME=$(dev/detect_gphome.bash "$known_locations")
-if [ -z "$GPHOME" ] ; then
-  echo "Greengage not found at known locations: '$known_locations'. Exiting"
-  exit 1
-else
-  export GPHOME
-  echo "Greengage found at $GPHOME"
-fi
 
 # GreengageDB environment variables
 PATH="$GPHOME/bin:$PATH"
