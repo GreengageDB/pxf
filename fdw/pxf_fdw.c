@@ -420,6 +420,16 @@ pxfBeginForeignScan(ForeignScanState *node, int eflags)
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
+		ForeignTable *rel             = GetForeignTable(foreigntableid);
+
+		if (rel->exec_location != FTEXECLOCATION_NOT_DEFINED &&
+			rel->exec_location != FTEXECLOCATION_ALL_SEGMENTS)
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("Reading is not supported for table '%s'", RelationGetRelationName(relation)),
+					 errdetail("Reading is supported only for tables without option 'mpp_execute' "
+							   "or when option 'mpp_execute' is set to 'all segments'")));
+
 		return;
 	}
 
