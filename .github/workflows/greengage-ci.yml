@@ -60,13 +60,25 @@ jobs:
     needs: generate-matrix
     name: Build DEB package
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Build for version 6
+          - tag:     ${{ fromJson(needs.generate-matrix.outputs.images)[0].tag }}
+            image:   ${{ fromJson(needs.generate-matrix.outputs.images)[0].image }}
+            version: ${{ fromJson(needs.generate-matrix.outputs.images)[0].version }}
+          # Build for version 7
+          - tag:     ${{ fromJson(needs.generate-matrix.outputs.images)[1].tag }}
+            image:   ${{ fromJson(needs.generate-matrix.outputs.images)[1].image }}
+            version: ${{ fromJson(needs.generate-matrix.outputs.images)[1].version }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/build/deb
         with:
-          tag:     ${{ fromJson(needs.generate-matrix.outputs.images)[0].tag }}
-          image:   ${{ fromJson(needs.generate-matrix.outputs.images)[0].image }}
-          version: ${{ fromJson(needs.generate-matrix.outputs.images)[0].version }}
+          tag:     ${{ matrix.tag }}
+          image:   ${{ matrix.image }}
+          version: ${{ matrix.version }}
 
   regression:
     needs: generate-matrix
