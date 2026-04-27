@@ -22,7 +22,7 @@ override_dh_auto_configure:
 	@echo "=== Generating .install files for GP$(GP_MAJORVERSION) ==="
 	sed 's|@PXF_HOME_REL@|$(PXF_HOME_REL)|g' debian/pxf-server.install.in > debian/pxf-server.install
 	sed 's|@PXF_HOME_REL@|$(PXF_HOME_REL)|g' debian/pxf-cli.install.in    > debian/pxf-cli.install
-	sed 's|@GPHOME_REL@|$(GPHOME_REL)|g'     debian/pxf-fdw.install.in    > debian/pxf-fdw-gg$(GP_MAJORVERSION).install
+	sed 's|@GPHOME_REL@|$(GPHOME_REL)|g'     debian/pxf-fdw.install.in    > debian/pxf-fdw$(GP_MAJORVERSION).install
 
 override_dh_auto_build:
 	@echo "Skipping autobuild"

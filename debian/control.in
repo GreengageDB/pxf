@@ -24,7 +24,7 @@ Depends: ${shlibs:Depends},
   pxf-server
 Description: PXF CLI tools
 
-Package: pxf-fdw-gg@GP_MAJORVERSION@
+Package: pxf-fdw@GP_MAJORVERSION@
 Architecture: any
 Depends: ${shlibs:Depends},
   greengage@GP_MAJORVERSION@
