@@ -8,7 +8,7 @@
 
 # shellcheck disable=SC2086
 
-set -eux
+set -eu
 
 : "${GPHOME:?GPHOME must be set}"
 
