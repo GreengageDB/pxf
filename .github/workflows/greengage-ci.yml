@@ -16,7 +16,7 @@ concurrency:
 env:
   IMAGES: |
     [
-      { "version": "6", "image": "ghcr.io/greengagedb/greengage/ggdb", "tag": "GG-389" },
+      { "version": "6", "image": "ghcr.io/greengagedb/greengage/ggdb", "tag": "GG-389" }
     ]
   TESTS: |
     [
