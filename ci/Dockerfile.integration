@@ -1,6 +1,6 @@
 # https://github.com/GreengageDB/greengage/tree/main/ci
 # OLD version
-ARG GGDB_IMAGE=greengagedb/ggdb6_ubuntu:6.29.1
+ARG GGDB_IMAGE=greengagedb/ggdb6_ubuntu:GG-389
 FROM $GGDB_IMAGE
 
 SHELL ["bash", "-c"]
