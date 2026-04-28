@@ -7,7 +7,7 @@ PXF_HOME ?= /opt/greengagedb/pxf
 GPHOME_REL := $(GPHOME:/%=%)
 PXF_HOME_REL := $(PXF_HOME:/%=%)
 
-export DH_OPTIONS = -v
+export DH_OPTIONS := $(DH_OPTIONS)
 export DEB_BUILD_OPTIONS = nocheck
 export PG_CONFIG=$(GPHOME)/bin/pg_config
 export PATH := $(GPHOME)/bin:/usr/local/go/bin:$(PATH)
@@ -38,7 +38,7 @@ override_dh_auto_install:
 	$(MAKE) -C cli install \
 	    DESTDIR=$(CURDIR)/debian/tmp \
 	    GPHOME=$(GPHOME) \
-			PXF_HOME=$(PXF_HOME)
+			PXF_HOME=$(PXF_HOME)f
 
 	@echo "=== Installing pxf-fdw ==="
 ifeq ($(SKIP_FDW_BUILD_REASON),)

@@ -94,8 +94,17 @@ endif
 	done ;\
 	echo "===> PXF installation is complete <==="
 
+install-ext: install-fdw
+
 install-server:
 	make -C server install-server DESTDIR=$(DESTDIR) GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME)
+
+install-cli:
+	make -C cli install DESTDIR=$(DESTDIR) GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME)
+
+install-fdw:
+	make -C fdw install DESTDIR=$(DESTDIR) GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME)
+	make -C external-table install DESTDIR=$(DESTDIR) GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME)
 
 stage:
 	rm -rf build/stage
@@ -166,14 +175,43 @@ pkg-deb : debian/changelog debian/control
 	@echo "Building with GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME), PACKAGE_NAME=$(PACKAGE_NAME)"
 	@GPHOME="$(GPHOME)" PXF_HOME="$(PXF_HOME)" GP_MAJORVERSION="$(GP_MAJORVERSION)" debuild --preserve-env -us -uc -b
 	@mkdir -p $(ARTIFACTS_DIR)
-	@find $(CURDIR)/../ -maxdepth 1 -type f \( -name "*.deb" \
-											-o -name "*.ddeb" \
-											-o -name "*.build" \
-											-o -name "*.buildinfo" \
-											-o -name "*.changes" \) \
-											-exec mv -f {} $(ARTIFACTS_DIR)/ \;
+	@$(MAKE) _collect-artifacts
 
-.PHONY: pkg pkg-deb changelog version-vars version-info
+pkg-deb-ext: pkg-deb-fdw
+
+pkg-deb-server: debian/changelog debian/control
+	@echo "Building pxf-server package"
+	@GPHOME="$(GPHOME)" PXF_HOME="$(PXF_HOME)" GP_MAJORVERSION="$(GP_MAJORVERSION)" \
+	    DH_OPTIONS="-ppxf-server" \
+	    debuild --preserve-env -us -uc -b
+	@$(MAKE) _collect-artifacts
+
+pkg-deb-cli: debian/changelog debian/control
+	@echo "Building pxf-cli package"
+	@GPHOME="$(GPHOME)" PXF_HOME="$(PXF_HOME)" GP_MAJORVERSION="$(GP_MAJORVERSION)" \
+	    DH_OPTIONS="-ppxf-cli" \
+	    debuild --preserve-env -us -uc -b
+	@$(MAKE) _collect-artifacts
+
+pkg-deb-fdw: debian/changelog debian/control
+	@echo "Building pxf-fdw$(GP_MAJORVERSION) package"
+	@GPHOME="$(GPHOME)" PXF_HOME="$(PXF_HOME)" GP_MAJORVERSION="$(GP_MAJORVERSION)" \
+	    DH_OPTIONS="-ppxf-fdw$(GP_MAJORVERSION)" \
+	    debuild --preserve-env -us -uc -b
+	@$(MAKE) _collect-artifacts
+
+_collect-artifacts:
+	@mkdir -p $(ARTIFACTS_DIR)
+	@find $(CURDIR)/../ -maxdepth 1 -type f \( -name "*.deb" \
+	                                        -o -name "*.ddeb" \
+	                                        -o -name "*.build" \
+	                                        -o -name "*.buildinfo" \
+	                                        -o -name "*.changes" \) \
+	                                        -exec mv -f {} $(ARTIFACTS_DIR)/ \;
+
+.PHONY: pkg pkg-deb pkg-deb-server pkg-deb-cli pkg-deb-fdw pkg-deb-ext \
+        install-server install-cli install-fdw install-ext \
+        _collect-artifacts changelog version-vars version-info
 
 
 help:
