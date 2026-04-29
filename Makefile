@@ -167,38 +167,34 @@ debian/changelog: version-vars debian/control
 	@echo "" >> $@
 	@echo " -- $(MAINTAINER)  $(DATE_RFC)" >> $@
 
+DEB_PREREQS  := debian/changelog debian/control
+DEBUILD_ENV  := GPHOME="$(GPHOME)" PXF_HOME="$(PXF_HOME)" GP_MAJORVERSION="$(GP_MAJORVERSION)"
+DEBUILD_CMD  := debuild --preserve-env -us -uc -b
+
+# $(1) — human-readable name, $(2) — DH_OPTIONS package name (empty = build all)
+define debuild-pkg
+	@echo "Building $(1) package"
+	@$(DEBUILD_ENV) $(if $(2),DH_OPTIONS="-p$(2)") $(DEBUILD_CMD)
+	@$(MAKE) _collect-artifacts
+endef
+
 # Default packaging target
-pkg : pkg-deb
+pkg: pkg-deb
 
 # Build Debian package
-pkg-deb : debian/changelog debian/control
-	@echo "Building with GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME), PACKAGE_NAME=$(PACKAGE_NAME)"
-	@GPHOME="$(GPHOME)" PXF_HOME="$(PXF_HOME)" GP_MAJORVERSION="$(GP_MAJORVERSION)" debuild --preserve-env -us -uc -b
-	@mkdir -p $(ARTIFACTS_DIR)
-	@$(MAKE) _collect-artifacts
+pkg-deb: $(DEB_PREREQS)
+	$(call debuild-pkg,pxf (all))
+
+pkg-deb-server: $(DEB_PREREQS)
+	$(call debuild-pkg,pxf-server,pxf-server)
+
+pkg-deb-cli: $(DEB_PREREQS)
+	$(call debuild-pkg,pxf-cli,pxf-cli)
+
+pkg-deb-fdw: $(DEB_PREREQS)
+	$(call debuild-pkg,pxf-fdw$(GP_MAJORVERSION),pxf-fdw$(GP_MAJORVERSION))
 
 pkg-deb-ext: pkg-deb-fdw
-
-pkg-deb-server: debian/changelog debian/control
-	@echo "Building pxf-server package"
-	@GPHOME="$(GPHOME)" PXF_HOME="$(PXF_HOME)" GP_MAJORVERSION="$(GP_MAJORVERSION)" \
-	    DH_OPTIONS="-ppxf-server" \
-	    debuild --preserve-env -us -uc -b
-	@$(MAKE) _collect-artifacts
-
-pkg-deb-cli: debian/changelog debian/control
-	@echo "Building pxf-cli package"
-	@GPHOME="$(GPHOME)" PXF_HOME="$(PXF_HOME)" GP_MAJORVERSION="$(GP_MAJORVERSION)" \
-	    DH_OPTIONS="-ppxf-cli" \
-	    debuild --preserve-env -us -uc -b
-	@$(MAKE) _collect-artifacts
-
-pkg-deb-fdw: debian/changelog debian/control
-	@echo "Building pxf-fdw$(GP_MAJORVERSION) package"
-	@GPHOME="$(GPHOME)" PXF_HOME="$(PXF_HOME)" GP_MAJORVERSION="$(GP_MAJORVERSION)" \
-	    DH_OPTIONS="-ppxf-fdw$(GP_MAJORVERSION)" \
-	    debuild --preserve-env -us -uc -b
-	@$(MAKE) _collect-artifacts
 
 _collect-artifacts:
 	@mkdir -p $(ARTIFACTS_DIR)
@@ -210,7 +206,7 @@ _collect-artifacts:
 	                                        -exec mv -f {} $(ARTIFACTS_DIR)/ \;
 
 .PHONY: pkg pkg-deb pkg-deb-server pkg-deb-cli pkg-deb-fdw pkg-deb-ext \
-        install-server install-cli install-fdw install-ext \
+        build-server build-ext install-server-pkg install-ext \
         _collect-artifacts changelog version-vars version-info
 
 
