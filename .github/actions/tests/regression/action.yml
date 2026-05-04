@@ -1,0 +1,62 @@
+# .github/actions/tests/regression/action.yml
+name: PXF Regression
+description: Builds and runs PXF regression tests inside Docker
+
+inputs:
+  version:
+    required: true
+    description: 'GGDB major version (e.g. 6 or 7)'
+  tag:
+    required: false
+    default: 'latest'
+    description: 'Docker image tag (e.g. 6.30.1 or latest)'
+  image:
+    required: false
+    default: 'greengagedb/ggdb'
+    description: |
+      Source Docker repository
+      (e.g.
+        'greengagedb/ggdb' - DockerHub,
+        'ghcr.io/greengagedb/greengage/ggdb' - GHCR
+      )
+
+runs:
+  using: composite
+  steps:
+    - name: Build PXF regression image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./ci/Dockerfile.regression
+        push: false
+        tags: ${{ inputs.image }}${{ inputs.version }}_pxf_regression:${{ inputs.tag }}
+        build-args: |
+          GGDB_IMAGE=${{ inputs.image }}${{ inputs.version }}_ubuntu:${{ inputs.tag }}
+
+    - name: Run regression
+      shell: bash
+      run: |
+        mkdir logs
+        docker run --user root:root \
+          -v ./logs:/logs \
+          --sysctl 'kernel.sem=500 1024000 200 4096' \
+          --privileged \
+          ${{ inputs.image }}${{ inputs.version }}_pxf_regression:${{ inputs.tag }} \
+          bash -c "
+            set +e
+            cd /tmp/build || status=1
+            pxf_src/ci/test_in_docker.sh
+            status=\$?
+            find /tmp/build/pxf_src/fdw -type f -name *.diffs -exec mv -f {} /logs \;
+            echo \">>> STATUS \$status\"
+            exit \${status:-1}
+          "
+
+    - name: Upload regression artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: regression-ggdb${{ inputs.version }}-${{ inputs.tag }}
+        path: logs
+        retention-days: 7
+        if-no-files-found: warn

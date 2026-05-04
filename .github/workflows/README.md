@@ -1,121 +1,141 @@
-# Greengage CI Pipeline
+# Greengage PXF CI
 
-This repository includes a GitHub Actions–based continuous integration (CI) workflow for building, testing, and validating Greengage PXF components.
+GitHub Actions CI pipeline for building, testing, and releasing
+Greengage PXF components.
 
-## Overview
+## Workflows
 
-The workflow (`.github/workflows/greengage-ci.yml`) defines three stages:
+### `greengage-ci.yml` — Main CI
 
-1. **Build** — compiles and packages PXF into Debian (`.deb`) packages.  
-2. **Integration** — runs integration tests under multiple configurations.  
-3. **Regression** — performs regression tests on multiple Docker images.
+Triggered on push to `main`, any tag, and pull requests to any branch.
+Concurrency control cancels outdated runs for the same branch or PR.
 
-The workflow is automatically triggered on:
-- Push events to the `main` branch.
-- Pull requests for all branches.
+Defines two top-level env matrices shared across all jobs:
 
-Concurrency control is configured to cancel outdated runs for the same branch or pull request.
+- `IMAGES` — list of Greengage Docker images to test against
+- `TESTS`  — list of integration test profiles
 
-## Build Stage
+Both are passed through the `generate-matrix` job as outputs,
+since `env` is not accessible in `with` for reusable workflows.
 
-**Job:** `build`
+#### Jobs
 
-This stage produces PXF Debian packages using multiple container images.
+**`generate-matrix`**
+Converts `IMAGES` and `TESTS` env variables into compressed JSON outputs
+for use in dependent jobs.
 
-- Images used:
-  - `greengagedb/ggdb6_ubuntu:6.29.1` - a public, tagged stable image of GreengageDB that includes development tools and source code.
-  - `ghcr.io/greengagedb/greengage/ggdb6_ubuntu` - the latest development image, automatically built from the most recent pull request.
-- Build steps:
-  1. Execute `ci/build_in_docker.sh` within the container.
-  2. Run `make deb` to build the package.
-  3. Cache generated `.deb` files for reuse.
-  4. Upload resulting artifacts to GitHub Actions for later stages.
+**`build`**
+Builds a Greengage DEB package using the first entry in `IMAGES`.
+Uses: `.github/actions/build/deb`
 
-Artifacts are named according to the image version, for example:
+**`regression`**
+Runs PXF regression tests against all entries in `IMAGES`.
+Uses: `.github/actions/tests/regression`
+
+**`integration-0..3`**
+Runs integration tests for each entry in `IMAGES`.
+Uses: `greengage-reusable-tests-integration.yml`
+
+---
+
+### `greengage-reusable-tests-integration.yml` — Reusable Integration Tests
+
+Called by `greengage-ci.yml` via `workflow_call`.
+
+Accepts:
+
+| Input     | Type   | Required | Description                     |
+|-----------|--------|----------|---------------------------------|
+| `image`   | string | yes      | Docker image prefix             |
+| `version` | string | yes      | GGDB major version (`6` or `7`) |
+| `tag`     | string | yes      | Docker image tag                |
+| `tests`   | string | yes      | JSON test matrix                |
+
+Builds a PXF automation image `{image}{version}_ubuntu_pxf_automation:{tag}`
+from `ci/Dockerfile.integration` and runs each test profile from the `tests`
+matrix via `automation/env/it.sh`.
+
+Uploads artifacts as `integration-ggdb{version}-{tag}-{test}[-fdw][-ssl]`,
+retained for 7 days.
+
+---
+
+### `greengage-release.yml` — Release
+
+Triggered on GitHub release publication (`released`).
+
+Uploads pre-built DEB packages to the release assets for each of:
+
+- `6-stable`, `7-stable`, `6-devel`, `7-devel`
+
+Uses: `greengagedb/greengage-ci/.github/actions/upload-pkgs-to-release@v10`
+
+---
+
+## Actions
+
+### `build/deb`
+
+See [`actions/build/deb/README.md`](.github/actions/build/deb/README.md).
+
+### `tests/regression`
+
+See [`actions/tests/regression/README.md`](.github/actions/tests/regression/README.md).
+
+### `apt/sources`
+
+See [`actions/apt/sources/README.md`](.github/actions/apt/sources/README.md).
+
+---
+
+## Image Matrix Format
+
+```json
+[
+  { "version": "6", "image": "greengagedb/ggdb",                    "tag": "6.30.1"  },
+  { "version": "7", "image": "greengagedb/ggdb",                    "tag": "7.4.0"   },
+  { "version": "6", "image": "ghcr.io/greengagedb/greengage/ggdb",  "tag": "GG-246"  },
+  { "version": "7", "image": "ghcr.io/greengagedb/greengage/ggdb",  "tag": "latest"  }
+]
 ```
 
-pxf-deb-dh-6.29.1
-pxf-deb-ghcr-latest
+Full image name is composed as `{image}{version}_ubuntu:{tag}`, e.g.
 
+- `greengagedb/ggdb6_ubuntu:6.30.1`
+- `ghcr.io/greengagedb/greengage/ggdb7_ubuntu:latest`
+
+---
+
+## Testing PXF Against a Custom Greengage Branch
+
+PXF and Greengage are sometimes developed in tandem: a PXF feature may depend
+on complementary changes in a Greengage feature branch that are not yet merged
+to the upstream branches `6.x` / `7.x`.
+
+Greengage CI automatically builds and publishes a Docker image to GHCR for
+every feature branch, using the branch name as the tag, e.g.
+`ghcr.io/greengagedb/greengage/ggdb6_ubuntu:GG-246`.
+
+The default `latest` images in GHCR are built from the upstream branches
+`6.x` and `7.x` respectively.
+
+To test a PXF feature branch against a specific Greengage feature branch,
+replace the `tag` for the corresponding GHCR entry in the `IMAGES` matrix
+in `greengage-ci.yml`:
+
+```yaml
+env:
+  IMAGES: |
+    [
+      { "version": "6", "image": "greengagedb/ggdb",                    "tag": "6.30.1"  },
+      { "version": "7", "image": "greengagedb/ggdb",                    "tag": "7.4.0"   },
+      { "version": "6", "image": "ghcr.io/greengagedb/greengage/ggdb",  "tag": "GG-246"  },
+      { "version": "7", "image": "ghcr.io/greengagedb/greengage/ggdb",  "tag": "latest"  }
+    ]
 ```
 
-## Integration Stage
+`tag: "GG-246"` selects the image built from the Greengage feature branch
+`GG-246` instead of the default `latest` built from `6.x`. All regression
+and integration jobs for that matrix entry will use this image.
 
-**Job:** `integration`
-
-This stage runs automated integration tests across several configurations.
-
-Test profiles include:
-- `smoke`
-- `gpdb`
-- `jdbc`
-- Variants with FDW (Foreign Data Wrapper)
-- Variants with SSL enabled
-
-Each configuration:
-- Builds its own test Docker image (`greengagedb/ggdb6_pxf_automation`).
-- Executes test scripts located in `automation/env/it.sh`.
-- Collects and uploads logs and test artifacts.
-
-Artifacts are uploaded as:
-```
-
-artifacts-integration-<test>[-fdw][-ssl]
-
-```
-
-Artifacts are retained for 7 days.
-
-## Regression Stage
-
-**Job:** `regression`
-
-This stage runs regression tests against multiple base images to verify compatibility and detect regressions.
-
-Images tested:
-- `greengagedb/ggdb6_ubuntu:6.29.1`
-- `ghcr.io/greengagedb/greengage/ggdb6_ubuntu:latest`
-
-Procedure:
-1. Build the regression image (`greengagedb/ggdb6_pxf_regression:<version>`).
-2. Execute the regression suite inside the container using `ci/test_in_docker.sh`.
-3. Collect and upload `.diffs` and log files.
-
-Artifacts are uploaded under:
-```
-
-logs_regression-<version>
-
-```
-
-Retention period: 7 days.
-
-## Environment Variables
-
-| Variable | Description |
-|-----------|-------------|
-| `DEV_HOME` | Developer home directory inside the container |
-| `PXF_HOME` | PXF installation directory |
-| `GPHOME` | Greenplum/Greengage installation directory |
-| `GOPATH` | Go workspace path |
-| `PROFILE`, `GROUP` | Integration test identifiers |
-| `USE_FDW`, `USE_SSL` | Flags to enable FDW and SSL testing |
-| `GGDB_IMAGE`, `IT_IMAGE`, `IT_TAG` | Docker image parameters for integration testing |
-| `JAVA_TOOL_OPTIONS` | JVM encoding settings |
-| `DEBIAN_FRONTEND` | Noninteractive mode for package installation |
-
-## Execution Environment
-
-- All jobs run on GitHub-hosted `ubuntu-latest` shared runners.
-- The workflow relocates Docker storage to maximize available disk space.
-- Each test and regression job executes in a containerized environment to ensure reproducibility.
-
-## Artifacts and Retention
-
-All stages upload build and test artifacts using `actions/upload-artifact@v4`.  
-Artifacts are stored for seven days unless otherwise specified.  
-Failed jobs also upload artifacts for debugging purposes.
-
-## Maintenance Notes
-
-- The workflow uses concurrency grouping to prevent redundant runs.
+Once both branches are merged, revert the tag back to `latest`.
