@@ -73,12 +73,7 @@ public abstract class BaseServiceImpl<T> extends PxfErrorReporter<T> {
             Instant startTime = Instant.now();
 
             // execute processing action with a proper identity
-            OperationResult result = null;
-            try {
-                result = securityService.doAs(context, action);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+            OperationResult result = securityService.doAs(context, action);
 
             // obtain results after executing the action
             OperationStats stats = result.getStats();
@@ -109,25 +104,13 @@ public abstract class BaseServiceImpl<T> extends PxfErrorReporter<T> {
         });
 
         // re-throw the exception if the operation failed
-        var error = getException(operationResult);
+        var error = operationResult.getException();
         if (error != null) {
             throw error;
         }
 
         // return operation stats
         return operationResult.getStats();
-    }
-
-    private Exception getException(OperationResult operationResult) {
-        var error = operationResult.getException();
-        if(error == null) {
-            return null;
-        }
-        if(error instanceof RuntimeException re
-                && re.getCause() instanceof Exception ce) {
-            return ce;
-        }
-        return error;
     }
 
     /**

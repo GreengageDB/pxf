@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.greenplum.pxf.api.model.RequestContext;
+import org.greenplum.pxf.service.controller.OperationResult;
 import org.greenplum.pxf.service.utilities.ThrowingSupplier;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -68,9 +69,9 @@ public class MetricsReporter {
      * @param context   request context
      * @param supplier  code to run
      */
-    public <T> T longTaskTimer(PxfMetric metric, RequestContext context, Tags extraTags, ThrowingSupplier<T, Exception> supplier) {
+    public <T> T longTaskTimer(PxfMetric metric, RequestContext context, Tags extraTags, ThrowingSupplier<T, Exception> supplier) throws Exception {
         if(!isMetricAvailable(metric)) {
-            return supplier.getWithoutException();
+            return supplier.get();
         }
         Tags tags = (extraTags == null) ? getTags(context) : getTags(context).and(extraTags);
         try {
@@ -78,8 +79,16 @@ public class MetricsReporter {
             return timer.record(supplier::getWithoutException);
         } catch (Exception e) {
             log.warn("Unable to report timer {} {}.", metric.metricName, tags);
-            throw e;
+            throw getException(e);
         }
+    }
+
+    private Exception getException(Exception e) {
+        if(e instanceof RuntimeException re
+                && re.getCause() instanceof Exception ce) {
+            return ce;
+        }
+        return e;
     }
 
     /**
