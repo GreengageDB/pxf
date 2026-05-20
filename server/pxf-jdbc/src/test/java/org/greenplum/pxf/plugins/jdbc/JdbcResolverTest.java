@@ -21,6 +21,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -427,6 +428,188 @@ class JdbcResolverTest {
         JdbcResolver.decodeOneRowToPreparedStatement(row, mockStatement, mock(DbProduct.class));
 
         verify(mockStatement).setObject(1, UUID.fromString("decafbad-0000-0000-0000-000000000000"));
+        verifyNoMoreInteractions(mockStatement);
+    }
+
+    @Test
+    void setFieldOffsetDateTimeWithWideRangeTest() {
+        isDateWideRange = true;
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        OffsetDateTime expected = OffsetDateTime.parse("1977-12-11T10:15:30.1234+05:00");
+        // PostgreSQL format: space separator, timezone with minutes
+        String timestampTz = "1977-12-11 10:15:30.1234+05:00";
+        OneField oneField = setFields(timestampTz, DataType.TIMESTAMP_WITH_TIME_ZONE.getOID(), "timestamptz");
+        assertTrue(oneField.val instanceof OffsetDateTime);
+        assertEquals(expected, oneField.val);
+    }
+
+    @Test
+    void setFieldOffsetDateTimeWithoutWideRangeTest() {
+        isDateWideRange = false;
+        String timestampTz = "1977-12-11 10:15:30.1234+05:00";
+        assertThrows(UnsupportedOperationException.class,
+                () -> setFields(timestampTz, DataType.TIMESTAMP_WITH_TIME_ZONE.getOID(), "timestamptz"));
+    }
+
+    @Test
+    void setFieldOffsetDateTimeWithWideRange_TimezoneWithoutMinutesTest() {
+        isDateWideRange = true;
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        OffsetDateTime expected = OffsetDateTime.parse("2026-05-20T13:10:08.50411+03:00");
+        // PostgreSQL format: timezone without minutes (+03 instead of +03:00)
+        String timestampTz = "2026-05-20 13:10:08.50411+03";
+        OneField oneField = setFields(timestampTz, DataType.TIMESTAMP_WITH_TIME_ZONE.getOID(), "timestamptz");
+        assertTrue(oneField.val instanceof OffsetDateTime);
+        assertEquals(expected, oneField.val);
+    }
+
+    @Test
+    void setFieldOffsetDateTimeWithWideRange_NegativeTimezoneTest() {
+        isDateWideRange = true;
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        OffsetDateTime expected = OffsetDateTime.parse("2026-05-20T13:10:08.50411-08:00");
+        String timestampTz = "2026-05-20 13:10:08.50411-08";
+        OneField oneField = setFields(timestampTz, DataType.TIMESTAMP_WITH_TIME_ZONE.getOID(), "timestamptz");
+        assertTrue(oneField.val instanceof OffsetDateTime);
+        assertEquals(expected, oneField.val);
+    }
+
+    @Test
+    void setFieldOffsetDateTimeWithWideRange_WithLeadingZeroTest() {
+        isDateWideRange = true;
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        OffsetDateTime expected = OffsetDateTime.parse("0003-01-02T04:05:06.0000015+03:00");
+        String timestampTz = "0003-01-02 04:05:06.0000015+03:00 AD";
+        OneField oneField = setFields(timestampTz, DataType.TIMESTAMP_WITH_TIME_ZONE.getOID(), "timestamptz");
+        assertTrue(oneField.val instanceof OffsetDateTime);
+        assertEquals(expected, oneField.val);
+    }
+
+    @Test
+    void setFieldOffsetDateTimeWithWideRange_WithMoreThan4DigitsInYearTest() {
+        isDateWideRange = true;
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        OffsetDateTime expected = OffsetDateTime.parse("+9876543-12-11T11:15:30.1234-03:00");
+        String timestampTz = "9876543-12-11 11:15:30.1234-03:00 AD";
+        OneField oneField = setFields(timestampTz, DataType.TIMESTAMP_WITH_TIME_ZONE.getOID(), "timestamptz");
+        assertTrue(oneField.val instanceof OffsetDateTime);
+        assertEquals(expected, oneField.val);
+    }
+
+    @Test
+    void setFieldOffsetDateTimeWithWideRange_WithEraBCTest() {
+        isDateWideRange = true;
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        OffsetDateTime expected = OffsetDateTime.parse("-3456-12-11T11:15:30+02:00");
+        String timestampTz = "3457-12-11 11:15:30+02:00 BC";
+        OneField oneField = setFields(timestampTz, DataType.TIMESTAMP_WITH_TIME_ZONE.getOID(), "timestamptz");
+        assertTrue(oneField.val instanceof OffsetDateTime);
+        assertEquals(expected, oneField.val);
+    }
+
+    @Test
+    void setFieldOffsetDateTimeWithWideRange_WithEraADTest() {
+        isDateWideRange = true;
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        OffsetDateTime expected = OffsetDateTime.parse("1234-06-15T08:30:45+01:00");
+        String timestampTz = "1234-06-15 08:30:45+01:00 AD";
+        OneField oneField = setFields(timestampTz, DataType.TIMESTAMP_WITH_TIME_ZONE.getOID(), "timestamptz");
+        assertTrue(oneField.val instanceof OffsetDateTime);
+        assertEquals(expected, oneField.val);
+    }
+
+    @Test
+    void setFieldOffsetDateTimeWithWideRange_WithEraWithoutWideRangeTest() {
+        isDateWideRange = false;
+        String timestampTz = "3457-12-11 11:15:30+02:00 BC";
+        assertThrows(UnsupportedOperationException.class,
+                () -> setFields(timestampTz, DataType.TIMESTAMP_WITH_TIME_ZONE.getOID(), "timestamptz"));
+    }
+
+    @Test
+    void setFieldOffsetDateTimeWithWideRange_NullValueTest() {
+        isDateWideRange = true;
+        oneFieldList.add(new OneField(DataType.TEXT.getOID(), null));
+        columnDescriptors.add(new ColumnDescriptor("tstz_col", DataType.TIMESTAMP_WITH_TIME_ZONE.getOID(), 0, "timestamptz", null));
+        context.setTupleDescription(columnDescriptors);
+        resolver.columns = context.getTupleDescription();
+        resolver.isDateWideRange = isDateWideRange;
+
+        OneRow oneRow = resolver.setFields(oneFieldList);
+        @SuppressWarnings("unchecked")
+        List<OneField> oneFields = (List<OneField>) oneRow.getData();
+        assertNull(oneFields.get(0).val);
+    }
+
+    @Test
+    void setFieldOffsetDateTimeWithWideRange_ZoneWithMinutesAlreadyTest() {
+        isDateWideRange = true;
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        OffsetDateTime expected = OffsetDateTime.parse("2026-05-20T13:10:08.50411+05:30");
+        // Timezone already has minutes — should not be modified
+        String timestampTz = "2026-05-20 13:10:08.50411+05:30";
+        OneField oneField = setFields(timestampTz, DataType.TIMESTAMP_WITH_TIME_ZONE.getOID(), "timestamptz");
+        assertTrue(oneField.val instanceof OffsetDateTime);
+        assertEquals(expected, oneField.val);
+    }
+
+    @Test
+    void setFieldOffsetDateTimeWithWideRange_ZoneWithFourDigitsTest() {
+        isDateWideRange = true;
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        OffsetDateTime expected = OffsetDateTime.parse("2026-05-20T13:10:08.50411+05:30");
+        String timestampTz = "2026-05-20 13:10:08.50411+0530";
+        OneField oneField = setFields(timestampTz, DataType.TIMESTAMP_WITH_TIME_ZONE.getOID(), "timestamptz");
+        assertTrue(oneField.val instanceof OffsetDateTime);
+        assertEquals(expected, oneField.val);
+    }
+
+    @Test
+    void setFieldOffsetDateTimeWithWideRange_ZoneZTest() {
+        isDateWideRange = true;
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+        OffsetDateTime expected = OffsetDateTime.parse("2026-05-20T13:10:08.50411Z");
+        // UTC timezone as 'Z' — should not be modified
+        String timestampTz = "2026-05-20 13:10:08.50411Z";
+        OneField oneField = setFields(timestampTz, DataType.TIMESTAMP_WITH_TIME_ZONE.getOID(), "timestamptz");
+        assertTrue(oneField.val instanceof OffsetDateTime);
+        assertEquals(expected, oneField.val);
+    }
+
+    @Test
+    void decodeOneRowToPreparedStatement_TimestampWithTimeZone_OffsetDateTimeTest() throws SQLException, IOException {
+        OffsetDateTime odt = OffsetDateTime.parse("2026-05-20T13:10:08.50411+03:00");
+        oneFieldList.add(new OneField(DataType.TIMESTAMP_WITH_TIME_ZONE.getOID(), odt));
+        when(row.getData()).thenReturn(oneFieldList);
+
+        JdbcResolver.decodeOneRowToPreparedStatement(row, mockStatement, DbProduct.POSTGRES);
+
+        verify(mockStatement).setObject(1, odt);
+        verifyNoMoreInteractions(mockStatement);
+    }
+
+    @Test
+    void decodeOneRowToPreparedStatement_TimestampWithTimeZone_StringTest() throws SQLException, IOException {
+        // String value from Greenplum needs normalization before parsing
+        String timestampTz = "2026-05-20 13:10:08.50411+03";
+        oneFieldList.add(new OneField(DataType.TIMESTAMP_WITH_TIME_ZONE.getOID(), timestampTz));
+        when(row.getData()).thenReturn(oneFieldList);
+
+        JdbcResolver.decodeOneRowToPreparedStatement(row, mockStatement, DbProduct.POSTGRES);
+
+        OffsetDateTime expected = OffsetDateTime.parse("2026-05-20T13:10:08.50411+03:00");
+        verify(mockStatement).setObject(1, expected);
+        verifyNoMoreInteractions(mockStatement);
+    }
+
+    @Test
+    void decodeOneRowToPreparedStatement_TimestampWithTimeZone_NullTest() throws SQLException, IOException {
+        oneFieldList.add(new OneField(DataType.TIMESTAMP_WITH_TIME_ZONE.getOID(), null));
+        when(row.getData()).thenReturn(oneFieldList);
+
+        JdbcResolver.decodeOneRowToPreparedStatement(row, mockStatement, DbProduct.POSTGRES);
+
+        verify(mockStatement).setNull(1, Types.TIMESTAMP_WITH_TIMEZONE);
         verifyNoMoreInteractions(mockStatement);
     }
 

@@ -45,6 +45,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import static org.greenplum.pxf.api.GreenplumDateTime.DATETIME_FORMATTER;
 import static org.greenplum.pxf.api.GreenplumDateTime.DATE_FORMATTER;
@@ -71,6 +72,7 @@ public class JdbcResolver extends JdbcBasePlugin implements Resolver {
             DataType.SMALLINT,
             DataType.NUMERIC,
             DataType.TIMESTAMP,
+            DataType.TIMESTAMP_WITH_TIME_ZONE,
             DataType.DATE,
             DataType.JSON,
             DataType.JSONB
@@ -91,6 +93,46 @@ public class JdbcResolver extends JdbcBasePlugin implements Resolver {
      */
     JdbcResolver(ConnectionManager connectionManager, SecureLogin secureLogin, DecryptClient decryptClient) {
         super(connectionManager, secureLogin, decryptClient);
+    }
+
+    /**
+     * Pre-compiled patterns for timestamptz normalization.
+     * Used to avoid recompiling regex on every method call.
+     */
+    private static final Pattern TZ_OFFSET_HH = Pattern.compile("([+-])(\\d{2})$");
+    private static final Pattern TZ_OFFSET_HHMM = Pattern.compile("([+-])(\\d{2})(\\d{2})$");
+
+    /**
+     * Minimal normalization of PostgreSQL timestamptz string for OffsetDateTime.parse().
+     * - Replaces space with 'T' between date and time
+     * - Adds :00 to timezone offset if missing (e.g., +03 → +03:00)
+     * - For strings with era markers (BC/AD), parsing is delegated to OFFSET_DATE_TIME_FORMATTER
+     *
+     * @param pgTimestamp the timestamp string from PostgreSQL
+     * @return normalized ISO 8601 compatible string, or null if input is null
+     */
+    private static String normalizePostgresTimestamp(String pgTimestamp) {
+        if (pgTimestamp == null) return null;
+
+        var result = pgTimestamp.trim();
+
+        // Replace first space (date/time separator) with 'T' for ISO 8601
+        int spaceIdx = result.indexOf(' ');
+        if (spaceIdx > 0) {
+            result = result.substring(0, spaceIdx) + 'T' + result.substring(spaceIdx + 1);
+        }
+
+        // Normalize timezone offset at the end of the string using pre-compiled patterns
+        // +HH or -HH → +HH:00 or -HH:00
+        if (TZ_OFFSET_HH.matcher(result).find()) {
+            result = TZ_OFFSET_HH.matcher(result).replaceAll("$1$2:00");
+        }
+        // +HHMM or -HHMM → +HH:MM or -HH:MM (rare, but handled for robustness)
+        else if (TZ_OFFSET_HHMM.matcher(result).find()) {
+            result = TZ_OFFSET_HHMM.matcher(result).replaceAll("$1$2:$3");
+        }
+
+        return result;
     }
 
     /**
@@ -262,6 +304,20 @@ public class JdbcResolver extends JdbcBasePlugin implements Resolver {
                             oneField.val = Timestamp.valueOf(rawVal);
                         }
                         break;
+                    case TIMESTAMP_WITH_TIME_ZONE:
+                        if (isDateWideRange) {
+                            if (rawVal.contains(" BC") || rawVal.contains(" AD")) {
+                                oneField.val = OFFSET_DATE_TIME_FORMATTER.parse(rawVal, OffsetDateTime::from);
+                            } else {
+                                String normalized = normalizePostgresTimestamp(rawVal);
+                                oneField.val = OffsetDateTime.parse(normalized);
+                            }
+                        } else {
+                            throw new UnsupportedOperationException(
+                                    String.format("Column type '%s' (column '%s') is not supported. Try to use the property DATE_WIDE_RANGE=true",
+                                            columnType, column));
+                        }
+                        break;
                     case DATE:
                         if (isDateWideRange) {
                             oneField.val = getLocalDate(rawVal);
@@ -371,6 +427,21 @@ public class JdbcResolver extends JdbcBasePlugin implements Resolver {
                             statement.setObject(i, field.val);
                         } else {
                             statement.setTimestamp(i, (Timestamp) field.val);
+                        }
+                    }
+                    break;
+                case TIMESTAMP_WITH_TIME_ZONE:
+                    if (field.val == null) {
+                        statement.setNull(i, Types.TIMESTAMP_WITH_TIMEZONE);
+                    } else {
+                        if (field.val instanceof OffsetDateTime) {
+                            statement.setObject(i, field.val);
+                        } else if (field.val instanceof String) {
+                            String normalized = normalizePostgresTimestamp((String) field.val);
+                            OffsetDateTime odt = OffsetDateTime.parse(normalized);
+                            statement.setObject(i, odt);
+                        } else {
+                            throw new IOException("Unexpected value type for TIMESTAMP_WITH_TIME_ZONE: " + field.val.getClass());
                         }
                     }
                     break;
