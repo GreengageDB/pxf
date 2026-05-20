@@ -7,8 +7,8 @@ Import `gg_pxf_dashboard.json` into Grafana to get a single view of PXF health, 
 ### Template variables
 
 - **Datasource (`DS_PROMETHEUS`)**: Prometheus datasource to query.
-- **Application (`application`)**: Prometheus datasource to query.
-- **Profile (`profile`)**: Prometheus datasource to query.
+- **Application (`application`)**: Prometheus application name.
+- **Profile (`profile`)**: Prometheus profile name.
 - **PXF Instance (`instance`)**: One or more PXF instances to display (defaults to *All*).
 
 ---

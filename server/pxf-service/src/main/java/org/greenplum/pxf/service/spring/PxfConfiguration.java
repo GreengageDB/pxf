@@ -27,6 +27,8 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.Map;
+
 /**
  * Configures the {@link AsyncTaskExecutor} for tasks that will stream data to
  * clients
@@ -125,11 +127,13 @@ public class PxfConfiguration implements WebMvcConfigurer {
     }
 
     @Bean
-    public MeterBinder registerQueueCapacity(@Qualifier(PXF_RESPONSE_STREAM_TASK_EXECUTOR) ThreadPoolTaskExecutor executor) {
-        return (registry) -> Gauge.builder("executor.queue.capacity", executor::getQueueCapacity)
-                .tags(Tags.of("name", PXF_RESPONSE_STREAM_TASK_EXECUTOR))
-                .description("The max number of threads to be added in queue")
-                .baseUnit("tasks")
-                .register(registry);
+    public MeterBinder registerQueueCapacity(Map<String, ThreadPoolTaskExecutor> executors) {
+        return (registry) -> executors.forEach((beanName, executor) ->
+                Gauge.builder("executor.queue.capacity", executor::getQueueCapacity)
+                    .tags(Tags.of("name", beanName))
+                    .description("The max number of threads to be added in queue")
+                    .baseUnit("tasks")
+                    .register(registry)
+        );
     }
 }

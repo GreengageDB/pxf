@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.greenplum.pxf.api.model.RequestContext;
-import org.greenplum.pxf.service.controller.OperationResult;
 import org.greenplum.pxf.service.utilities.ThrowingSupplier;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;

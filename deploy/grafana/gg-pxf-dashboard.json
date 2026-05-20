@@ -753,7 +753,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "pxf_executor_active_threads{application=~\"$application\", instance=~\"$instance\"}",
+          "editorMode": "code",
+          "expr": "pxf_executor_active_threads{application=~\"$application\", instance=~\"$instance\", name=~\"$pxfExecutorName\"}",
           "instant": false,
           "legendFormat": "{{instance}}",
           "range": true,
@@ -765,7 +766,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "max(pxf_executor_pool_max_threads{job=\"pxf-service\", instance=~\"$instance\"})",
+          "expr": "max(pxf_executor_pool_max_threads{job=\"pxf-service\", instance=~\"$instance\", name=~\"$pxfExecutorName\"})",
           "hide": false,
           "instant": false,
           "legendFormat": "Max number of threads",
@@ -832,32 +833,7 @@
           },
           "unit": "short"
         },
-        "overrides": [
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "Max number of tasks in queue"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": true
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -888,7 +864,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "pxf_executor_queued_tasks{application=~\"$application\", instance=~\"$instance\"}",
+          "editorMode": "code",
+          "expr": "pxf_executor_queued_tasks{application=~\"$application\", instance=~\"$instance\", name=~\"$pxfExecutorName\"}",
           "instant": false,
           "legendFormat": "{{instance}}",
           "range": true,
@@ -900,7 +877,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "max(pxf_executor_queue_capacity_tasks{application=~\"$application\", instance=~\"$instance\"})",
+          "expr": "max(pxf_executor_queue_capacity_tasks{application=~\"$application\", instance=~\"$instance\", name=~\"$pxfExecutorName\"})",
           "hide": false,
           "instant": false,
           "legendFormat": "Max number of tasks in queue",
@@ -3011,6 +2988,13 @@
         "skipUrlSync": false,
         "sort": 1,
         "type": "query"
+      },
+      {
+        "hide": 2,
+        "name": "pxfExecutorName",
+        "query": "pxfResponseStreamTaskExecutor",
+        "skipUrlSync": false,
+        "type": "constant"
       }
     ]
   },
