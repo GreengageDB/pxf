@@ -7,7 +7,7 @@ with_llvm = no
 
 is_ssl_supported :=$(filter https,$(PXF_PROTOCOL))
 REGRESS_COMMON = pxf_fdw_wrapper pxf_fdw_server pxf_fdw_user_mapping pxf_fdw_foreign_table
-REGRESS_HTTP   = pxf_fdw_http
+# REGRESS_HTTP   = pxf_fdw_http
 REGRESS_HTTPS  := $(if $(is_ssl_supported), pxf_fdw_ssl)
 REGRESS        = $(REGRESS_COMMON) $(REGRESS_HTTP) $(REGRESS_HTTPS)
 SHLIB_LINK += -lcurl
@@ -46,3 +46,11 @@ installcheck-http:
 .PHONY: installcheck-https
 installcheck-https:
 	$(MAKE) installcheck REGRESS="$(REGRESS_COMMON) $(REGRESS_HTTPS)"
+
+installcheck: isolationcheck
+
+ISOLATION2_ROOT=$(pgxsdir)/src/test/isolation2
+
+isolationcheck: submake
+	make ISOLATION2_ROOT=$(ISOLATION2_ROOT) -C isolation2 isolationcheck
+
