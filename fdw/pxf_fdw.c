@@ -667,7 +667,7 @@ InitForeignModify(Relation relation)
 
 	if (Gp_role == GP_ROLE_DISPATCH && IsExtCommitMetadataSupported(options))
 	{
-		elog(DEBUG5, "pxf_fdw: Use extended commit protocol");
+		elog(DEBUG2, "pxf_fdw: Use extended commit protocol");
 		oldcontext = MemoryContextSwitchTo(CurTransactionContext);
 
 		pfree(options);
@@ -681,7 +681,6 @@ InitForeignModify(Relation relation)
 #if PG_VERSION_NUM < 90600
 	tupDesc = RelationGetDescr(relation);
 #endif
-
 	pxfmstate = palloc0(sizeof(PxfFdwModifyState));
 
 	initStringInfo(&pxfmstate->uri);
@@ -836,6 +835,7 @@ FinishForeignModify(PxfFdwModifyState *pxfmstate)
 		pxfmstate->cstate = NULL;
 	}
 	PxfBridgeCleanup(pxfmstate);
+
 }
 
 /*
@@ -1176,6 +1176,8 @@ PxfCollectMetadata(PxfFdwModifyState *pxfmstate)
 	}
 
 	elog(DEBUG2, "pxf_fdw %d bytes metadata written at commit", bytes_written);
+
+	pfree(fe_msgbuf.data);
 }
 
 static void

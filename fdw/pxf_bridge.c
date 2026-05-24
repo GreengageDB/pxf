@@ -362,7 +362,7 @@ PxfBridgeWrite(PxfFdwModifyState *pxfmstate, char *databuf, int datalen)
 int
 PxfBridgeReceiveMetadata(PxfFdwModifyState *pxfmstate, StringInfo out_buf)
 {
-	char chunk [1024];
+	char chunk[1024];
 
 	if (out_buf == NULL)
 	{
@@ -392,7 +392,6 @@ PxfBridgeReceiveMetadata(PxfFdwModifyState *pxfmstate, StringInfo out_buf)
 
 	return out_buf->len;
 }
-
 
 /*
  * Format the URI for cancel by adding PXF service endpoint details
@@ -547,5 +546,5 @@ PxfBridgeCommitStart(PxfFdwModifyState *pxfmstate)
 		free_churl_ssl_options(ssl_options);
 	}
 
-	elog(DEBUG2, "pxf_fdw: PxfBridgeCommitStart ends on segment: %d", PXF_SEGMENT_ID);
+	elog(DEBUG5, "pxf_fdw: PxfBridgeCommitStart done on segment: %d", PXF_SEGMENT_ID);
 }
