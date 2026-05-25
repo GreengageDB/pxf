@@ -26,6 +26,7 @@
 #include "pxf_option.h"
 
 #include "commands/copy.h"
+#include "cdb/cdbconn.h"
 #include "cdb/cdbvars.h"
 #include "nodes/execnodes.h"
 #include "nodes/parsenodes.h"
@@ -73,6 +74,7 @@ typedef struct PxfFdwModifyState
 	Datum	   *values;			/* List of values exported for the row */
 	bool	   *nulls;			/* List of null fields for the exported row */
 #endif
+	ggMetadataQueueId metadata_queue_id;
 } PxfFdwModifyState;
 
 /* Clean up churl related data structures from the context */

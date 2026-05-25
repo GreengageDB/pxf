@@ -127,6 +127,9 @@ static void pxfReScanForeignScan(ForeignScanState *node);
 static void pxfEndForeignScan(ForeignScanState *node);
 
 /* Foreign updates */
+
+static List *pxfPlanForeignModify (PlannerInfo *root, ModifyTable *plan, Index resultRelation, int subplan_index);
+
 static void pxfBeginForeignInsert(ModifyTableState *mtstate, ResultRelInfo *resultRelInfo);
 
 static void pxfBeginForeignModify(ModifyTableState *mtstate, ResultRelInfo *resultRelInfo, List *fdw_private, int subplan_index, int eflags);
@@ -142,7 +145,7 @@ static int	pxfIsForeignRelUpdatable(Relation rel);
 /*
  * Helper functions
  */
-static PxfFdwModifyState *InitForeignModify(Relation relation);
+static PxfFdwModifyState *InitForeignModify(Relation relation, List *fdw_private);
 static void FinishForeignModify(PxfFdwModifyState *pxfmstate);
 static void InitCopyState(PxfFdwScanState *pxfsstate);
 static void InitCopyStateForModify(PxfFdwModifyState *pxfmstate);
@@ -151,7 +154,7 @@ static void PxfBeginScanErrorCallback(void *arg);
 static void PxfCopyFromErrorCallback(void *arg);
 
 #ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
-static void CollectMetadata(StringInfo msgbuf);
+static void CollectMetadata(PxfFdwModifyState *pxfmstate, StringInfo msgbuf);
 static void PxfCollectMetadata(PxfFdwModifyState *pxfmstate);
 #endif
 
@@ -195,7 +198,7 @@ pxf_fdw_handler(PG_FUNCTION_ARGS)
 	 * PlanForeignModify set to NULL, no additional plan-time actions are
 	 * taken
 	 */
-	fdw_routine->PlanForeignModify = NULL;
+	fdw_routine->PlanForeignModify = pxfPlanForeignModify;
 #if PG_VERSION_NUM >= 120000
 	fdw_routine->BeginForeignInsert = pxfBeginForeignInsert;
 #endif
@@ -248,7 +251,9 @@ enum FdwScanPrivateIndex
 	/* WHERE clauses to be sent to PXF (as a String node) */
 	FdwScanPrivateWhereClauses,
 	/* Integer list of attribute numbers retrieved by the SELECT */
-	FdwScanPrivateRetrievedAttrs
+	FdwScanPrivateRetrievedAttrs,
+	/* Integer represnting queue id for metadata */
+	FdwScanPrivateMetadataQueueId
 };
 
 /*
@@ -651,6 +656,16 @@ pxfBeginForeignInsert(ModifyTableState *mtstate,
 	 */
 }
 
+static List *
+pxfPlanForeignModify (PlannerInfo *root,
+						ModifyTable *plan,
+						Index resultRelation,
+						int subplan_index)
+{
+	ggMetadataQueueId metadata_queue_id = PQMetadataNextQueueId();
+	return list_make1_int(metadata_queue_id);
+}
+
 /*
  * pxfBeginForeignModify
  *		Begin an insert/update/delete operation on a foreign table
@@ -679,8 +694,9 @@ pxfBeginForeignModify(ModifyTableState *mtstate,
 	 */
 	if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
 		return;
+
 	if (!resultRelInfo->ri_FdwState)
-		resultRelInfo->ri_FdwState = InitForeignModify(resultRelInfo->ri_RelationDesc);
+		resultRelInfo->ri_FdwState = InitForeignModify(resultRelInfo->ri_RelationDesc, fdw_private);
 	/* end of temp block */
 }
 
@@ -690,7 +706,7 @@ pxfBeginForeignModify(ModifyTableState *mtstate,
  * 		of data in an external system
  */
 static PxfFdwModifyState *
-InitForeignModify(Relation relation)
+InitForeignModify(Relation relation, List *fdw_private)
 {
 	elog(DEBUG5, "pxf_fdw: InitForeignModify starts on segment: %d", PXF_SEGMENT_ID);
 
@@ -723,7 +739,7 @@ InitForeignModify(Relation relation)
 #endif
 
 	if (Gp_role == GP_ROLE_DISPATCH && rel->exec_location == FTEXECLOCATION_ALL_SEGMENTS && oldcontext == NULL)
-		/* master does not process any data when exec_location is all segments */
+		/* master does not process any data when exec_location is all segments unless extended commit is in use */
 		return NULL;
 
 #if PG_VERSION_NUM < 90600
@@ -740,9 +756,15 @@ InitForeignModify(Relation relation)
 #endif
 
 #ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
-	if (Gp_role == GP_ROLE_DISPATCH && IsExtCommitMetadata(options) && PQMetadataInterface_p.loaded)
+	pxfmstate->metadata_queue_id = PXF_METADATA_INVALID_QUEUE_ID;
+	if (fdw_private != NULL)
 	{
-		CALL_PQ_FN(PQCreateMetadataQueue, PXF_METADATA_QUEUE_ID);
+		pxfmstate->metadata_queue_id = list_nth_int(fdw_private, 0);
+	}
+
+	if (Gp_role == GP_ROLE_DISPATCH && IsExtCommitMetadata(options) && PQMetadataInterface_p.loaded && pxfmstate->metadata_queue_id != PXF_METADATA_INVALID_QUEUE_ID)
+	{
+		CALL_PQ_FN(PQCreateMetadataQueue, pxfmstate->metadata_queue_id);
 	}
 #endif
 
@@ -774,7 +796,7 @@ pxfExecForeignInsert(EState *estate,
 	if (!pxfmstate)
 	{
 		/* state has not been initialized yet, create and store it on the first call */
-		pxfmstate = InitForeignModify(resultRelInfo->ri_RelationDesc);
+		pxfmstate = InitForeignModify(resultRelInfo->ri_RelationDesc, NULL);
 		/* if initialization was a noop (ANALYZE case or execution on COORDINATOR, exit */
 		if (!pxfmstate)
 			return slot;
@@ -858,13 +880,13 @@ FinishForeignModify(PxfFdwModifyState *pxfmstate)
 		return;
 
 #ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1		
-	if (IsExtCommitMetadata(pxfmstate->options) && PQMetadataInterface_p.loaded)
+	if (IsExtCommitMetadata(pxfmstate->options) && PQMetadataInterface_p.loaded && pxfmstate->metadata_queue_id != PXF_METADATA_INVALID_QUEUE_ID)
 	{
 		if (Gp_role == GP_ROLE_DISPATCH)
 		{
 			PxfBridgeCommitStart(pxfmstate);
 			PxfCollectMetadata(pxfmstate);
-			CALL_PQ_FN(PQDeleteMetadataQueue, PXF_METADATA_QUEUE_ID);
+			CALL_PQ_FN(PQDeleteMetadataQueue, pxfmstate->metadata_queue_id);
 		}
 		else if (Gp_role == GP_ROLE_EXECUTE)
 		{
@@ -873,7 +895,7 @@ FinishForeignModify(PxfFdwModifyState *pxfmstate)
 
 			if (PxfBridgeReceiveMetadata(pxfmstate, &buf) > 0)
 			{
-				CALL_PQ_FN(pq_metadatasend, buf.data, buf.len, PXF_METADATA_QUEUE_ID);
+				CALL_PQ_FN(pq_metadatasend, buf.data, buf.len, pxfmstate->metadata_queue_id);
 			}
 
 			pfree(buf.data);
@@ -1217,7 +1239,7 @@ PxfCollectMetadata(PxfFdwModifyState *pxfmstate)
 
 	initStringInfo(&fe_msgbuf);
 
-	CollectMetadata(&fe_msgbuf);
+	CollectMetadata(pxfmstate, &fe_msgbuf);
 
 	int			bytes_written = PxfBridgeWrite(pxfmstate, fe_msgbuf.data, fe_msgbuf.len);
 
@@ -1234,9 +1256,11 @@ PxfCollectMetadata(PxfFdwModifyState *pxfmstate)
 }
 
 static void
-CollectMetadata(StringInfo msgbuf)
+CollectMetadata(PxfFdwModifyState *pxfmstate, StringInfo msgbuf)
 {
-	ggMetadataChunkIterator it = CALL_PQ_FN(PQMetadataWalk, PXF_METADATA_QUEUE_ID);
+	Assert(pxfmstate->metadata_queue_id != PXF_METADATA_INVALID_QUEUE_ID);
+
+	ggMetadataChunkIterator it = PQMetadataWalk(pxfmstate->metadata_queue_id);
 
 	for (; it; it = CALL_PQ_FN(PQgetNextMetadata, it))
 	{
