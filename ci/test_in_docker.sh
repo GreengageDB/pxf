@@ -23,7 +23,7 @@ sed -i \
 chown gpadmin:gpadmin -R $PXF_SRC
 
 # Display the diff if we fail
-trap "cat $PXF_SRC/fdw/regression.diffs $PXF_SRC/external-table/regression.diffs" ERR
+trap "find $PXF_SRC -type f -name '*.diffs' -exec cat {} \;" ERR
 
 # test fdw and external-table
 echo "=============================="
