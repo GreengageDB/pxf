@@ -1,7 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS pxf_fdw;
 CREATE
 
-2:!& python3 pxf_mock.py > /tmp/pxf_mock.log 2>&1; 
+2:!& python3 pxf_mock.py > /tmp/pxf_mock.log 2>&1;
 select pg_sleep(1);
  pg_sleep 
 ----------
@@ -48,7 +48,7 @@ SELECT * FROM test_t ORDER BY t0;
  t0 | 1  
 (3 rows)
 
-1:!& curl http://localhost:5889/shutdown; 
+1:!& curl http://localhost:5889/shutdown;
 2<:  <... completed>
 FAILED:  Execution failed
 
