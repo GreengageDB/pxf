@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.greenplum.pxf.api.OneRow;
 import org.greenplum.pxf.plugins.jdbc.JdbcBasePlugin;
 import org.greenplum.pxf.plugins.jdbc.JdbcResolver;
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
 
 import java.sql.BatchUpdateException;
 import java.sql.PreparedStatement;
@@ -43,12 +43,12 @@ class BatchWriterCallable implements WriterCallable {
     private final List<OneRow> rows;
     private final int batchSize;
     private final Runnable onComplete;
-    private final DbProduct dbProduct;
+    private final DatabaseDialect dialect;
 
     /**
      * Construct a new batch writer
      */
-    BatchWriterCallable(JdbcBasePlugin plugin, String query, int batchSize, Runnable onComplete, DbProduct dbProduct) {
+    BatchWriterCallable(JdbcBasePlugin plugin, String query, int batchSize, Runnable onComplete, DatabaseDialect dialect) {
         if (batchSize < 1) {
             throw new IllegalArgumentException("Batch size must be greater than 0");
         } else if (plugin == null) {
@@ -63,7 +63,7 @@ class BatchWriterCallable implements WriterCallable {
         this.query = query;
         this.batchSize = batchSize;
         this.onComplete = onComplete;
-        this.dbProduct = dbProduct;
+        this.dialect = dialect;
         rows = new ArrayList<>();
     }
 
@@ -96,7 +96,7 @@ class BatchWriterCallable implements WriterCallable {
             statement = plugin.getPreparedStatement(plugin.getConnection(), query);
             log.trace("Writer {}: got statement", this);
             for (OneRow row : rows) {
-                JdbcResolver.decodeOneRowToPreparedStatement(row, statement, dbProduct);
+                JdbcResolver.decodeOneRowToPreparedStatement(row, statement, dialect);
                 statement.addBatch();
             }
 

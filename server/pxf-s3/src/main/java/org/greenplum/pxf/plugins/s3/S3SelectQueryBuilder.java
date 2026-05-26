@@ -9,7 +9,7 @@ import org.greenplum.pxf.api.model.RequestContext;
 import org.greenplum.pxf.api.utilities.ColumnDescriptor;
 import org.greenplum.pxf.plugins.jdbc.JdbcPredicateBuilder;
 import org.greenplum.pxf.plugins.jdbc.SQLQueryBuilder;
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
 
 import java.sql.SQLException;
 import java.util.EnumSet;
@@ -58,6 +58,7 @@ public class S3SelectQueryBuilder extends SQLQueryBuilder {
             );
     private static final TreeVisitor PRUNER = new SupportedOperatorPruner(SUPPORTED_OPERATORS);
     private final boolean usePositionToIdentifyColumn;
+    private final DatabaseDialect dialect;
 
     /**
      * Constructor
@@ -68,9 +69,11 @@ public class S3SelectQueryBuilder extends SQLQueryBuilder {
      * @throws SQLException when a SQL exception occurs
      */
     public S3SelectQueryBuilder(RequestContext context,
-                                boolean usePositionToIdentifyColumn) throws SQLException {
-        super(context, new S3SelectDatabaseMetaData());
+                                boolean usePositionToIdentifyColumn,
+                                DatabaseDialect dialect) throws SQLException {
+        super(context, new S3SelectDatabaseMetaData(), dialect);
         this.usePositionToIdentifyColumn = usePositionToIdentifyColumn;
+        this.dialect = dialect;
     }
 
     @Override
@@ -89,7 +92,8 @@ public class S3SelectQueryBuilder extends SQLQueryBuilder {
     protected JdbcPredicateBuilder getPredicateBuilder() {
         return new S3SelectPredicateBuilder(
                 usePositionToIdentifyColumn,
-                columns);
+                columns,
+                dialect);
     }
 
     @Override
@@ -103,7 +107,7 @@ public class S3SelectQueryBuilder extends SQLQueryBuilder {
     }
 
     @Override
-    public void buildFragmenterSql(RequestContext context, DbProduct dbProduct, String quoteString, StringBuilder query) {
+    public void buildFragmenterSql(RequestContext context, DatabaseDialect dialect, String quoteString, StringBuilder query) {
         // DO NOTHING: fragmenter is not supported by S3 Select yet
     }
 

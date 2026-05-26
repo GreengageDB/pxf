@@ -10,6 +10,8 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.greenplum.pxf.automation.structures.tables.basic.Table;
 import org.greenplum.pxf.automation.structures.tables.pxf.ExternalTable;
 import org.greenplum.pxf.automation.structures.tables.utils.TableFactory;
+import org.greenplum.pxf.automation.utils.system.FDWUtils;
+import org.testng.SkipException;
 import org.testng.annotations.Test;
 
 import org.greenplum.pxf.automation.enums.EnumPartitionType;
@@ -93,6 +95,7 @@ public class JdbcTest extends BaseFeature {
         prepareColumnProjectionSuperset();
         prepareFetchSizeZero();
         prepareDateWideRange();
+        prepareDateWideRangeForInsert();
         prepareNamedQuery();
     }
 
@@ -139,10 +142,10 @@ public class JdbcTest extends BaseFeature {
         Table gpdbDeptTable = new Table("gpdb_dept", deptTableFields);
         gpdbDeptTable.setDistributionFields(new String[]{"name"});
         gpdb.createTableAndVerify(gpdbDeptTable);
-        String[][] deptRows = new String[][] {
-                { "sales", "1"},
-                { "finance", "2"},
-                { "it", "3"}};
+        String[][] deptRows = new String[][]{
+                {"sales", "1"},
+                {"finance", "2"},
+                {"it", "3"}};
         Table dataTable = new Table("data", deptTableFields);
         dataTable.addRows(deptRows);
         gpdb.insertData(dataTable, gpdbDeptTable);
@@ -151,16 +154,16 @@ public class JdbcTest extends BaseFeature {
         Table gpdbEmpTable = new Table("gpdb_emp", empTableFields);
         gpdbEmpTable.setDistributionFields(new String[]{"name"});
         gpdb.createTableAndVerify(gpdbEmpTable);
-        final String[][] empRows = new String[][] {
-                { "alice", "1", "115" },
-                { "bob", "1", "120" },
-                { "charli", "1", "93" },
-                { "daniel", "2", "87" },
-                { "emma", "2", "100" },
-                { "frank", "2", "103" },
-                { "george", "2", "90" },
-                { "henry", "3", "96" },
-                { "ivanka", "3", "70" }};
+        final String[][] empRows = new String[][]{
+                {"alice", "1", "115"},
+                {"bob", "1", "120"},
+                {"charli", "1", "93"},
+                {"daniel", "2", "87"},
+                {"emma", "2", "100"},
+                {"frank", "2", "103"},
+                {"george", "2", "90"},
+                {"henry", "3", "96"},
+                {"ivanka", "3", "70"}};
         dataTable = new Table("data", empTableFields);
         dataTable.addRows(empRows);
         gpdb.insertData(dataTable, gpdbEmpTable);
@@ -374,7 +377,7 @@ public class JdbcTest extends BaseFeature {
         gpdb.createTableAndVerify(pxfJdbcSingleFragment);
     }
 
-    @Step("Prepare date wide range")
+    @Step("Prepare date wide range for select")
     private void prepareDateWideRange() throws Exception {
         ExternalTable pxfJdbcDateWideRangeOn = TableFactory.getPxfJdbcReadableTable(
                 "pxf_jdbc_readable_date_wide_range_on",
@@ -399,6 +402,26 @@ public class JdbcTest extends BaseFeature {
         pxfJdbcDateWideRangeOff.setPort(pxfPort);
         pxfJdbcDateWideRangeOff.addUserParameter("date_wide_range=false");
         gpdb.createTableAndVerify(pxfJdbcDateWideRangeOff);
+    }
+
+    @Step("Prepare date wide range for insert")
+    private void prepareDateWideRangeForInsert() throws Exception {
+        Table gpdbDateWideRangeWritableTargetTable = new Table("gpdb_writable_date_wide_range_target",
+                TYPES_TABLE_FIELDS_WITH_TIMESTAMPTZ);
+        gpdbDateWideRangeWritableTargetTable.setDistributionFields(new String[]{"t1"});
+        gpdb.createTableAndVerify(gpdbDateWideRangeWritableTargetTable);
+
+        ExternalTable pxfJdbcWritableDateWideRangeOn = TableFactory.getPxfJdbcWritableTable(
+                "pxf_jdbc_writable_date_wide_range_on",
+                TYPES_TABLE_FIELDS_WITH_TIMESTAMPTZ,
+                gpdbDateWideRangeWritableTargetTable.getName(),
+                POSTGRES_DRIVER_CLASS,
+                GPDB_PXF_AUTOMATION_DB_JDBC + gpdb.getMasterHost() + ":" + gpdb.getPort() + "/pxfautomation",
+                gpdb.getUserName(), null);
+        pxfJdbcWritableDateWideRangeOn.setHost(pxfHost);
+        pxfJdbcWritableDateWideRangeOn.setPort(pxfPort);
+        pxfJdbcWritableDateWideRangeOn.addUserParameter("date_wide_range=true");
+        gpdb.createTableAndVerify(pxfJdbcWritableDateWideRangeOn);
     }
 
     @Step("Prepare named query")
@@ -488,6 +511,15 @@ public class JdbcTest extends BaseFeature {
     @Test(groups = {"features", "jdbc"})
     public void jdbcReadableTableWithDateWideRange() throws Exception {
         runSqlTest("features/jdbc/readable_date_wide_range");
+    }
+
+    @Test(groups = {"features", "jdbc"})
+    public void jdbcWritableTableWithDateWideRange() throws Exception {
+        // FDWUtils.useFDW is used to skip the FDW test because "bytea" is not supported by FDW yet.
+        if (FDWUtils.useFDW) {
+            throw new SkipException("Skipping FDW test because BYTEA is not supported by FDW write path yet");
+        }
+        runSqlTest("features/jdbc/writable_date_wide_range");
     }
 
     @Test(groups = {"features", "jdbc"})

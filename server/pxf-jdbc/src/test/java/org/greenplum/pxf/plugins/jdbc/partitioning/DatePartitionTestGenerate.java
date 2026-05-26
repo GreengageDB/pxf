@@ -19,7 +19,8 @@ package org.greenplum.pxf.plugins.jdbc.partitioning;
  * under the License.
  */
 
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
+import org.greenplum.pxf.plugins.jdbc.dialect.PostgresDatabaseDialect;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Date;
@@ -90,18 +91,18 @@ public class DatePartitionTestGenerate {
         final String COLUMN = "col";
         final String RANGE = "0101-02-03 BC:10001-02-02 AD";
         final String INTERVAL = "1000:year";
-        final DbProduct dbProduct = DbProduct.POSTGRES;
+        final DatabaseDialect dialect = new PostgresDatabaseDialect();
         final boolean WRAP_DATE_WITH_TIME = false;
 
         DatePartition[] parts = PartitionType.DATE.generate(COLUMN, RANGE, INTERVAL, true).stream()
                 .map(p -> (DatePartition) p).toArray(DatePartition[]::new);
 
         assertEquals(13, parts.length);
-        assertEquals("col < date'0101-02-03 BC'", parts[0].toSqlConstraint("", dbProduct));
-        assertEquals("col >= date'10001-02-02 AD'", parts[1].toSqlConstraint("", dbProduct));
-        assertEquals("col >= date'0101-02-03 BC' AND col < date'0900-02-03 AD'", parts[2].toSqlConstraint("", dbProduct));
-        assertEquals("col >= date'4900-02-03 AD' AND col < date'5900-02-03 AD'", parts[7].toSqlConstraint("", dbProduct));
-        assertEquals("col >= date'9900-02-03 AD' AND col < date'10001-02-02 AD'", parts[12].toSqlConstraint("", dbProduct));
+        assertEquals("col < date'0101-02-03 BC'", parts[0].toSqlConstraint("", dialect));
+        assertEquals("col >= date'10001-02-02 AD'", parts[1].toSqlConstraint("", dialect));
+        assertEquals("col >= date'0101-02-03 BC' AND col < date'0900-02-03 AD'", parts[2].toSqlConstraint("", dialect));
+        assertEquals("col >= date'4900-02-03 AD' AND col < date'5900-02-03 AD'", parts[7].toSqlConstraint("", dialect));
+        assertEquals("col >= date'9900-02-03 AD' AND col < date'10001-02-02 AD'", parts[12].toSqlConstraint("", dialect));
     }
 
     @Test

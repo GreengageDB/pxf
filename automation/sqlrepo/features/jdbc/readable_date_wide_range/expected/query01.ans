@@ -71,9 +71,35 @@ SELECT dt FROM pxf_jdbc_readable_date_wide_range_off ORDER BY t1;
 ERROR:  time zone displacement out of range
 CONTEXT:  External table pxf_jdbc_readable_date_wide_range_off
 
-SELECT tmz FROM pxf_jdbc_readable_date_wide_range_off ORDER BY t1;
-ERROR:  PXF server error : Field type 'TIMESTAMP_WITH_TIME_ZONE' is not supported
--- start_ignore
-HINT:  Check the PXF logs located in the 'logs-dir' directory on host 'mdw' or 'set client_min_messages=LOG' for additional details.
--- end_ignore
-CONTEXT:  External table pxf_jdbc_readable_date_wide_range_off
+SELECT t1, tmz FROM pxf_jdbc_readable_date_wide_range_off ORDER BY t1;
+           t1           |            tmz
+------------------------+---------------------------
+ row1                   | 2013-07-13 17:00:00+00
+ row10                  | 2013-07-22 08:00:00+00
+ row11                  | 2013-07-23 07:00:00+00
+ row12_text_null        | 2013-07-23 12:00:00+00 BC
+ row13_int_null         | 2013-07-23 12:00:00+00
+ row14_double_null      | 4713-07-23 12:00:00+00 BC
+ row15_decimal_null     | 294276-07-24 12:00:00+00
+ row16_timestamp_null   | 0018-01-07 21:00:00+00 BC
+ row17_real_null        | 2023-01-07 12:00:00+00
+ row18_bigint_null      | 2013-07-23 01:00:00+00
+ row19_bool_null        | 2013-07-23 02:00:00+00
+ row2                   | 2013-07-14 16:00:00+00
+ row20_tinyint_null     | 2013-07-23 03:00:00+00
+ row21_smallint_null    | 2013-07-24 00:00:00+00
+ row22_dote_null        | 2013-07-23 23:00:00+00
+ row23_varchar_null     | 2013-07-23 22:00:00+00
+ row24_char_null        | 2013-07-23 12:00:00+00
+ row25_binary_null      | 2013-07-23 12:00:00+00
+ row26_uuid_null        | 2013-07-23 12:00:00+00
+ row27_timestamptz_null |
+ row3                   | 2013-07-15 15:00:00+00
+ row4                   | 2013-07-16 14:00:00+00
+ row5                   | 2013-07-17 13:00:00+00
+ row6                   | 2013-07-18 12:00:00+00
+ row7                   | 2013-07-19 11:00:00+00
+ row8                   | 2013-07-20 10:00:00+00
+ row9                   | 2013-07-21 09:00:00+00
+(27 rows)
+

@@ -20,7 +20,7 @@ package org.greenplum.pxf.plugins.jdbc.partitioning;
  */
 
 import lombok.Getter;
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
 
 import java.util.Objects;
 
@@ -47,7 +47,7 @@ public class IntRangePartition extends BaseRangePartition implements IntPartitio
     }
 
     @Override
-    public String toSqlConstraint(String quoteString, DbProduct dbProduct) {
+    public String toSqlConstraint(String quoteString, DatabaseDialect dialect) {
         return generateRangeConstraint(
                 getQuotedColumn(quoteString),
                 convert(start),

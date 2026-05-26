@@ -57,7 +57,8 @@ public class JdbcHiveTest extends BaseFeature {
             "sml   SMALLINT",
             "dt    DATE",
             "vc1   VARCHAR(5)",
-            "c1    CHAR(3)"
+            "c1    CHAR(3)",
+            "tmtz  TIMESTAMP WITH TIME ZONE"
     };
     private static final String[] GPDB_QUERY_FIELDS = {
             "n1    INTEGER",
@@ -78,7 +79,8 @@ public class JdbcHiveTest extends BaseFeature {
             "sml   SMALLINT",
             "dt    DATE",
             "vc1   VARCHAR(5)",
-            "c1    CHAR(3)"
+            "c1    CHAR(3)",
+            "tmtz  TIMESTAMP WITH LOCAL TIME ZONE"
     };
 
     /*
@@ -89,29 +91,21 @@ public class JdbcHiveTest extends BaseFeature {
             "t2    text",
             "num1  int",
             "dub1  double precision",
-            // Hive JDBC driver 1.1.0 does not support BigDecimal
-            // https://issues.apache.org/jira/browse/HIVE-13614
-            // fixed in 2.3.0
-            // "dec1   numeric",
-            // Hive JDBC driver does not quote value as required
-            // https://issues.apache.org/jira/browse/HIVE-11748
-            // fixed in 2.0.0
-            // "tm    timestamp",
+            "dec1  numeric",
+            "tm    timestamp",
             "r     real",
             "bg    bigint",
             "b     boolean",
             "tn    smallint",
             "sml   smallint",
-            // Hive JDBC driver does not quote value as required
-            // https://issues.apache.org/jira/browse/HIVE-11024
-            // fixed in 1.3.0, 2.0.0
-            // "dt    date",
+            "dt    date",
             "vc1   varchar(5)",
             "c1    char(3)",
             // Hive JDBC driver does not support setBytes()
             // https://github.com/apache/hive/blob/dc8891ec9459d2eff5a23154383ec3bd19481fd2/jdbc/src/java/org/apache/hive/jdbc/HivePreparedStatement.java#L251-L254
             // not yet fixed
             //"bin   bytea"
+            "tmtz  timestamp with time zone"
     };
 
     private static final String[] HIVE_WRITE_TYPES_TABLE_FIELDS = new String[] {
@@ -119,13 +113,17 @@ public class JdbcHiveTest extends BaseFeature {
             "t2    string",
             "num1  int",
             "dub1  double",
+            "dec1  decimal(38,5)",
+            "tm    timestamp",
             "r     float",
             "bg    bigint",
             "b     boolean",
             "tn    tinyint",
             "sml   smallint",
+            "dt    date",
             "vc1   varchar(5)",
-            "c1    char(3)"
+            "c1    char(3)",
+            "tmtz  timestamp with local time zone"
     };
 
     private Hive hive;

@@ -19,7 +19,7 @@ package org.greenplum.pxf.plugins.jdbc.partitioning;
  * under the License.
  */
 
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class IntPartitionTest {
 
-    private final DbProduct dbProduct = null;
+    private final DatabaseDialect dialect = null;
 
     private final String COL_RAW = "col";
     private final String QUOTE = "\"";
@@ -36,7 +36,7 @@ public class IntPartitionTest {
     @Test
     public void testNormal() {
         IntPartition partition = IntPartition.create(COL_RAW, 0L, 1L);
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals(COL + " >= 0 AND " + COL + " < 1", constraint);
     }
@@ -44,7 +44,7 @@ public class IntPartitionTest {
     @Test
     public void testRightBounded() {
         IntPartition partition = IntPartition.create(COL_RAW, null, 0L);
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals(COL + " < 0", constraint);
     }
@@ -52,7 +52,7 @@ public class IntPartitionTest {
     @Test
     public void testLeftBounded() {
         IntPartition partition = IntPartition.create(COL_RAW, 0L, null);
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals(COL + " >= 0", constraint);
     }
@@ -60,7 +60,7 @@ public class IntPartitionTest {
     @Test
     public void testRightBoundedInclusive() {
         IntPartition partition = IntPartition.create(COL_RAW, null, 0L);
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals(COL + " < 0", constraint);
     }
@@ -68,7 +68,7 @@ public class IntPartitionTest {
     @Test
     public void testLeftBoundedInclusive() {
         IntPartition partition = IntPartition.create(COL_RAW, 0L, null);
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals(COL + " >= 0", constraint);
     }
@@ -76,7 +76,7 @@ public class IntPartitionTest {
     @Test
     public void testEqualBoundaries() {
         IntPartition partition = IntPartition.create(COL_RAW, 0L, 0L);
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals(COL + " = 0", constraint);
     }
@@ -85,7 +85,7 @@ public class IntPartitionTest {
     public void testEqualBoundariesMaxValue() {
         long value = Long.MAX_VALUE;
         IntPartition partition = IntPartition.create(COL_RAW, value, value);
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals(COL + " = " + value, constraint);
     }
@@ -109,6 +109,6 @@ public class IntPartitionTest {
         IntPartition partition = IntPartition.create(COL_RAW, 0L, 1L);
 
         assertThrows(RuntimeException.class,
-            () -> partition.toSqlConstraint(null, dbProduct));
+            () -> partition.toSqlConstraint(null, dialect));
     }
 }

@@ -1,6 +1,7 @@
 package org.greenplum.pxf.plugins.jdbc.partitioning;
 
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
+import org.greenplum.pxf.plugins.jdbc.dialect.PostgresDatabaseDialect;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -10,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TimestampPartitionTest {
 
-    private final DbProduct dbProduct = DbProduct.POSTGRES;
+    private final DatabaseDialect dialect = new PostgresDatabaseDialect();
 
     private final String COL_RAW = "col";
     private final String QUOTE = "\"";
@@ -19,7 +20,7 @@ public class TimestampPartitionTest {
     @Test
     public void testNormal() {
         TimestampPartition partition = new TimestampPartition(COL_RAW, LocalDateTime.parse("2024-01-02T17:19:10"), LocalDateTime.parse("2024-01-02T17:19:11"));
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals(
                 COL + " >= '2024-01-02T17:19:10' AND " + COL + " < '2024-01-02T17:19:11'",
@@ -31,7 +32,7 @@ public class TimestampPartitionTest {
     @Test
     public void testDateWideRange() {
         TimestampPartition partition = new TimestampPartition(COL_RAW, LocalDateTime.of(-1, 2,3, 12, 30, 5), LocalDateTime.of(-1, 2,3, 12, 50, 5), true);
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals(
                 COL + " >= '0002-02-03 12:30:05 BC' AND " + COL + " < '0002-02-03 12:50:05 BC'",
@@ -43,7 +44,7 @@ public class TimestampPartitionTest {
     @Test
     public void testWrapDateWithTime() {
         TimestampPartition partition = new TimestampPartition(COL_RAW, LocalDateTime.parse("2024-01-02T17:19:10"), LocalDateTime.parse("2024-01-02T17:19:11"));
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals(
                 COL + " >= '2024-01-02T17:19:10' AND " + COL + " < '2024-01-02T17:19:11'",
@@ -55,7 +56,7 @@ public class TimestampPartitionTest {
     @Test
     public void testRightBounded() {
         TimestampPartition partition = new TimestampPartition(COL_RAW, null, LocalDateTime.parse("2024-01-02T17:19:11"));
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals(
                 COL + " < '2024-01-02T17:19:11'",
@@ -66,7 +67,7 @@ public class TimestampPartitionTest {
     @Test
     public void testLeftBounded() {
         TimestampPartition partition = new TimestampPartition(COL_RAW, LocalDateTime.parse("2024-01-02T17:19:10"), null);
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals(
                 COL + " >= '2024-01-02T17:19:10'",

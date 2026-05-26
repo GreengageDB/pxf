@@ -25,42 +25,42 @@ import org.greenplum.pxf.api.filter.Node;
 import org.greenplum.pxf.api.filter.ToStringTreeVisitor;
 import org.greenplum.pxf.api.io.DataType;
 import org.greenplum.pxf.api.utilities.ColumnDescriptor;
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
 
 import java.util.List;
 
 
 /**
  * Converts an expression {@link Node} into a valid predicate for the
- * target {@link DbProduct}.
+ * target {@link DatabaseDialect}.
  * This class extends {@link ToStringTreeVisitor} and overrides the required
  * methods.
  */
 public class JdbcPredicateBuilder extends ColumnPredicateBuilder {
 
-    private final DbProduct dbProduct;
+    private final DatabaseDialect dialect;
     private boolean wrapDateWithTime = false;
     private boolean isDateWideRange;
 
-    public JdbcPredicateBuilder(DbProduct dbProduct,
+    public JdbcPredicateBuilder(DatabaseDialect dialect,
                                 List<ColumnDescriptor> tupleDescription) {
-        this(dbProduct, "", tupleDescription);
+        this(dialect, "", tupleDescription);
     }
 
-    public JdbcPredicateBuilder(DbProduct dbProduct,
+    public JdbcPredicateBuilder(DatabaseDialect dialect,
                                 String quoteString,
                                 List<ColumnDescriptor> tupleDescription) {
         super(quoteString, tupleDescription);
-        this.dbProduct = dbProduct;
+        this.dialect = dialect;
     }
 
-    public JdbcPredicateBuilder(DbProduct dbProduct,
+    public JdbcPredicateBuilder(DatabaseDialect dialect,
                                 String quoteString,
                                 List<ColumnDescriptor> tupleDescription,
                                 boolean wrapDateWithTime,
                                 boolean isDateWideRange) {
         super(quoteString, tupleDescription);
-        this.dbProduct = dbProduct;
+        this.dialect = dialect;
         this.wrapDateWithTime = wrapDateWithTime;
         this.isDateWideRange = isDateWideRange;
     }
@@ -92,19 +92,19 @@ public class JdbcPredicateBuilder extends ColumnPredicateBuilder {
                         StringUtils.replace(value, "'", "''"));
             case DATE:
                 // Date field has different format in different databases
-                return dbProduct.wrapDate(value);
+                return dialect.wrapDate(value);
             case TIMESTAMP:
                 // Timestamp field has different format in different databases
                 // If wrapDateWithTime = true we have to convert timestamp to Oracle `date with time`
                 if (wrapDateWithTime) {
-                    return dbProduct.wrapDateWithTime(value);
+                    return dialect.wrapDateWithTime(value);
                 } else {
-                    return dbProduct.wrapTimestamp(value);
+                    return dialect.wrapTimestamp(value);
                 }
             case TIMESTAMP_WITH_TIME_ZONE:
                 // We support TIMESTAMP_WITH_TIME_ZONE only when isDateWideRange=true
                 if (isDateWideRange) {
-                    return dbProduct.wrapTimestampWithTZ(value);
+                    return dialect.wrapTimestampWithTZ(value);
                 } else {
                     throw new UnsupportedOperationException(String.format(
                             "'%s' is not supported fo filtering without additional property. Try to use the property DATE_WIDE_RANGE=true", type));

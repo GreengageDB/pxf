@@ -1,7 +1,7 @@
 package org.greenplum.pxf.plugins.jdbc.partitioning;
 
 import lombok.Getter;
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -48,8 +48,8 @@ class TimestampPartition extends BaseRangePartition {
     }
 
     @Override
-    public String toSqlConstraint(String quoteString, DbProduct dbProduct) {
-        if (dbProduct == null) {
+    public String toSqlConstraint(String quoteString, DatabaseDialect dialect) {
+        if (dialect == null) {
             throw new RuntimeException(String.format(
                     "Partitioning by %s is not supported for this DB", PartitionType.TIMESTAMP
             ));
@@ -57,15 +57,15 @@ class TimestampPartition extends BaseRangePartition {
 
         return generateRangeConstraint(
                 getQuotedColumn(quoteString),
-                convert(start, dbProduct),
-                convert(end, dbProduct)
+                convert(start, dialect),
+                convert(end, dialect)
         );
     }
 
-    private String convert(LocalDateTime value, DbProduct dbProduct) {
+    private String convert(LocalDateTime value, DatabaseDialect dialect) {
         if (value == null) {
             return null;
         }
-        return dbProduct.wrapTimestamp(value, isDateWideRange);
+        return dialect.wrapTimestamp(value, isDateWideRange);
     }
 }

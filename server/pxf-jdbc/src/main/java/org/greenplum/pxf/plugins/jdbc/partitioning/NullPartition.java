@@ -20,7 +20,7 @@ package org.greenplum.pxf.plugins.jdbc.partitioning;
  */
 
 import lombok.Getter;
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
 
 /**
  * A special type of partition: contains IS NULL or IS NOT NULL constraint.
@@ -56,7 +56,7 @@ class NullPartition extends BasePartition implements JdbcFragmentMetadata {
     }
 
     @Override
-    public String toSqlConstraint(String quoteString, DbProduct dbProduct) {
+    public String toSqlConstraint(String quoteString, DatabaseDialect dialect) {
         return getQuotedColumn(quoteString) +
                 (isNull ? " IS NULL" : " IS NOT NULL");
     }

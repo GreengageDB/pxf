@@ -21,6 +21,7 @@ import org.greenplum.pxf.api.model.Accessor;
 import org.greenplum.pxf.api.model.BasePlugin;
 import org.greenplum.pxf.api.model.GreenplumCSV;
 import org.greenplum.pxf.api.model.RequestContext;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -168,7 +169,8 @@ public class S3SelectAccessor extends BasePlugin implements Accessor {
                         !StringUtils.equalsIgnoreCase(FILE_HEADER_INFO_USE, fileHeaderInfo));
         String query = null;
         try {
-            S3SelectQueryBuilder queryBuilder = new S3SelectQueryBuilder(context, usePositionToIdentifyColumn);
+            DatabaseDialect dialect = new S3SelectDatabaseDialect();
+            S3SelectQueryBuilder queryBuilder = new S3SelectQueryBuilder(context, usePositionToIdentifyColumn, dialect);
             query = queryBuilder.buildSelectQuery();
         } catch (SQLException e) {
             LOG.error("Unable to build select query for filter string {}", context.getFilterString());

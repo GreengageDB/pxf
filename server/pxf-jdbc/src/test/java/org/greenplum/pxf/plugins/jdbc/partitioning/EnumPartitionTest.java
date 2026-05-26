@@ -19,7 +19,7 @@ package org.greenplum.pxf.plugins.jdbc.partitioning;
  * under the License.
  */
 
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class EnumPartitionTest {
 
-    private final DbProduct dbProduct = null;
+    private final DatabaseDialect dialect = null;
 
     private final String COL_RAW = "col";
     private final String QUOTE = "\"";
@@ -35,7 +35,7 @@ public class EnumPartitionTest {
     @Test
     public void testNormal() {
         EnumPartition partition = new EnumPartition(COL_RAW, "enum1");
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals("\"col\" = 'enum1'", constraint);
     }
@@ -43,7 +43,7 @@ public class EnumPartitionTest {
     @Test
     public void testExcluded1() {
         EnumPartition partition = new EnumPartition(COL_RAW, new String[]{"enum1"});
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals("( \"col\" <> 'enum1' )", constraint);
     }
@@ -51,7 +51,7 @@ public class EnumPartitionTest {
     @Test
     public void testExcluded2() {
         EnumPartition partition = new EnumPartition(COL_RAW, new String[]{"enum1", "enum2"});
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals("( \"col\" <> 'enum1' AND \"col\" <> 'enum2' )", constraint);
     }
@@ -59,7 +59,7 @@ public class EnumPartitionTest {
     @Test
     public void testExcluded3() {
         EnumPartition partition = new EnumPartition(COL_RAW, new String[]{"enum1", "enum2", "enum3"});
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals("( \"col\" <> 'enum1' AND \"col\" <> 'enum2' AND \"col\" <> 'enum3' )", constraint);
     }
@@ -98,6 +98,6 @@ public class EnumPartitionTest {
     public void testInvalidNullQuoteString() {
         EnumPartition partition = new EnumPartition(COL_RAW, "enum1");
         assertThrows(RuntimeException.class,
-            () -> partition.toSqlConstraint(null, dbProduct));
+            () -> partition.toSqlConstraint(null, dialect));
     }
 }

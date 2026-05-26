@@ -4,6 +4,7 @@ import lombok.experimental.UtilityClass;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.SignStyle;
@@ -166,6 +167,20 @@ public class DateTimeEraFormatters {
             return LocalDateTime.parse(rawVal, LOCAL_DATE_TIME_WITHOUT_DELIMITERS_PARSE_FORMATTER);
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to convert timestamp '" + rawVal + "' to the LocalDateTime class: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Convert a string to OffsetDateTime class with formatter
+     *
+     * @param rawVal the OffsetDateTime in a string format
+     * @return OffsetDateTime
+     */
+    public static OffsetDateTime getOffsetDateTime(String rawVal) {
+        try {
+            return OffsetDateTime.parse(rawVal, OFFSET_DATE_TIME_WITH_TIME_ZONE_FORMATTER);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to convert value '" + rawVal + "' to the OffsetDateTime class: " + e.getMessage(), e);
         }
     }
 }

@@ -20,7 +20,7 @@ package org.greenplum.pxf.plugins.jdbc.partitioning;
  */
 
 import lombok.Getter;
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
 
 import java.util.StringJoiner;
 
@@ -68,7 +68,7 @@ public class EnumPartition extends BaseValuePartition implements JdbcFragmentMet
     }
 
     @Override
-    public String toSqlConstraint(String quoteString, DbProduct dbProduct) {
+    public String toSqlConstraint(String quoteString, DatabaseDialect dialect) {
         String quotedColumn = getQuotedColumn(quoteString);
 
         if (excluded != null && excluded.length > 0) {

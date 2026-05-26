@@ -5,7 +5,7 @@ import org.greenplum.pxf.api.filter.Node;
 import org.greenplum.pxf.api.filter.TreeTraverser;
 import org.greenplum.pxf.api.io.DataType;
 import org.greenplum.pxf.api.utilities.ColumnDescriptor;
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
+import org.greenplum.pxf.plugins.jdbc.dialect.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -131,26 +131,35 @@ public class JdbcPredicateBuilderTest {
      */
     private void runScenario(String filterString, String expectedQuery) throws Exception {
         // test for all supported database flavors
-        for (DbProduct db : DbProduct.values()) {
-            runScenario(filterString, db, expectedQuery, null);
+        List<DatabaseDialect> dialects = List.of(
+                new PostgresDatabaseDialect(),
+                new SqlServerDatabaseDialect(),
+                new MySqlDatabaseDialect(),
+                new OracleDatabaseDialect(),
+                new SybaseDatabaseDialect(),
+                new HiveDatabaseDialect(),
+                new DefaultDatabaseDialect()
+        );
+        for (DatabaseDialect dialect : dialects) {
+            runScenario(filterString, dialect, expectedQuery, null);
         }
     }
 
     /**
      * Runs a scenario where a given filter is parsed and used by the JdbcPredicateBuilder to create a WHERE SQL statement
      * @param filterString filter string passed from Greengage
-     * @param dbProduct database flavor
+     * @param DatabaseDialect database flavor
      * @param expectedQuery expected SQL query fragment without the leading space
      * @param quoteString a quote string to use, null if default
      * @throws Exception if an error occurs
      */
-    private void runScenario(String filterString, DbProduct dbProduct, String expectedQuery, String quoteString) throws Exception {
+    private void runScenario(String filterString, DatabaseDialect dialect, String expectedQuery, String quoteString) throws Exception {
         Node root = new FilterParser().parse(filterString);
         JdbcPredicateBuilder jdbcPredicateBuilder;
         if (quoteString != null) {
-            jdbcPredicateBuilder = new JdbcPredicateBuilder(dbProduct, quoteString, columnDescriptors);
+            jdbcPredicateBuilder = new JdbcPredicateBuilder(dialect, quoteString, columnDescriptors);
         } else {
-            jdbcPredicateBuilder = new JdbcPredicateBuilder(dbProduct, columnDescriptors);
+            jdbcPredicateBuilder = new JdbcPredicateBuilder(dialect, columnDescriptors);
         }
         treeTraverser.traverse(root, jdbcPredicateBuilder);
 

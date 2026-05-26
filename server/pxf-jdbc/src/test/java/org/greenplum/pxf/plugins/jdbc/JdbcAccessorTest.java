@@ -5,6 +5,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.greenplum.pxf.api.error.PxfRuntimeException;
 import org.greenplum.pxf.api.model.RequestContext;
 import org.greenplum.pxf.api.security.SecureLogin;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialectProvider;
 import org.greenplum.pxf.plugins.jdbc.partitioning.IntPartition;
 import org.greenplum.pxf.plugins.jdbc.utils.ConnectionManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,11 +57,13 @@ public class JdbcAccessorTest {
     private ResultSet mockResultSet;
     @Mock
     private DecryptClient mockDecryptClient;
+    @Mock
+    private DatabaseDialectProvider dialectProvider;
 
     @BeforeEach
     public void setup() {
 
-        accessor = new JdbcAccessor(mockConnectionManager, mockSecureLogin, mockDecryptClient);
+        accessor = new JdbcAccessor(mockConnectionManager, mockSecureLogin, mockDecryptClient, dialectProvider);
         configuration = new Configuration();
         context = new RequestContext();
         context.setConfig("default");

@@ -24,6 +24,8 @@ import org.greenplum.pxf.api.model.Fragment;
 import org.greenplum.pxf.api.model.Fragmenter;
 import org.greenplum.pxf.api.model.RequestContext;
 import org.greenplum.pxf.api.utilities.ColumnDescriptor;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
+import org.greenplum.pxf.plugins.jdbc.dialect.MySqlDatabaseDialect;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -72,10 +74,10 @@ public class SQLQueryBuilderTest {
         // id = 1
         context.setFilterString("a0c20s1d1o5");
 
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE id = 1", query);
@@ -85,10 +87,10 @@ public class SQLQueryBuilderTest {
     public void testDateAndAmtFilter() throws Exception {
         // cdate > '2008-02-01' and cdate < '2008-12-01' and amt > 1200
         context.setFilterString("a1c25s10d2008-02-01o2a1c25s10d2008-12-01o1l0a2c20s4d1200o2l0");
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE ((cdate > DATE('2008-02-01') AND cdate < DATE('2008-12-01')) AND amt > 1200)", query);
@@ -99,10 +101,10 @@ public class SQLQueryBuilderTest {
         // cdate > '2008-02-01' OR (cdate < '2008-12-01' AND amt > 1200)
         context.setFilterString("a1c1082s10d2008-02-01o2a1c1082s10d2008-12-01o1a0c23s4d1200o2l0l1");
 
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE (cdate > DATE('2008-02-01') OR (cdate < DATE('2008-12-01') AND id > 1200))", query);
@@ -112,10 +114,10 @@ public class SQLQueryBuilderTest {
     public void testDateOrAmtFilter() throws Exception {
         // cdate > '2008-02-01' or amt > 1200
         context.setFilterString("a1c25s10d2008-02-01o2a2c20s4d1200o2l1");
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE (cdate > DATE('2008-02-01') OR amt > 1200)", query);
@@ -125,9 +127,9 @@ public class SQLQueryBuilderTest {
     public void testIsNotNullOperator() throws Exception {
         // a3 IS NOT NULL
         context.setFilterString("a3o9");
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE grade IS NOT NULL", query);
@@ -135,13 +137,13 @@ public class SQLQueryBuilderTest {
 
     @Test
     public void testInOperatorWithWhere() throws Exception {
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
         // grade IN ('bad')
         context.setFilterString("a3m1009s3dbado10");
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE grade IN ('bad')", query);
@@ -149,13 +151,13 @@ public class SQLQueryBuilderTest {
 
     @Test
     public void testInOperatorWithWhereAndFewIn() throws Exception {
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
         // grade IN ('bad','good')
         context.setFilterString("a3m1009s3dbads4dgoodo10");
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE grade IN ('bad','good')", query);
@@ -163,13 +165,13 @@ public class SQLQueryBuilderTest {
 
     @Test
     public void testInOperatorShouldContainWhere() throws Exception {
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
         // grade IN ('bad')
         context.setFilterString("a3m1009s3dbado10");
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertNotEquals(SQL, query);
@@ -177,13 +179,13 @@ public class SQLQueryBuilderTest {
 
     @Test
     public void testInOperatorShouldContainBrackets() throws Exception {
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
         // grade IN ('bad')
         context.setFilterString("a3m1009s3dbado10");
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertNotEquals(SQL + " WHERE grade IN 'bad'", query);
@@ -195,7 +197,7 @@ public class SQLQueryBuilderTest {
         context.addOption("RANGE", "2008-01-01:2008-12-01");
         context.addOption("INTERVAL", "2:month");
 
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
         Fragmenter fragmenter = getFragmenter(context);
@@ -206,31 +208,31 @@ public class SQLQueryBuilderTest {
         String query;
 
         context.setFragmentMetadata(fragments.get(0).getMetadata());
-        builder = new SQLQueryBuilder(context, mockMetaData);
+        builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE cdate < DATE('2008-01-01')", query);
 
         context.setFragmentMetadata(fragments.get(1).getMetadata());
-        builder = new SQLQueryBuilder(context, mockMetaData);
+        builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE cdate >= DATE('2008-12-01')", query);
 
         context.setFragmentMetadata(fragments.get(2).getMetadata());
-        builder = new SQLQueryBuilder(context, mockMetaData);
+        builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE cdate >= DATE('2008-01-01') AND cdate < DATE('2008-03-01')", query);
 
         context.setFragmentMetadata(fragments.get(3).getMetadata());
-        builder = new SQLQueryBuilder(context, mockMetaData);
+        builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE cdate >= DATE('2008-03-01') AND cdate < DATE('2008-05-01')", query);
 
         context.setFragmentMetadata(fragments.get(8).getMetadata());
-        builder = new SQLQueryBuilder(context, mockMetaData);
+        builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE cdate IS NULL", query);
@@ -243,7 +245,7 @@ public class SQLQueryBuilderTest {
         context.addOption("PARTITION_BY", "grade:enum");
         context.addOption("RANGE", "excellent:good:general:bad");
 
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
         Fragmenter fragmenter = getFragmenter(context);
@@ -251,21 +253,21 @@ public class SQLQueryBuilderTest {
         // Fragment 0: grade = 'excellent'
         context.setFragmentMetadata(fragments.get(0).getMetadata());
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE id > 5 AND grade = 'excellent'", query);
 
         context.setFragmentMetadata(fragments.get(4).getMetadata());
 
-        builder = new SQLQueryBuilder(context, mockMetaData);
+        builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE id > 5 AND ( grade <> 'excellent' AND grade <> 'good' AND grade <> 'general' AND grade <> 'bad' )", query);
 
         context.setFragmentMetadata(fragments.get(5).getMetadata());
 
-        builder = new SQLQueryBuilder(context, mockMetaData);
+        builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE id > 5 AND grade IS NULL", query);
@@ -278,7 +280,7 @@ public class SQLQueryBuilderTest {
         context.addOption("PARTITION_BY", "grade:enum");
         context.addOption("RANGE", "excellent:good:general:bad");
 
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
         Fragmenter fragmenter = getFragmenter(context);
@@ -286,21 +288,21 @@ public class SQLQueryBuilderTest {
         // Fragment 0: grade = 'excellent'
         context.setFragmentMetadata(fragments.get(0).getMetadata());
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE (cdate > DATE('2008-02-01') OR amt > 1200) AND grade = 'excellent'", query);
 
         context.setFragmentMetadata(fragments.get(4).getMetadata());
 
-        builder = new SQLQueryBuilder(context, mockMetaData);
+        builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE (cdate > DATE('2008-02-01') OR amt > 1200) AND ( grade <> 'excellent' AND grade <> 'good' AND grade <> 'general' AND grade <> 'bad' )", query);
 
         context.setFragmentMetadata(fragments.get(5).getMetadata());
 
-        builder = new SQLQueryBuilder(context, mockMetaData);
+        builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         query = builder.buildSelectQuery();
         assertEquals(SQL + " WHERE (cdate > DATE('2008-02-01') OR amt > 1200) AND grade IS NULL", query);
@@ -308,7 +310,7 @@ public class SQLQueryBuilderTest {
 
     @Test
     public void testNoPartition() throws Exception {
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
         Fragmenter fragmenter = getFragmenter(context);
@@ -316,7 +318,7 @@ public class SQLQueryBuilderTest {
         assertEquals(1, fragments.size());
         context.setFragmentMetadata(fragments.get(0).getMetadata());
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals(SQL, query);
@@ -332,12 +334,12 @@ public class SQLQueryBuilderTest {
         DatabaseMetaData localDatabaseMetaData = mock(DatabaseMetaData.class);
         when(localDatabaseMetaData.supportsMixedCaseIdentifiers()).thenReturn(false);
         when(localDatabaseMetaData.getExtraNameCharacters()).thenReturn("");
-        when(localDatabaseMetaData.getDatabaseProductName()).thenReturn("mysql");
         when(localDatabaseMetaData.getIdentifierQuoteString()).thenReturn("\"");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
 
         String localSQL = "SELECT \"id\", \"cDate\" FROM sales";
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, localDatabaseMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, localDatabaseMetaData, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals(localSQL, query);
@@ -353,7 +355,7 @@ public class SQLQueryBuilderTest {
         DatabaseMetaData localDatabaseMetaData = mock(DatabaseMetaData.class);
         when(localDatabaseMetaData.supportsMixedCaseIdentifiers()).thenReturn(false);
         when(localDatabaseMetaData.getExtraNameCharacters()).thenReturn("");
-        when(localDatabaseMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(localDatabaseMetaData.getIdentifierQuoteString()).thenReturn("\"");
 
         // id > 5
@@ -361,7 +363,7 @@ public class SQLQueryBuilderTest {
 
         String localSQL = "SELECT \"id\", \"cDate\" FROM sales WHERE \"id\" > 5";
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, localDatabaseMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, localDatabaseMetaData, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals(localSQL, query);
@@ -378,7 +380,7 @@ public class SQLQueryBuilderTest {
         DatabaseMetaData localDatabaseMetaData = mock(DatabaseMetaData.class);
         when(localDatabaseMetaData.supportsMixedCaseIdentifiers()).thenReturn(false);
         when(localDatabaseMetaData.getExtraNameCharacters()).thenReturn("");
-        when(localDatabaseMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(localDatabaseMetaData.getIdentifierQuoteString()).thenReturn("\"");
 
         // id > 5
@@ -395,7 +397,7 @@ public class SQLQueryBuilderTest {
 
         String expected = "SELECT \"id\", \"cDate\" FROM sales WHERE \"id\" > 5 AND \"cDate\" >= DATE('2008-01-01') AND \"cDate\" < DATE('2008-03-01')";
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, localDatabaseMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, localDatabaseMetaData, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals(expected, query);
@@ -410,12 +412,12 @@ public class SQLQueryBuilderTest {
 
         DatabaseMetaData localDatabaseMetaData = mock(DatabaseMetaData.class);
         when(localDatabaseMetaData.getExtraNameCharacters()).thenReturn("");
-        when(localDatabaseMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(localDatabaseMetaData.getIdentifierQuoteString()).thenReturn("\"");
 
         String localSQL = "SELECT \"id\", \"c date\" FROM sales";
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, localDatabaseMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, localDatabaseMetaData, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals(localSQL, query);
@@ -425,10 +427,10 @@ public class SQLQueryBuilderTest {
     public void testIdFilterForceQuote() throws Exception {
         // id = 1
         context.setFilterString("a0c20s1d1o5");
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getIdentifierQuoteString()).thenReturn("\"");
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.forceSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals("SELECT \"id\", \"cdate\", \"amt\", \"grade\", \"b\" FROM sales WHERE \"id\" = 1", query);
@@ -441,9 +443,9 @@ public class SQLQueryBuilderTest {
         context.getTupleDescription().get(1).setProjected(false);
         context.getTupleDescription().get(3).setProjected(false);
         context.getTupleDescription().get(4).setProjected(false);
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         String query = builder.buildSelectQuery();
         assertEquals("SELECT id, amt FROM sales WHERE id = 1", query);
     }
@@ -451,9 +453,9 @@ public class SQLQueryBuilderTest {
     /* -------------- NAMED QUERY TESTS --------------- */
     @Test
     public void testSimpleNamedQuery() throws Exception {
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, NAMED_QUERY_WHERE);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, NAMED_QUERY_WHERE, dialect);
         String query = builder.buildSelectQuery();
         assertEquals("SELECT id, cdate, amt, grade, b FROM (SELECT a, b FROM c WHERE d = 'foo') pxfsubquery", query);
     }
@@ -462,10 +464,10 @@ public class SQLQueryBuilderTest {
     public void testNamedQueryIdFilterForceQuote() throws Exception {
         // id = 1
         context.setFilterString("a0c20s1d1o5");
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getIdentifierQuoteString()).thenReturn("\"");
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, NAMED_QUERY_WHERE);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, NAMED_QUERY_WHERE, dialect);
         builder.forceSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals("SELECT \"id\", \"cdate\", \"amt\", \"grade\", \"b\" FROM (SELECT a, b FROM c WHERE d = 'foo') pxfsubquery WHERE \"id\" = 1", query);
@@ -478,9 +480,9 @@ public class SQLQueryBuilderTest {
         context.getTupleDescription().get(1).setProjected(false);
         context.getTupleDescription().get(3).setProjected(false);
         context.getTupleDescription().get(4).setProjected(false);
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, NAMED_QUERY_WHERE);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, NAMED_QUERY_WHERE, dialect);
         String query = builder.buildSelectQuery();
         assertEquals("SELECT id, amt FROM (SELECT a, b FROM c WHERE d = 'foo') pxfsubquery WHERE id = 1", query);
     }
@@ -491,7 +493,7 @@ public class SQLQueryBuilderTest {
         context.setFilterString("a0c20s1d5o2");
         context.addOption("PARTITION_BY", "grade:enum");
         context.addOption("RANGE", "excellent:good:general:bad");
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
         Fragmenter fragmenter = getFragmenter(context);
@@ -499,7 +501,7 @@ public class SQLQueryBuilderTest {
         // Fragment 0: grade = 'excellent'
         context.setFragmentMetadata(fragments.get(0).getMetadata());
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, NAMED_QUERY_WHERE);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, NAMED_QUERY_WHERE, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals("SELECT id, cdate, amt, grade, b FROM (SELECT a, b FROM c WHERE d = 'foo') pxfsubquery WHERE id > 5 AND grade = 'excellent'", query);
@@ -509,7 +511,7 @@ public class SQLQueryBuilderTest {
     public void testNamedQueryWithWhereWithoutFilterWithPartition() throws Exception {
         context.addOption("PARTITION_BY", "grade:enum");
         context.addOption("RANGE", "excellent:good:general:bad");
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
         Fragmenter fragmenter = getFragmenter(context);
@@ -517,7 +519,7 @@ public class SQLQueryBuilderTest {
         // Fragment 0: grade = 'excellent'
         context.setFragmentMetadata(fragments.get(0).getMetadata());
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, NAMED_QUERY_WHERE);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, NAMED_QUERY_WHERE, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals("SELECT id, cdate, amt, grade, b FROM (SELECT a, b FROM c WHERE d = 'foo') pxfsubquery WHERE grade = 'excellent'", query);
@@ -529,7 +531,7 @@ public class SQLQueryBuilderTest {
         context.setFilterString("a0c20s1d5o2");
         context.addOption("PARTITION_BY", "grade:enum");
         context.addOption("RANGE", "excellent:good:general:bad");
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
         Fragmenter fragmenter = getFragmenter(context);
@@ -537,7 +539,7 @@ public class SQLQueryBuilderTest {
         // Fragment 0: grade = 'excellent'
         context.setFragmentMetadata(fragments.get(0).getMetadata());
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, NAMED_QUERY);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, NAMED_QUERY, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals("SELECT id, cdate, amt, grade, b FROM (SELECT a, b FROM c) pxfsubquery WHERE id > 5 AND grade = 'excellent'", query);
@@ -547,7 +549,7 @@ public class SQLQueryBuilderTest {
     public void testNamedQueryWithoutWhereWithoutFilterWithPartition() throws Exception {
         context.addOption("PARTITION_BY", "grade:enum");
         context.addOption("RANGE", "excellent:good:general:bad");
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
         Fragmenter fragmenter = getFragmenter(context);
@@ -555,7 +557,7 @@ public class SQLQueryBuilderTest {
         // Fragment 0: grade = 'excellent'
         context.setFragmentMetadata(fragments.get(0).getMetadata());
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, NAMED_QUERY);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, NAMED_QUERY, dialect);
         builder.autoSetQuoteString();
         String query = builder.buildSelectQuery();
         assertEquals("SELECT id, cdate, amt, grade, b FROM (SELECT a, b FROM c) pxfsubquery WHERE grade = 'excellent'", query);
@@ -563,13 +565,13 @@ public class SQLQueryBuilderTest {
 
     @Test
     public void testNotBoolean() throws Exception {
-        when(mockMetaData.getDatabaseProductName()).thenReturn("mysql");
+        DatabaseDialect dialect = new MySqlDatabaseDialect();
         when(mockMetaData.getExtraNameCharacters()).thenReturn("");
 
         // NOT a4
         context.setFilterString("a4c16s4dtrueo0l2");
 
-        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData);
+        SQLQueryBuilder builder = new SQLQueryBuilder(context, mockMetaData, dialect);
         builder.autoSetQuoteString();
 
         assertEquals("SELECT id, cdate, amt, grade, b FROM sales WHERE NOT (b)", builder.buildSelectQuery());

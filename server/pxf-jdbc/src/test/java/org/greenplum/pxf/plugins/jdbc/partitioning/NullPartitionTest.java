@@ -19,7 +19,7 @@ package org.greenplum.pxf.plugins.jdbc.partitioning;
  * under the License.
  */
 
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class NullPartitionTest {
 
-    private final DbProduct dbProduct = null;
+    private final DatabaseDialect dialect = null;
 
     private final String COL_RAW = "col";
     private final String QUOTE = "\"";
@@ -37,7 +37,7 @@ public class NullPartitionTest {
     @Test
     public void testNormal() {
         NullPartition partition = new NullPartition(COL_RAW);
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals(COL + " IS NULL", constraint);
         assertTrue(partition.isNull());
@@ -46,7 +46,7 @@ public class NullPartitionTest {
     @Test
     public void testIsNotNull() {
         NullPartition partition = new NullPartition(COL_RAW, false);
-        String constraint = partition.toSqlConstraint(QUOTE, dbProduct);
+        String constraint = partition.toSqlConstraint(QUOTE, dialect);
 
         assertEquals(COL + " IS NOT NULL", constraint);
     }
@@ -61,6 +61,6 @@ public class NullPartitionTest {
     public void testInvalidNullQuoteString() {
         NullPartition partition = new NullPartition(COL_RAW);
         assertThrows(RuntimeException.class,
-            () -> partition.toSqlConstraint(null, dbProduct));
+            () -> partition.toSqlConstraint(null, dialect));
     }
 }

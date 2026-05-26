@@ -1,6 +1,7 @@
 package org.greenplum.pxf.plugins.jdbc.partitioning;
 
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
+import org.greenplum.pxf.plugins.jdbc.dialect.PostgresDatabaseDialect;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
@@ -67,18 +68,18 @@ public class TimestampPartitionTestGenerate {
         final String COLUMN = "col";
         final String RANGE = "101010203T124810 BC:101010203T130530 BC";
         final String INTERVAL = "1:minute";
-        final DbProduct dbProduct = DbProduct.POSTGRES;
+        final DatabaseDialect dialect = new PostgresDatabaseDialect();
         final boolean WRAP_DATE_WITH_TIME = false;
 
         TimestampPartition[] parts = PartitionType.TIMESTAMP.generate(COLUMN, RANGE, INTERVAL, true).stream()
                 .map(p -> (TimestampPartition) p).toArray(TimestampPartition[]::new);
 
         assertEquals(20, parts.length);
-        assertEquals("col < '10101-02-03 12:48:10 BC'", parts[0].toSqlConstraint("", dbProduct));
-        assertEquals("col >= '10101-02-03 13:05:30 BC'", parts[1].toSqlConstraint("", dbProduct));
-        assertEquals("col >= '10101-02-03 12:48:10 BC' AND col < '10101-02-03 12:49:10 BC'", parts[2].toSqlConstraint("", dbProduct));
-        assertEquals("col >= '10101-02-03 12:53:10 BC' AND col < '10101-02-03 12:54:10 BC'", parts[7].toSqlConstraint("", dbProduct));
-        assertEquals("col >= '10101-02-03 13:05:10 BC' AND col < '10101-02-03 13:05:30 BC'", parts[19].toSqlConstraint("", dbProduct));
+        assertEquals("col < '10101-02-03 12:48:10 BC'", parts[0].toSqlConstraint("", dialect));
+        assertEquals("col >= '10101-02-03 13:05:30 BC'", parts[1].toSqlConstraint("", dialect));
+        assertEquals("col >= '10101-02-03 12:48:10 BC' AND col < '10101-02-03 12:49:10 BC'", parts[2].toSqlConstraint("", dialect));
+        assertEquals("col >= '10101-02-03 12:53:10 BC' AND col < '10101-02-03 12:54:10 BC'", parts[7].toSqlConstraint("", dialect));
+        assertEquals("col >= '10101-02-03 13:05:10 BC' AND col < '10101-02-03 13:05:30 BC'", parts[19].toSqlConstraint("", dialect));
     }
 
     @Test

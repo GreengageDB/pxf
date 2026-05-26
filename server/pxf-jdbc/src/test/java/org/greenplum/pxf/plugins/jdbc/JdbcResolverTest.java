@@ -7,8 +7,10 @@ import org.greenplum.pxf.api.io.DataType;
 import org.greenplum.pxf.api.model.RequestContext;
 import org.greenplum.pxf.api.security.SecureLogin;
 import org.greenplum.pxf.api.utilities.ColumnDescriptor;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialectProvider;
+import org.greenplum.pxf.plugins.jdbc.dialect.PostgresDatabaseDialect;
 import org.greenplum.pxf.plugins.jdbc.utils.ConnectionManager;
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,7 +41,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class JdbcResolverTest {
     @Mock
-    private OneRow row;
+    private JdbcOneRow row;
     @Mock
     private ResultSet result;
     @Mock
@@ -48,6 +50,8 @@ class JdbcResolverTest {
     private SecureLogin mockSecureLogin;
     @Mock
     DecryptClient decryptClient;
+    @Mock
+    DatabaseDialectProvider dialectProvider;
     @Mock
     private PreparedStatement mockStatement;
     RequestContext context = new RequestContext();
@@ -58,7 +62,7 @@ class JdbcResolverTest {
 
     @BeforeEach
     void setup() {
-        resolver = new JdbcResolver(mockConnectionManager, mockSecureLogin, decryptClient);
+        resolver = new JdbcResolver(mockConnectionManager, mockSecureLogin, decryptClient, dialectProvider);
     }
 
     @Test
@@ -216,6 +220,7 @@ class JdbcResolverTest {
     void getFieldUUIDTest() throws SQLException {
         UUID uuid = UUID.fromString("decafbad-0000-0000-0000-000000000000");
         when(row.getData()).thenReturn(result);
+        when(row.getDialect()).thenReturn(new PostgresDatabaseDialect());
         when(result.getObject("uuid_col", java.util.UUID.class)).thenReturn(uuid);
         columnDescriptors.add(new ColumnDescriptor("uuid_col", DataType.UUID.getOID(), 1, DataType.UUID.name(), null));
         context.setTupleDescription(columnDescriptors);
@@ -424,7 +429,7 @@ class JdbcResolverTest {
         oneFieldList.add(new OneField(DataType.UUID.getOID(), UUID.fromString("decafbad-0000-0000-0000-000000000000")));
         when(row.getData()).thenReturn(oneFieldList);
 
-        JdbcResolver.decodeOneRowToPreparedStatement(row, mockStatement, mock(DbProduct.class));
+        JdbcResolver.decodeOneRowToPreparedStatement(row, mockStatement, mock(DatabaseDialect.class));
 
         verify(mockStatement).setObject(1, UUID.fromString("decafbad-0000-0000-0000-000000000000"));
         verifyNoMoreInteractions(mockStatement);
@@ -432,6 +437,7 @@ class JdbcResolverTest {
 
     private OneField getOneField(Object date, int dataTypeOid, String typeName) throws SQLException {
         when(row.getData()).thenReturn(result);
+        when(row.getDialect()).thenReturn(new PostgresDatabaseDialect());
         if (date instanceof LocalDate) {
             when(result.getObject("birth_date", LocalDate.class)).thenReturn((LocalDate) date);
         } else if (date instanceof Date) {

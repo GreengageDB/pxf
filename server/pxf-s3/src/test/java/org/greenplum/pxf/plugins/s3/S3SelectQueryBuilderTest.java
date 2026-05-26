@@ -3,6 +3,7 @@ package org.greenplum.pxf.plugins.s3;
 import org.greenplum.pxf.api.io.DataType;
 import org.greenplum.pxf.api.model.RequestContext;
 import org.greenplum.pxf.api.utilities.ColumnDescriptor;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,6 +21,7 @@ public class S3SelectQueryBuilderTest {
 
     private RequestContext context;
     private S3SelectQueryBuilder builderPosition, builderNoPosition;
+    private final DatabaseDialect dialect = new S3SelectDatabaseDialect();
 
     @BeforeEach
     public void setup() throws SQLException {
@@ -37,8 +39,8 @@ public class S3SelectQueryBuilderTest {
         columns.add(new ColumnDescriptor("col_numeric", DataType.NUMERIC.getOID(), 8, "numeric", null));
         context.setTupleDescription(columns);
 
-        builderPosition = new S3SelectQueryBuilder(context, true);
-        builderNoPosition = new S3SelectQueryBuilder(context, false);
+        builderPosition = new S3SelectQueryBuilder(context, true, dialect);
+        builderNoPosition = new S3SelectQueryBuilder(context, false, dialect);
     }
 
     @Test

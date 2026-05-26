@@ -31,8 +31,9 @@ import org.greenplum.pxf.api.security.SecureLogin;
 import org.greenplum.pxf.api.utilities.ColumnDescriptor;
 import org.greenplum.pxf.api.utilities.SpringContext;
 import org.greenplum.pxf.api.utilities.Utilities;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialectProvider;
 import org.greenplum.pxf.plugins.jdbc.utils.ConnectionManager;
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
 import org.greenplum.pxf.plugins.jdbc.utils.HiveJdbcUtils;
 
 import java.security.PrivilegedExceptionAction;
@@ -183,6 +184,7 @@ public class JdbcBasePlugin extends BasePlugin implements Reloader {
     // Flag which is used when the external database will use PostgreSql syntaxes to wrap date, timestamp and timestamp with time zone
     // while using pushdown filter.
     protected boolean treatUnknownDbmsAsPostgreSql;
+    protected DatabaseDialectProvider dialectProvider;
 
 
     static {
@@ -198,7 +200,7 @@ public class JdbcBasePlugin extends BasePlugin implements Reloader {
      */
     JdbcBasePlugin() {
         this(SpringContext.getBean(ConnectionManager.class), SpringContext.getBean(SecureLogin.class),
-                SpringContext.getNullableBean(DecryptClient.class)
+                SpringContext.getNullableBean(DecryptClient.class), SpringContext.getBean(DatabaseDialectProvider.class)
         );
     }
 
@@ -207,10 +209,14 @@ public class JdbcBasePlugin extends BasePlugin implements Reloader {
      *
      * @param connectionManager connection manager instance
      */
-    JdbcBasePlugin(ConnectionManager connectionManager, SecureLogin secureLogin, DecryptClient decryptClient) {
+    JdbcBasePlugin(ConnectionManager connectionManager,
+                   SecureLogin secureLogin,
+                   DecryptClient decryptClient,
+                   DatabaseDialectProvider dialectProvider) {
         this.connectionManager = connectionManager;
         this.secureLogin = secureLogin;
         this.decryptClient = decryptClient;
+        this.dialectProvider = dialectProvider;
     }
 
     @Override
@@ -647,11 +653,10 @@ public class JdbcBasePlugin extends BasePlugin implements Reloader {
 
         // Prepare session (process sessionConfiguration)
         if (!sessionConfiguration.isEmpty()) {
-            DbProduct dbProduct = DbProduct.getDbProduct(metadata.getDatabaseProductName(), treatUnknownDbmsAsPostgreSql);
-
+            DatabaseDialect dialect = dialectProvider.get(metadata.getDatabaseProductName(), treatUnknownDbmsAsPostgreSql);
             try (Statement statement = connection.createStatement()) {
                 for (Map.Entry<String, String> e : sessionConfiguration.entrySet()) {
-                    String sessionQuery = dbProduct.buildSessionQuery(e.getKey(), e.getValue());
+                    String sessionQuery = dialect.buildSessionQuery(e.getKey(), e.getValue());
                     log.trace("Executing statement {} on connection {}", sessionQuery, connection);
                     statement.execute(sessionQuery);
                 }

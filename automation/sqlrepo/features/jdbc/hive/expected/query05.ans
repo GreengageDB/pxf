@@ -13,7 +13,8 @@ SELECT * FROM pxf_jdbc_hive_types_server_table ORDER BY n1;
   8 |  1 |   8
   9 |  1 |   9
  10 |  1 |  10
- 11 | 11 | 110
+ 11 | 12 | 121
  12 |  1 |  11
     |  0 |  11
 (12 rows)
+

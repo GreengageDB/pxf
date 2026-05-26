@@ -5,7 +5,7 @@ import org.greenplum.pxf.api.filter.OperandNode;
 import org.greenplum.pxf.api.io.DataType;
 import org.greenplum.pxf.api.utilities.ColumnDescriptor;
 import org.greenplum.pxf.plugins.jdbc.JdbcPredicateBuilder;
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
 
 import java.util.List;
 
@@ -24,8 +24,9 @@ public class S3SelectPredicateBuilder extends JdbcPredicateBuilder {
      * @param tupleDescription            the list of column descriptors
      */
     public S3SelectPredicateBuilder(boolean usePositionToIdentifyColumn,
-                                    List<ColumnDescriptor> tupleDescription) {
-        super(DbProduct.S3_SELECT, tupleDescription);
+                                    List<ColumnDescriptor> tupleDescription,
+                                    DatabaseDialect dialect) {
+        super(dialect, tupleDescription);
         this.usePositionToIdentifyColumn = usePositionToIdentifyColumn;
     }
 

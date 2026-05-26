@@ -5,8 +5,8 @@ import org.greenplum.pxf.api.filter.*;
 import org.greenplum.pxf.api.io.DataType;
 import org.greenplum.pxf.api.model.RequestContext;
 import org.greenplum.pxf.api.utilities.ColumnDescriptor;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
 import org.greenplum.pxf.plugins.jdbc.partitioning.JdbcFragmentMetadata;
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,7 +86,7 @@ public class SQLQueryBuilder {
     protected final RequestContext context;
 
     private final DatabaseMetaData databaseMetaData;
-    private final DbProduct dbProduct;
+    private final DatabaseDialect dialect;
     protected final List<ColumnDescriptor> columns;
     private final String source;
     private String quoteString;
@@ -101,8 +101,8 @@ public class SQLQueryBuilder {
      * @param metaData {@link DatabaseMetaData}
      * @throws SQLException if some call of DatabaseMetaData method fails
      */
-    public SQLQueryBuilder(RequestContext context, DatabaseMetaData metaData) throws SQLException {
-        this(context, metaData, null);
+    public SQLQueryBuilder(RequestContext context, DatabaseMetaData metaData, DatabaseDialect dialect) throws SQLException {
+        this(context, metaData, null, dialect);
     }
 
     /**
@@ -113,7 +113,7 @@ public class SQLQueryBuilder {
      * @param subQuery query to run and get results from, instead of using a table name
      * @throws SQLException if some call of DatabaseMetaData method fails
      */
-    public SQLQueryBuilder(RequestContext context, DatabaseMetaData metaData, String subQuery) throws SQLException {
+    public SQLQueryBuilder(RequestContext context, DatabaseMetaData metaData, String subQuery, DatabaseDialect databaseDialect) throws SQLException {
         if (context == null) {
             throw new IllegalArgumentException("Provided RequestContext is null");
         }
@@ -122,9 +122,7 @@ public class SQLQueryBuilder {
             throw new IllegalArgumentException("Provided DatabaseMetaData is null");
         }
         databaseMetaData = metaData;
-
-        dbProduct = DbProduct.getDbProduct(databaseMetaData.getDatabaseProductName(),
-                JdbcBasePlugin.treatUnknownDbmsAsPostgreSql(context));
+        dialect = databaseDialect;
         columns = context.getTupleDescription();
 
         // pick the source as either requested table name or a wrapped subquery with an alias
@@ -153,7 +151,7 @@ public class SQLQueryBuilder {
         buildWhereSQL(sb);
 
         // Insert partition constraints
-        buildFragmenterSql(context, dbProduct, quoteString, sb);
+        buildFragmenterSql(context, dialect, quoteString, sb);
 
         String query = sb.toString();
         LOG.debug("buildSelectQuery: {}", query);
@@ -284,7 +282,7 @@ public class SQLQueryBuilder {
      */
     protected JdbcPredicateBuilder getPredicateBuilder() {
         return new JdbcPredicateBuilder(
-                dbProduct,
+                dialect,
                 quoteString,
                 context.getTupleDescription(),
                 wrapDateWithTime,
@@ -339,11 +337,11 @@ public class SQLQueryBuilder {
      * Insert fragment constraints into the SQL query.
      *
      * @param context     RequestContext of the fragment
-     * @param dbProduct   Database product (affects the behaviour for DATE partitions)
+     * @param dialect     Database product (affects the behaviour for DATE partitions)
      * @param quoteString String to use as quote for column identifiers
      * @param query       SQL query to insert constraints to. The query may may contain other WHERE statements
      */
-    public void buildFragmenterSql(RequestContext context, DbProduct dbProduct, String quoteString, StringBuilder query) {
+    public void buildFragmenterSql(RequestContext context, DatabaseDialect dialect, String quoteString, StringBuilder query) {
         if (context.getOption("PARTITION_BY") == null || context.getFragmentMetadata() == null) {
             return;
         }
@@ -361,7 +359,7 @@ public class SQLQueryBuilder {
         }
 
         JdbcFragmentMetadata fragmentMetadata = context.getFragmentMetadata();
-        String fragmentSql = fragmentMetadata.toSqlConstraint(quoteString, dbProduct);
+        String fragmentSql = fragmentMetadata.toSqlConstraint(quoteString, dialect);
 
         query.append(fragmentSql);
     }

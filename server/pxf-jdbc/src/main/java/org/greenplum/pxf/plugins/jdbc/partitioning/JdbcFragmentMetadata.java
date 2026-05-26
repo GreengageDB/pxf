@@ -1,7 +1,7 @@
 package org.greenplum.pxf.plugins.jdbc.partitioning;
 
 import org.greenplum.pxf.api.utilities.FragmentMetadata;
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -31,8 +31,8 @@ public interface JdbcFragmentMetadata extends FragmentMetadata {
      * Form a SQL constraint from the metadata of this fragment.
      *
      * @param quoteString a string to quote partition column
-     * @param dbProduct   a {@link DbProduct} to wrap constraint values
+     * @param dialect   a {@link DatabaseDialect} to wrap constraint values
      * @return a pure SQL constraint (without WHERE)
      */
-    String toSqlConstraint(String quoteString, DbProduct dbProduct);
+    String toSqlConstraint(String quoteString, DatabaseDialect dialect);
 }

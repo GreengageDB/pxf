@@ -9,4 +9,4 @@
 ##############################################################################
 
 # Memory
-export PXF_JVM_OPTS="-Xmx1g -Xms1g"
+export PXF_JVM_OPTS="-Xmx1g -Xms1g -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000"

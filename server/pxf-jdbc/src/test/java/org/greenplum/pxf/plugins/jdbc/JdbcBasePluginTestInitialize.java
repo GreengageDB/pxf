@@ -29,6 +29,10 @@ import org.greenplum.pxf.api.io.DataType;
 import org.greenplum.pxf.api.model.RequestContext;
 import org.greenplum.pxf.api.security.SecureLogin;
 import org.greenplum.pxf.api.utilities.ColumnDescriptor;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialectProvider;
+import org.greenplum.pxf.plugins.jdbc.dialect.DefaultDatabaseDialect;
+import org.greenplum.pxf.plugins.jdbc.dialect.PostgresDatabaseDialect;
 import org.greenplum.pxf.plugins.jdbc.utils.ConnectionManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,12 +41,7 @@ import org.mockito.internal.util.reflection.FieldReader;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -92,7 +91,12 @@ public class JdbcBasePluginTestInitialize {
 
         PxfUserGroupInformation mockPxfUserGroupInformation = mock(PxfUserGroupInformation.class);
         TextEncryptorProvider mockTextEncryptorProvider = mock(TextEncryptorProvider.class);
-        plugin = new JdbcBasePlugin(connectionManager, new SecureLogin(mockPxfUserGroupInformation), new DecryptClientImpl(mockTextEncryptorProvider));
+        Collection<DatabaseDialect> dialects = List.of(new DefaultDatabaseDialect(), new PostgresDatabaseDialect());
+        plugin = new JdbcBasePlugin(
+                connectionManager,
+                new SecureLogin(mockPxfUserGroupInformation),
+                new DecryptClientImpl(mockTextEncryptorProvider),
+                new DatabaseDialectProvider(dialects));
     }
 
     /**

@@ -26,8 +26,9 @@ import org.greenplum.pxf.api.io.DataType;
 import org.greenplum.pxf.api.model.Resolver;
 import org.greenplum.pxf.api.security.SecureLogin;
 import org.greenplum.pxf.api.utilities.ColumnDescriptor;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialectProvider;
 import org.greenplum.pxf.plugins.jdbc.utils.ConnectionManager;
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -46,13 +47,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.greenplum.pxf.api.GreenplumDateTime.DATETIME_FORMATTER;
-import static org.greenplum.pxf.api.GreenplumDateTime.DATE_FORMATTER;
-import static org.greenplum.pxf.plugins.jdbc.utils.DateTimeEraFormatters.LOCAL_DATE_FORMATTER;
-import static org.greenplum.pxf.plugins.jdbc.utils.DateTimeEraFormatters.LOCAL_DATE_TIME_FORMATTER;
-import static org.greenplum.pxf.plugins.jdbc.utils.DateTimeEraFormatters.OFFSET_DATE_TIME_FORMATTER;
-import static org.greenplum.pxf.plugins.jdbc.utils.DateTimeEraFormatters.getLocalDate;
-import static org.greenplum.pxf.plugins.jdbc.utils.DateTimeEraFormatters.getLocalDateTime;
+import static org.greenplum.pxf.plugins.jdbc.utils.DateTimeEraFormatters.*;
 
 /**
  * JDBC tables resolver
@@ -89,8 +84,8 @@ public class JdbcResolver extends JdbcBasePlugin implements Resolver {
      * @param connectionManager connection manager
      * @param secureLogin       the instance of the secure login
      */
-    JdbcResolver(ConnectionManager connectionManager, SecureLogin secureLogin, DecryptClient decryptClient) {
-        super(connectionManager, secureLogin, decryptClient);
+    JdbcResolver(ConnectionManager connectionManager, SecureLogin secureLogin, DecryptClient decryptClient, DatabaseDialectProvider dialectProvider) {
+        super(connectionManager, secureLogin, decryptClient, dialectProvider);
     }
 
     /**
@@ -101,6 +96,7 @@ public class JdbcResolver extends JdbcBasePlugin implements Resolver {
      */
     @Override
     public List<OneField> getFields(OneRow row) throws SQLException {
+        DatabaseDialect dialect = ((JdbcOneRow) row).getDialect();
         ResultSet result = (ResultSet) row.getData();
         LinkedList<OneField> fields = new LinkedList<>();
 
@@ -149,36 +145,16 @@ public class JdbcResolver extends JdbcBasePlugin implements Resolver {
                     value = result.getString(colName);
                     break;
                 case DATE:
-                    if (isDateWideRange) {
-                        LocalDate localDate = result.getObject(colName, LocalDate.class);
-                        value = localDate != null ? localDate.format(LOCAL_DATE_FORMATTER) : null;
-                    } else {
-                        Date date = result.getDate(colName);
-                        value = date != null ? date.toLocalDate().format(DATE_FORMATTER) : null;
-                    }
+                    value = dialect.getDateValue(result, colName, isDateWideRange);
                     break;
                 case TIMESTAMP:
-                    if (isDateWideRange) {
-                        LocalDateTime localDateTime = result.getObject(colName, LocalDateTime.class);
-                        value = localDateTime != null ? localDateTime.format(LOCAL_DATE_TIME_FORMATTER) : null;
-                    } else {
-                        Timestamp timestamp = result.getTimestamp(colName);
-                        value = timestamp != null ? timestamp.toLocalDateTime().format(DATETIME_FORMATTER) : null;
-                    }
+                    value = dialect.getTimestampValue(result, colName, isDateWideRange);
                     break;
                 case TIMESTAMP_WITH_TIME_ZONE:
-                    if (isDateWideRange) {
-                        OffsetDateTime offsetDateTime = result.getObject(colName, OffsetDateTime.class);
-                        value = offsetDateTime != null ? offsetDateTime.format(OFFSET_DATE_TIME_FORMATTER) : null;
-                    } else {
-                        throw new UnsupportedOperationException(
-                                String.format("Field type '%s' (column '%s') is not supported. Try to use the property DATE_WIDE_RANGE=true",
-                                        DataType.get(oneField.type),
-                                        column));
-                    }
+                    value = dialect.getTimestampTZValue(result, colName);
                     break;
                 case UUID:
-                    value = result.getObject(colName, java.util.UUID.class);
+                    value = dialect.getUUIDValue(result, colName);
                     break;
                 default:
                     throw new UnsupportedOperationException(
@@ -262,6 +238,9 @@ public class JdbcResolver extends JdbcBasePlugin implements Resolver {
                             oneField.val = Timestamp.valueOf(rawVal);
                         }
                         break;
+                    case TIMESTAMP_WITH_TIME_ZONE:
+                        oneField.val = getOffsetDateTime(rawVal);
+                        break;
                     case DATE:
                         if (isDateWideRange) {
                             oneField.val = getLocalDate(rawVal);
@@ -292,7 +271,7 @@ public class JdbcResolver extends JdbcBasePlugin implements Resolver {
      * @throws SQLException if the given statement is broken
      */
     @SuppressWarnings("unchecked")
-    public static void decodeOneRowToPreparedStatement(OneRow row, PreparedStatement statement, DbProduct dbProduct) throws IOException, SQLException {
+    public static void decodeOneRowToPreparedStatement(OneRow row, PreparedStatement statement, DatabaseDialect dialect) throws IOException, SQLException {
         // This is safe: OneRow comes from JdbcResolver
         List<OneField> tuple = (List<OneField>) row.getData();
         for (int i = 1; i <= tuple.size(); i++) {
@@ -374,6 +353,13 @@ public class JdbcResolver extends JdbcBasePlugin implements Resolver {
                         }
                     }
                     break;
+                case TIMESTAMP_WITH_TIME_ZONE:
+                    if (field.val == null) {
+                        statement.setNull(i, Types.TIMESTAMP_WITH_TIMEZONE);
+                    } else {
+                        dialect.setTimestampTZValue(statement, i, (OffsetDateTime) field.val);
+                    }
+                    break;
                 case DATE:
                     if (field.val == null) {
                         statement.setNull(i, Types.DATE);
@@ -390,11 +376,7 @@ public class JdbcResolver extends JdbcBasePlugin implements Resolver {
                     break;
                 case JSON:
                 case JSONB:
-                    if (dbProduct == DbProduct.POSTGRES) {
-                        statement.setObject(i, field.val, Types.OTHER);
-                    } else {
-                        statement.setObject(i, field.val);
-                    }
+                    dialect.setJsonObject(statement, i, field.val);
                     break;
                 default:
                     throw new IOException("The data tuple from JdbcResolver is corrupted");

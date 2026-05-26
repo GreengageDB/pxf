@@ -35,4 +35,4 @@ SELECT tm FROM pxf_jdbc_readable_date_wide_range_off ORDER BY t1;
 
 SELECT dt FROM pxf_jdbc_readable_date_wide_range_off ORDER BY t1;
 
-SELECT tmz FROM pxf_jdbc_readable_date_wide_range_off ORDER BY t1;
+SELECT t1, tmz FROM pxf_jdbc_readable_date_wide_range_off ORDER BY t1;

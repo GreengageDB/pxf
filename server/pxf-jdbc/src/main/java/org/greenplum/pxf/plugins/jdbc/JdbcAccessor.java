@@ -30,8 +30,9 @@ import org.greenplum.pxf.api.model.CancelableOperation;
 import org.greenplum.pxf.api.model.ConfigurationFactory;
 import org.greenplum.pxf.api.security.SecureLogin;
 import org.greenplum.pxf.api.utilities.Utilities;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
+import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialectProvider;
 import org.greenplum.pxf.plugins.jdbc.utils.ConnectionManager;
-import org.greenplum.pxf.plugins.jdbc.utils.DbProduct;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,6 +61,7 @@ public class JdbcAccessor extends JdbcBasePlugin implements Accessor, Cancelable
 
     private JdbcWriter writer;
     private boolean isCanceled;
+    private DatabaseDialect dialect;
 
     /**
      * Creates a new instance of the JdbcAccessor
@@ -74,8 +76,8 @@ public class JdbcAccessor extends JdbcBasePlugin implements Accessor, Cancelable
      * @param connectionManager connection manager
      * @param secureLogin       the instance of the secure login
      */
-    JdbcAccessor(ConnectionManager connectionManager, SecureLogin secureLogin, DecryptClient decryptClient) {
-        super(connectionManager, secureLogin, decryptClient);
+    JdbcAccessor(ConnectionManager connectionManager, SecureLogin secureLogin, DecryptClient decryptClient, DatabaseDialectProvider dialectProvider) {
+        super(connectionManager, secureLogin, decryptClient, dialectProvider);
     }
 
     /**
@@ -94,8 +96,9 @@ public class JdbcAccessor extends JdbcBasePlugin implements Accessor, Cancelable
         }
 
         Connection connection = getConnection();
+        dialect = getDatabaseDialect(connection.getMetaData().getDatabaseProductName());
         try {
-            return openForReadInner(connection);
+            return openForReadInner(connection, dialect);
         } catch (Throwable e) {
             if (statementRead == null) {
                 closeConnection(connection);
@@ -104,8 +107,8 @@ public class JdbcAccessor extends JdbcBasePlugin implements Accessor, Cancelable
         }
     }
 
-    private boolean openForReadInner(Connection connection) throws SQLException {
-        String queryRead = buildSelectQuery(connection);
+    private boolean openForReadInner(Connection connection, DatabaseDialect dialect) throws SQLException {
+        String queryRead = buildSelectQuery(connection, dialect);
         log.trace("Select query: {}", queryRead);
 
         // Execute queries
@@ -135,8 +138,8 @@ public class JdbcAccessor extends JdbcBasePlugin implements Accessor, Cancelable
         return true;
     }
 
-    private String buildSelectQuery(Connection connection) throws SQLException {
-        SQLQueryBuilder sqlQueryBuilder = new SQLQueryBuilder(context, connection.getMetaData(), getQueryText());
+    private String buildSelectQuery(Connection connection, DatabaseDialect dialect) throws SQLException {
+        SQLQueryBuilder sqlQueryBuilder = new SQLQueryBuilder(context, connection.getMetaData(), getQueryText(), dialect);
 
         // Build SELECT query
         if (quoteColumns == null) {
@@ -169,7 +172,7 @@ public class JdbcAccessor extends JdbcBasePlugin implements Accessor, Cancelable
         }
 
         if (resultSetRead.next()) {
-            return new OneRow(resultSetRead);
+            return new JdbcOneRow(resultSetRead, dialect);
         }
         return null;
     }
@@ -208,7 +211,8 @@ public class JdbcAccessor extends JdbcBasePlugin implements Accessor, Cancelable
 
         Connection connection = getConnection();
         log.debug("Accessor got connection {}", connection);
-        String queryWrite = buildInsertQuery(connection);
+        dialect = getDatabaseDialect(connection.getMetaData().getDatabaseProductName());
+        String queryWrite = buildInsertQuery(connection, dialect);
         log.debug("Insert query: {}", queryWrite);
 
         // Process batchSize
@@ -219,9 +223,6 @@ public class JdbcAccessor extends JdbcBasePlugin implements Accessor, Cancelable
                 batchSize = 1;
             }
         }
-        // Get database product name
-        DbProduct dbProduct = DbProduct.getDbProduct(connection.getMetaData().getDatabaseProductName(), treatUnknownDbmsAsPostgreSql);
-
         writer = JdbcWriter.fromProps(
                 JdbcWriterProperties.builder()
                         .terminationTimeoutSeconds(JdbcWriter.TERMINATION_TIMEOUT)
@@ -230,15 +231,15 @@ public class JdbcAccessor extends JdbcBasePlugin implements Accessor, Cancelable
                         .poolSize(poolSize)
                         .query(queryWrite)
                         .plugin(this)
-                        .dbProduct(dbProduct)
+                        .databaseDialect(dialect)
                         .build()
         );
         closeConnection(connection);
         return true;
     }
 
-    private String buildInsertQuery(Connection connection) throws SQLException {
-        SQLQueryBuilder sqlQueryBuilder = new SQLQueryBuilder(context, connection.getMetaData());
+    private String buildInsertQuery(Connection connection, DatabaseDialect dialect) throws SQLException {
+        SQLQueryBuilder sqlQueryBuilder = new SQLQueryBuilder(context, connection.getMetaData(), null, dialect);
 
         // Build INSERT query
         if (quoteColumns == null) {
@@ -331,5 +332,9 @@ public class JdbcAccessor extends JdbcBasePlugin implements Accessor, Cancelable
 
     private boolean parseJdbcUsePreparedStatementProperty() {
         return Utilities.parseBooleanProperty(configuration, JDBC_READ_PREPARED_STATEMENT_PROPERTY_NAME, false);
+    }
+
+    private DatabaseDialect getDatabaseDialect(String productName) {
+        return dialectProvider.get(productName, treatUnknownDbmsAsPostgreSql);
     }
 }
