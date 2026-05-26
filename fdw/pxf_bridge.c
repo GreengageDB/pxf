@@ -481,7 +481,7 @@ BuildUriForCommit(PxfFdwModifyState *pxfmstate)
  */
 static size_t
 #if PG_VERSION_NUM >= 90600
-FillBuffer(CHURL_HANDLE handle, char *start, int minlen, int maxlen)
+FillBuffer(CHURL_HANDLE churl_handle, char *start, int minlen, int maxlen)
 #else
 FillBuffer(CHURL_HANDLE churl_handle, char *start, size_t size)
 #endif

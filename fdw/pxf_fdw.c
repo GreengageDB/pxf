@@ -17,9 +17,9 @@
 #include "access/table.h"
 #endif
 #include "access/xact.h"
+#include "cdb/cdbconn.h"
 #include "cdb/cdbsreh.h"
 #include "cdb/cdbvars.h"
-#include "cdb/cdbconn.h"
 #include "commands/copy.h"
 #include "commands/defrem.h"
 #include "commands/explain.h"
