@@ -110,8 +110,7 @@ class MockPXFHandler(BaseHTTPRequestHandler):
                 length = int(sline, 16)
 
                 sline = self.rfile.read(length)
-                # chunk = sline.decode('utf-8')
-
+ 
                 if length != len(sline):
                     print("WARNING: invalid message length")
                 ret.append(sline)

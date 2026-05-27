@@ -364,10 +364,7 @@ PxfBridgeReceiveMetadata(PxfFdwModifyState *pxfmstate, StringInfo out_buf)
 {
 	char chunk[1024];
 
-	if (out_buf == NULL)
-	{
-		return 0;
-	}
+	Assert(out_buf != NULL);
 
 	while (true)
 	{
