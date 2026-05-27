@@ -2,7 +2,7 @@ CREATE EXTENSION IF NOT EXISTS pxf_fdw;
 
 2:!& python3 pxf_mock.py > /tmp/pxf_mock.log 2>&1;
 
-select pg_sleep(1);
+\! curl --retry 10 --retry-delay 1 --retry-connrefused -s -o /dev/null http://localhost:5889/
 
 CREATE FOREIGN DATA WRAPPER pxf_ext_v1
     HANDLER pxf_fdw_handler

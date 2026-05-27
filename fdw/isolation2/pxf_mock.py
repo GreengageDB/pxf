@@ -144,23 +144,13 @@ class MockPXFHandler(BaseHTTPRequestHandler):
     def do_PUT(self):
         self.do_POST()
 
-def stop():
-    """
-    Issue http request to stop the server
-
-    """
-
-
 def run(server_class=HTTPServer, handler_class=MockPXFHandler, port=PXF_PORT):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
 
     print(f"Starting mock PXF server on port {port}...")
 
-    if len(sys.argv) == 2 and sys.argv[1] == '--stop':
-        stop()
-    else:
-        httpd.serve_forever()
+    httpd.serve_forever()
     sys.exit(0)
 
 
