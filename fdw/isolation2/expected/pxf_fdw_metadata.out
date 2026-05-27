@@ -2,11 +2,8 @@ CREATE EXTENSION IF NOT EXISTS pxf_fdw;
 CREATE
 
 2:!& python3 pxf_mock.py > /tmp/pxf_mock.log 2>&1;
-select pg_sleep(1);
- pg_sleep 
-----------
-          
-(1 row)
+1:! curl --retry 10 --retry-delay 1 --retry-connrefused -s -o /dev/null http://localhost:5889/;
+
 
 CREATE FOREIGN DATA WRAPPER pxf_ext_v1 HANDLER pxf_fdw_handler VALIDATOR pxf_fdw_validator OPTIONS (protocol 'system', mpp_execute 'all segments', pxf_protocol 'http', pxf_port '5889', ext_protocol_version 'v1' );
 CREATE
@@ -61,6 +58,12 @@ FAILED:  Execution failed
 
 1:! cat /tmp/pxf_mock.log;
 Starting mock PXF server on port 5889...
+
+--- Incoming Request ---
+Method: GET
+Path: /
+Query Params: {}
+"GET / HTTP/1.1" 200 -
 "POST /pxf/v1/write HTTP/1.1" 200 -
 "POST /pxf/v1/write HTTP/1.1" 200 -
 "POST /pxf/v1/write HTTP/1.1" 200 -
