@@ -34,11 +34,6 @@ class Metadata:
             self.items.append(Metadata.MetadataItem(length, value))
             i = i+length
 
-    def contains(self, key):
-        for item in self.items:
-            if item.value == key:
-                return True
-    
     def sorted(self):
         return sorted(self.items, key=lambda item: item.value)
 
