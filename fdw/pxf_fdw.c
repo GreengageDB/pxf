@@ -41,6 +41,9 @@
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 
+#include <dlfcn.h>
+#include <stdio.h>
+
 PG_MODULE_MAGIC;
 
 #define DEFAULT_PXF_FDW_STARTUP_COST   50000
@@ -50,6 +53,41 @@ PG_MODULE_MAGIC;
  */
 #define PXF_ERROR_TOKEN "PXFERRMSG> "
 #define PXF_ERROR_TOKEN_SIZE strlen(PXF_ERROR_TOKEN)
+
+#define LOAD_FN_PTR(base, name) ((PQMetadataInterface_p.name ## _pfn = (name ## _fn)load_optional_function(#name)) != NULL)
+#define CALL_PQ_FN(name, ...) ((PQMetadataInterface_p.name ## _pfn != NULL) ? PQMetadataInterface_p.name ## _pfn(__VA_ARGS__) : 0)
+
+typedef ggMetadataChunkIterator (*PQMetadataWalk_fn)(ggMetadataQueueId queue_id);
+typedef ggMetadataChunkIterator (*PQgetNextMetadata_fn)(ggMetadataChunkIterator it);
+typedef void (*PQgetMetadata_fn)(ggMetadataChunkIterator it, ggMetadataDescriptor *out_desc);
+typedef int	(*PQgetMetadataCount_fn)(ggMetadataQueueId queue_id);
+typedef void (*PQCleanMetadata_fn)(ggMetadataQueueId queue_id);
+
+typedef ggMetadataQueueId (*PQMetadataNextQueueId_fn)(void);
+typedef void (*PQCreateMetadataQueue_fn)(ggMetadataQueueId queue_id);
+typedef void (*PQDeleteMetadataQueue_fn)(ggMetadataQueueId queue_id);
+
+typedef void (*myfunc_t)(int);
+
+static myfunc_t load_optional_function(const char *name);
+static bool init_metadata_interface(void);
+
+typedef struct PQMetadataInterface
+{
+	bool loaded;
+
+	PQMetadataWalk_fn PQMetadataWalk_pfn;
+	PQgetNextMetadata_fn PQgetNextMetadata_pfn;
+	PQgetMetadata_fn PQgetMetadata_pfn;
+	PQgetMetadataCount_fn PQgetMetadataCount_pfn;
+	PQCleanMetadata_fn PQCleanMetadata_pfn;
+
+	PQMetadataNextQueueId_fn PQMetadataNextQueueId_pfn;
+	PQCreateMetadataQueue_fn PQCreateMetadataQueue_pfn;
+	PQDeleteMetadataQueue_fn PQDeleteMetadataQueue_pfn;
+} PQMetadataInterface;
+
+static PQMetadataInterface PQMetadataInterface_p = {false};
 
 extern Datum pxf_fdw_handler(PG_FUNCTION_ARGS);
 
@@ -665,7 +703,7 @@ InitForeignModify(Relation relation)
 	rel = GetForeignTable(foreigntableid);
 	options = PxfGetOptions(foreigntableid);
 
-	if (Gp_role == GP_ROLE_DISPATCH && IsExtCommitMetadataSupported(options))
+	if (Gp_role == GP_ROLE_DISPATCH && IsExtCommitMetadataSupported(options) && init_metadata_interface() != 0)
 	{
 		elog(DEBUG2, "pxf_fdw: Use extended commit protocol");
 		oldcontext = MemoryContextSwitchTo(CurTransactionContext);
@@ -691,9 +729,9 @@ InitForeignModify(Relation relation)
 	pxfmstate->nulls = (bool *) palloc(tupDesc->natts * sizeof(bool));
 #endif
 
-	if (Gp_role == GP_ROLE_DISPATCH)
+	if (Gp_role == GP_ROLE_DISPATCH && PQMetadataInterface_p.loaded)
 	{
-		PQCreateMetadataQueue(PXF_METADATA_QUEUE_ID);
+		CALL_PQ_FN(PQCreateMetadataQueue, PXF_METADATA_QUEUE_ID);
 	}
 
 	if (!(Gp_role == GP_ROLE_DISPATCH && rel->exec_location == FTEXECLOCATION_ALL_SEGMENTS))
@@ -813,7 +851,7 @@ FinishForeignModify(PxfFdwModifyState *pxfmstate)
 		{
 			PxfBridgeCommitStart(pxfmstate);
 			PxfCollectMetadata(pxfmstate);
-			PQDeleteMetadataQueue(PXF_METADATA_QUEUE_ID);
+			PQMetadataInterface_p.PQDeleteMetadataQueue_pfn(PXF_METADATA_QUEUE_ID);
 		}
 		if (Gp_role == GP_ROLE_EXECUTE)
 		{
@@ -1183,15 +1221,63 @@ PxfCollectMetadata(PxfFdwModifyState *pxfmstate)
 static void
 CollectMetadata(StringInfo msgbuf)
 {
-	ggMetadataChunkIterator it = PQMetadataWalk(PXF_METADATA_QUEUE_ID);
+	ggMetadataChunkIterator it = CALL_PQ_FN(PQMetadataWalk, PXF_METADATA_QUEUE_ID);
 
-	for (; it; it = PQgetNextMetadata(it))
+	for (; it; it = CALL_PQ_FN(PQgetNextMetadata, it))
 	{
 		ggMetadataDescriptor metadata;
-
-		PQgetMetadata(it, &metadata);
+		
+		CALL_PQ_FN(PQgetMetadata, it, &metadata);
 
 		appendBinaryStringInfo(msgbuf, &metadata.metadataLen, sizeof(metadata.metadataLen));
 		appendBinaryStringInfo(msgbuf, metadata.data, metadata.metadataLen);
 	}
+}
+
+
+static myfunc_t
+load_optional_function(const char *name)
+{
+    dlerror(); /* clear */
+
+    void *sym = dlsym(RTLD_DEFAULT, name);
+
+    const char *err = dlerror();
+    if (err != NULL)
+	{
+		elog(WARNING, "could not load %s: %s", name, err);
+		return NULL;
+	}
+
+    return (myfunc_t)sym;
+}
+
+static bool
+init_metadata_interface(void)
+{
+	if (PQMetadataInterface_p.loaded)
+		return true;
+
+	bool loaded = true;
+
+	loaded = loaded && LOAD_FN_PTR(PQMetadataInterface_p, PQMetadataWalk);
+	loaded = loaded && LOAD_FN_PTR(PQMetadataInterface_p, PQgetNextMetadata);
+	loaded = loaded && LOAD_FN_PTR(PQMetadataInterface_p, PQgetMetadata);
+	loaded = loaded && LOAD_FN_PTR(PQMetadataInterface_p, PQgetMetadataCount);
+	loaded = loaded && LOAD_FN_PTR(PQMetadataInterface_p, PQCleanMetadata);
+
+	loaded = loaded && LOAD_FN_PTR(PQMetadataInterface_p, PQMetadataNextQueueId);
+	loaded = loaded && LOAD_FN_PTR(PQMetadataInterface_p, PQCreateMetadataQueue);
+	loaded = loaded && LOAD_FN_PTR(PQMetadataInterface_p, PQDeleteMetadataQueue);
+
+	if (!loaded)
+	{
+		elog(WARNING, "could not load PQMetadataInterface");
+	}
+	else
+	{
+		elog(DEBUG2, "loaded PQMetadataInterface");
+	}
+	PQMetadataInterface_p.loaded = loaded;
+	return loaded;
 }
