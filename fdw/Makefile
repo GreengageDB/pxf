@@ -20,6 +20,7 @@ PGXS := $(shell $(PG_CONFIG) --pgxs)
 ifndef PGXS
     $(error Make sure the Greengage installation binaries are in your PATH. i.e. export PATH=<path to your Greengage installation>/bin:$$PATH)
 endif
+PG_CPPFLAGS+=-I$(shell $(PG_CONFIG) --includedir)
 include $(PGXS)
 
 

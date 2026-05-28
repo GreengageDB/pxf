@@ -7,6 +7,7 @@
  */
 
 #include "postgres.h"
+#include "libpq-fe.h"
 
 #include "pxf_fdw.h"
 #include "pxf_bridge.h"
@@ -25,7 +26,6 @@
 #include "commands/explain.h"
 #include "foreign/fdwapi.h"
 #include "foreign/foreign.h"
-#include "libpq/libpq.h"
 #include "nodes/pg_list.h"
 #if PG_VERSION_NUM >= 90600
 #include "optimizer/optimizer.h"
@@ -107,8 +107,12 @@ static void InitCopyStateForModify(PxfFdwModifyState *pxfmstate);
 static CopyState BeginCopyTo(Relation forrel, List *options);
 static void PxfBeginScanErrorCallback(void *arg);
 static void PxfCopyFromErrorCallback(void *arg);
+
+#ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
 static void CollectMetadata(StringInfo msgbuf);
 static void PxfCollectMetadata(PxfFdwModifyState *pxfmstate);
+#endif
+
 /*
  * Foreign-data wrapper handler functions:
  * returns a struct with pointers to the
@@ -691,10 +695,12 @@ InitForeignModify(Relation relation)
 	pxfmstate->nulls = (bool *) palloc(tupDesc->natts * sizeof(bool));
 #endif
 
+#ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
 		PQCreateMetadataQueue(PXF_METADATA_QUEUE_ID);
 	}
+#endif
 
 	if (!(Gp_role == GP_ROLE_DISPATCH && rel->exec_location == FTEXECLOCATION_ALL_SEGMENTS))
 	{
@@ -807,6 +813,7 @@ FinishForeignModify(PxfFdwModifyState *pxfmstate)
 	if (pxfmstate == NULL)
 		return;
 
+#ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1		
 	if (IsExtCommitMetadataSupported(pxfmstate->options))
 	{
 		if (Gp_role == GP_ROLE_DISPATCH)
@@ -828,6 +835,7 @@ FinishForeignModify(PxfFdwModifyState *pxfmstate)
 			pfree(buf.data);
 		}
 	}
+#endif
 
 	if (pxfmstate->cstate != NULL)
 	{
@@ -1157,6 +1165,7 @@ PxfCopyFromErrorCallback(void *arg)
     }
 }
 
+#ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
 static void
 PxfCollectMetadata(PxfFdwModifyState *pxfmstate)
 {
@@ -1195,3 +1204,4 @@ CollectMetadata(StringInfo msgbuf)
 		appendBinaryStringInfo(msgbuf, metadata.data, metadata.metadataLen);
 	}
 }
+#endif

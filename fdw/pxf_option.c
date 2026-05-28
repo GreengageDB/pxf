@@ -282,6 +282,15 @@ pxf_fdw_validator(PG_FUNCTION_ARGS)
 				 errmsg("the %s option must be defined for PXF foreign-data wrappers", FDW_OPTION_PROTOCOL)));
 	}
 
+	if (catalog == ForeignDataWrapperRelationId && 
+		ext_protocol_version != NULL && 
+		strcmp(ext_protocol_version, "v1") != 0)
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_FDW_INVALID_ATTRIBUTE_VALUE),
+				 errmsg("the %s option might have only 'v1' value", FDW_OPTION_EXT_PROTOCOL_VERSION)));
+	}
+
 	if (catalog == ForeignTableRelationId &&
 		(resource == NULL || strcmp(resource, "") == 0))
 	{
