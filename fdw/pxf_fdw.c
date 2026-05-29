@@ -55,7 +55,7 @@ PG_MODULE_MAGIC;
 #define PXF_ERROR_TOKEN_SIZE strlen(PXF_ERROR_TOKEN)
 
 #ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
-#define LOAD_FN_PTR(base, name) ((PQMetadataInterface_p.name ## _pfn = (name ## _fn)load_optional_function(#name)) != NULL)
+#define LOAD_FN_PTR(base, name) ((PQMetadataInterface_p.name ## _pfn = (name ## _fn)loadFunction(#name)) != NULL)
 #define CALL_PQ_FN(name, ...) ((PQMetadataInterface_p.name ## _pfn != NULL) ? PQMetadataInterface_p.name ## _pfn(__VA_ARGS__) : 0)
 
 typedef ggMetadataChunkIterator (*PQMetadataWalk_fn)(ggMetadataQueueId queue_id);
@@ -68,8 +68,8 @@ typedef ggMetadataQueueId (*PQMetadataNextQueueId_fn)(void);
 typedef void (*PQCreateMetadataQueue_fn)(ggMetadataQueueId queue_id);
 typedef void (*PQDeleteMetadataQueue_fn)(ggMetadataQueueId queue_id);
 
-static void *load_optional_function(const char *name);
-static bool init_metadata_interface(void);
+static void *loadFunction(const char *name);
+static bool initMetadataInterface(void);
 
 typedef struct PQMetadataInterface
 {
@@ -86,7 +86,7 @@ typedef struct PQMetadataInterface
 	PQDeleteMetadataQueue_fn PQDeleteMetadataQueue_pfn;
 } PQMetadataInterface;
 
-static PQMetadataInterface PQMetadataInterface_p = {false};
+static PQMetadataInterface PQMetadataInterface_p = {0};
 #endif
 
 extern Datum pxf_fdw_handler(PG_FUNCTION_ARGS);
@@ -708,7 +708,7 @@ InitForeignModify(Relation relation)
 	options = PxfGetOptions(foreigntableid);
 
 #ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
-	if (Gp_role == GP_ROLE_DISPATCH && IsExtCommitMetadataSupported(options) && init_metadata_interface() != 0)
+	if (Gp_role == GP_ROLE_DISPATCH && IsExtCommitMetadataSupported(options) && initMetadataInterface())
 	{
 		elog(DEBUG2, "pxf_fdw: Use extended commit protocol");
 		oldcontext = MemoryContextSwitchTo(CurTransactionContext);
@@ -860,9 +860,9 @@ FinishForeignModify(PxfFdwModifyState *pxfmstate)
 		{
 			PxfBridgeCommitStart(pxfmstate);
 			PxfCollectMetadata(pxfmstate);
-			PQMetadataInterface_p.PQDeleteMetadataQueue_pfn(PXF_METADATA_QUEUE_ID);
+			CALL_PQ_FN(PQDeleteMetadataQueue, PXF_METADATA_QUEUE_ID);
 		}
-		if (Gp_role == GP_ROLE_EXECUTE)
+		else if (Gp_role == GP_ROLE_EXECUTE)
 		{
 			StringInfoData buf;
 			initStringInfo(&buf);
@@ -1247,7 +1247,7 @@ CollectMetadata(StringInfo msgbuf)
 
 
 static void *
-load_optional_function(const char *name)
+loadFunction(const char *name)
 {
     dlerror(); /* clear */
 
@@ -1264,7 +1264,7 @@ load_optional_function(const char *name)
 }
 
 static bool
-init_metadata_interface(void)
+initMetadataInterface(void)
 {
 	if (PQMetadataInterface_p.loaded)
 		return true;
