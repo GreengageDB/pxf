@@ -1,21 +1,28 @@
+-- Check if metatata is supported in this version of Greengage (6.31+)
+with version as ( select string_to_array(substring(version(), '(?:Database\s)(\d+\.\d+)(?:\.\d+)'), '.') as ver ) select ver[1]::int = 6 and ver[2]::int >= 31 from version;
+ ?column? 
+----------
+ f        
+(1 row)
+
 CREATE EXTENSION IF NOT EXISTS pxf_fdw;
-CREATE
+CREATE EXTENSION
 
 2:!& python3 pxf_mock.py > /tmp/pxf_mock.log 2>&1;
 1:! curl --retry 10 --retry-delay 1 --retry-connrefused -s -o /dev/null http://localhost:5889/;
 
 
 CREATE FOREIGN DATA WRAPPER pxf_ext_v1 HANDLER pxf_fdw_handler VALIDATOR pxf_fdw_validator OPTIONS (protocol 'system', mpp_execute 'all segments', pxf_protocol 'http', pxf_port '5889', ext_protocol_version 'v1' );
-CREATE
+CREATE FOREIGN DATA WRAPPER
 
 CREATE SERVER pxf_ext_v1_server FOREIGN DATA WRAPPER pxf_ext_v1;
-CREATE
+CREATE SERVER
 
 CREATE USER MAPPING FOR CURRENT_USER SERVER pxf_ext_v1_server;
-CREATE
+CREATE USER MAPPING
 
 CREATE FOREIGN TABLE test_t( t0 text, a1 integer ) SERVER pxf_ext_v1_server OPTIONS (resource 'fdw_file', format 'csv', delimiter ',');
-CREATE
+CREATE FOREIGN TABLE
 
 -- ANALYZE is not supported by pxf_fdw
 set gp_autostats_mode = none;
@@ -24,7 +31,7 @@ set client_min_messages = info;
 SET
 
 INSERT INTO test_t VALUES('hello world', 1);
-INSERT 1
+INSERT 0 1
 
 SELECT * FROM test_t ORDER BY t0;
  t0 | a1 
@@ -35,7 +42,7 @@ SELECT * FROM test_t ORDER BY t0;
 (3 rows)
 
 INSERT INTO test_t VALUES('hello world', 1);
-INSERT 1
+INSERT 0 1
 
 SELECT * FROM test_t ORDER BY t0;
  t0 | a1 
@@ -69,15 +76,6 @@ Query Params: {}
 "POST /pxf/v1/write HTTP/1.1" 200 -
 
 --- Incoming Request ---
-Method: POST
-Path: /pxf/v1/commit
-Query Params: {}
-<MetadataItem: b'Some test metadata for 0' (24)>
-<MetadataItem: b'Some test metadata for 1' (24)>
-<MetadataItem: b'Some test metadata for 2' (24)>
-"POST /pxf/v1/commit HTTP/1.1" 200 -
-
---- Incoming Request ---
 Method: GET
 Path: /pxf/read
 Query Params: {}
@@ -97,15 +95,6 @@ Query Params: {}
 "POST /pxf/v1/write HTTP/1.1" 200 -
 "POST /pxf/v1/write HTTP/1.1" 200 -
 "POST /pxf/v1/write HTTP/1.1" 200 -
-
---- Incoming Request ---
-Method: POST
-Path: /pxf/v1/commit
-Query Params: {}
-<MetadataItem: b'Some test metadata for 0' (24)>
-<MetadataItem: b'Some test metadata for 1' (24)>
-<MetadataItem: b'Some test metadata for 2' (24)>
-"POST /pxf/v1/commit HTTP/1.1" 200 -
 
 --- Incoming Request ---
 Method: GET
