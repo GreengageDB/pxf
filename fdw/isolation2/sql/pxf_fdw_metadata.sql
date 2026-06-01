@@ -36,7 +36,7 @@ SELECT * FROM test_t ORDER BY t0;
 
 1:!& curl http://localhost:5889/shutdown;
 
-2<:
+1:! wait $(pgrep -f "python3 pxf_mock.py" | head -1);
 
 -- sleep to allow the shell properly close the files
 1: select pg_sleep(1);

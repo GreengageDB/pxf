@@ -37,6 +37,9 @@ stage: pxf_fdw.so
 clean-all: clean
 	rm -rf build
 
+clean:
+	make ISOLATION2_ROOT=$(ISOLATION2_ROOT) -C isolation2 clean
+
 .PHONY: test
 test: install installcheck
 
@@ -54,4 +57,3 @@ ISOLATION2_ROOT=$(pgxsdir)/src/test/isolation2
 
 isolationcheck: submake
 	make ISOLATION2_ROOT=$(ISOLATION2_ROOT) -C isolation2 isolationcheck
-

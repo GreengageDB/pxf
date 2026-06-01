@@ -14,3 +14,6 @@ endif
 		--inputdir=${CURDIR} \
 		--outputdir=${CURDIR} \
 		$(ISOLATIONCHECKS)
+
+clean:
+	rm -rf expected
