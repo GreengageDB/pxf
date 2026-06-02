@@ -642,8 +642,11 @@ ValidateOption(char *option, Oid catalog)
 	}
 }
 
+/*
+ Was the external commit metadata requested?
+ */
 bool
-IsExtCommitMetadataSupported(PxfOptions *options)
+IsExtCommitMetadata(PxfOptions *options)
 {
 	return  IsExtProtocol(options) &&
 		!strcmp(ExtProtocolVersion(options), PXF_EXTPROTOCOL_VERSION_V1);

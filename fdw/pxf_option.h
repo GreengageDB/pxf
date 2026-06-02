@@ -75,6 +75,6 @@ PxfOptions *PxfGetOptions(Oid foreigntableid);
 #define IsExtProtocol(options) ((options)->ext_protocol_version != NULL)
 #define ExtProtocolVersion(options) (IsExtProtocol(options) ? (options)->ext_protocol_version : NULL)
 
-bool IsExtCommitMetadataSupported(PxfOptions *options);
+bool IsExtCommitMetadata(PxfOptions *options);
 
 #endif							/* _PXF_OPTION_H */

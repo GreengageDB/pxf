@@ -68,6 +68,8 @@ typedef ggMetadataQueueId (*PQMetadataNextQueueId_fn)(void);
 typedef void (*PQCreateMetadataQueue_fn)(ggMetadataQueueId queue_id);
 typedef void (*PQDeleteMetadataQueue_fn)(ggMetadataQueueId queue_id);
 
+typedef void (*pq_metadatasend_fn)(const void *data, size_t len, int32 queue_id);
+
 static void *loadFunction(const char *name);
 static bool initMetadataInterface(void);
 
@@ -84,6 +86,8 @@ typedef struct PQMetadataInterface
 	PQMetadataNextQueueId_fn PQMetadataNextQueueId_pfn;
 	PQCreateMetadataQueue_fn PQCreateMetadataQueue_pfn;
 	PQDeleteMetadataQueue_fn PQDeleteMetadataQueue_pfn;
+
+	pq_metadatasend_fn pq_metadatasend_pfn;
 } PQMetadataInterface;
 
 static PQMetadataInterface PQMetadataInterface_p = {0};
@@ -708,7 +712,7 @@ InitForeignModify(Relation relation)
 	options = PxfGetOptions(foreigntableid);
 
 #ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
-	if (Gp_role == GP_ROLE_DISPATCH && IsExtCommitMetadataSupported(options) && initMetadataInterface())
+	if (Gp_role == GP_ROLE_DISPATCH && IsExtCommitMetadata(options) && initMetadataInterface())
 	{
 		elog(DEBUG2, "pxf_fdw: Use extended commit protocol");
 		oldcontext = MemoryContextSwitchTo(CurTransactionContext);
@@ -736,7 +740,7 @@ InitForeignModify(Relation relation)
 #endif
 
 #ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
-	if (Gp_role == GP_ROLE_DISPATCH && PQMetadataInterface_p.loaded)
+	if (Gp_role == GP_ROLE_DISPATCH && IsExtCommitMetadata(options) && PQMetadataInterface_p.loaded)
 	{
 		CALL_PQ_FN(PQCreateMetadataQueue, PXF_METADATA_QUEUE_ID);
 	}
@@ -854,7 +858,7 @@ FinishForeignModify(PxfFdwModifyState *pxfmstate)
 		return;
 
 #ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1		
-	if (IsExtCommitMetadataSupported(pxfmstate->options))
+	if (IsExtCommitMetadata(pxfmstate->options) && PQMetadataInterface_p.loaded)
 	{
 		if (Gp_role == GP_ROLE_DISPATCH)
 		{
@@ -869,7 +873,7 @@ FinishForeignModify(PxfFdwModifyState *pxfmstate)
 
 			if (PxfBridgeReceiveMetadata(pxfmstate, &buf) > 0)
 			{
-				pq_metadatasend(buf.data, buf.len, PXF_METADATA_QUEUE_ID);
+				CALL_PQ_FN(pq_metadatasend, buf.data, buf.len, PXF_METADATA_QUEUE_ID);
 			}
 
 			pfree(buf.data);
@@ -1280,6 +1284,8 @@ initMetadataInterface(void)
 	loaded = loaded && LOAD_FN_PTR(PQMetadataInterface_p, PQMetadataNextQueueId);
 	loaded = loaded && LOAD_FN_PTR(PQMetadataInterface_p, PQCreateMetadataQueue);
 	loaded = loaded && LOAD_FN_PTR(PQMetadataInterface_p, PQDeleteMetadataQueue);
+
+	loaded = loaded && LOAD_FN_PTR(PQMetadataInterface_p, pq_metadatasend);
 
 	if (!loaded)
 	{
