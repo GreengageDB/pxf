@@ -712,7 +712,7 @@ InitForeignModify(Relation relation)
 	options = PxfGetOptions(foreigntableid);
 
 #ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
-	if (Gp_role == GP_ROLE_DISPATCH && IsExtCommitMetadata(options) && initMetadataInterface())
+	if (IsExtCommitMetadata(options) && initMetadataInterface())
 	{
 		elog(DEBUG2, "pxf_fdw: Use extended commit protocol");
 		oldcontext = MemoryContextSwitchTo(CurTransactionContext);
