@@ -44,7 +44,9 @@ static void PxfBridgeCancelCleanup(PxfFdwCancelState *pxfcstate);
 static void BuildUriForCancel(PxfFdwCancelState *pxfcstate);
 static void BuildUriForRead(PxfFdwScanState *pxfsstate);
 static void BuildUriForWrite(PxfFdwModifyState *pxfmstate);
+#ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
 static void BuildUriForCommit(PxfFdwModifyState *pxfmstate);
+#endif
 #if PG_VERSION_NUM >= 90600
 static size_t FillBuffer(CHURL_HANDLE churl_handle, char *start, int minlen, int maxlen);
 #else
@@ -358,6 +360,7 @@ PxfBridgeWrite(PxfFdwModifyState *pxfmstate, char *databuf, int datalen)
 	return (int) n;
 }
 
+#ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
 /* Receive metadata */
 int
 PxfBridgeReceiveMetadata(PxfFdwModifyState *pxfmstate, StringInfo out_buf)
@@ -389,6 +392,7 @@ PxfBridgeReceiveMetadata(PxfFdwModifyState *pxfmstate, StringInfo out_buf)
 
 	return out_buf->len;
 }
+#endif
 
 /*
  * Format the URI for cancel by adding PXF service endpoint details
@@ -454,7 +458,7 @@ BuildUriForWrite(PxfFdwModifyState *pxfmstate)
 	);
 }
 
-
+#ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
 static void
 BuildUriForCommit(PxfFdwModifyState *pxfmstate)
 {
@@ -472,6 +476,7 @@ BuildUriForCommit(PxfFdwModifyState *pxfmstate)
 
 	elog(DEBUG2, "pxf_fdw: uri %s for commit", pxfmstate->uri.data);
 }
+#endif
 
 /*
  * Read data from churl until the buffer is full or there is no more data to be read
@@ -508,6 +513,7 @@ FillBuffer(CHURL_HANDLE churl_handle, char *start, size_t size)
 	return ptr - start;
 }
 
+#ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
 /*
  * Upload metadata to the master PXF server
  */
@@ -545,3 +551,4 @@ PxfBridgeCommitStart(PxfFdwModifyState *pxfmstate)
 
 	elog(DEBUG5, "pxf_fdw: PxfBridgeCommitStart done on segment: %d", PXF_SEGMENT_ID);
 }
+#endif

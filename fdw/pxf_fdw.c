@@ -128,7 +128,9 @@ static void pxfEndForeignScan(ForeignScanState *node);
 
 /* Foreign updates */
 
+#ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
 static List *pxfPlanForeignModify (PlannerInfo *root, ModifyTable *plan, Index resultRelation, int subplan_index);
+#endif
 
 static void pxfBeginForeignInsert(ModifyTableState *mtstate, ResultRelInfo *resultRelInfo);
 
@@ -194,11 +196,16 @@ pxf_fdw_handler(PG_FUNCTION_ARGS)
 	 */
 	fdw_routine->AddForeignUpdateTargets = NULL;
 
+#ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
+	fdw_routine->PlanForeignModify = pxfPlanForeignModify;
+#else
 	/*
 	 * PlanForeignModify set to NULL, no additional plan-time actions are
 	 * taken
 	 */
-	fdw_routine->PlanForeignModify = pxfPlanForeignModify;
+	fdw_routine->PlanForeignModify = NULL;
+#endif	
+
 #if PG_VERSION_NUM >= 120000
 	fdw_routine->BeginForeignInsert = pxfBeginForeignInsert;
 #endif
@@ -656,15 +663,17 @@ pxfBeginForeignInsert(ModifyTableState *mtstate,
 	 */
 }
 
+#ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
 static List *
 pxfPlanForeignModify (PlannerInfo *root,
 						ModifyTable *plan,
 						Index resultRelation,
 						int subplan_index)
 {
-	ggMetadataQueueId metadata_queue_id = PQMetadataNextQueueId();
+	ggMetadataQueueId metadata_queue_id = CALL_PQ_FN(PQMetadataNextQueueId);
 	return list_make1_int(metadata_queue_id);
 }
+#endif
 
 /*
  * pxfBeginForeignModify
@@ -1260,7 +1269,7 @@ CollectMetadata(PxfFdwModifyState *pxfmstate, StringInfo msgbuf)
 {
 	Assert(pxfmstate->metadata_queue_id != PXF_METADATA_INVALID_QUEUE_ID);
 
-	ggMetadataChunkIterator it = PQMetadataWalk(pxfmstate->metadata_queue_id);
+	ggMetadataChunkIterator it = CALL_PQ_FN(PQMetadataWalk, pxfmstate->metadata_queue_id);
 
 	for (; it; it = CALL_PQ_FN(PQgetNextMetadata, it))
 	{
