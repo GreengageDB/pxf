@@ -677,10 +677,16 @@ pxfPlanForeignModify(PlannerInfo *root,
 					 Index resultRelation,
 					 int subplan_index)
 {
-	initMetadataInterface();
+	RangeTblEntry *rte = planner_rt_fetch(resultRelation, root);
+	PxfOptions *options = PxfGetOptions(rte->relid);
+	bool need_metadata = IsExtCommitMetadata(options);
 
-	if (!PQMetadataInterface_p.loaded)
+	pfree(options);
+
+	if (!need_metadata || !initMetadataInterface())
 		return NIL;
+
+	Assert(PQMetadataInterface_p.loaded);
 
 	ggMetadataQueueId metadata_queue_id = CALL_PQ_FN(PQMetadataNextQueueId);
 	return list_make1_int(metadata_queue_id);
