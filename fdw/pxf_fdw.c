@@ -258,9 +258,7 @@ enum FdwScanPrivateIndex
 	/* WHERE clauses to be sent to PXF (as a String node) */
 	FdwScanPrivateWhereClauses,
 	/* Integer list of attribute numbers retrieved by the SELECT */
-	FdwScanPrivateRetrievedAttrs,
-	/* Integer represnting queue id for metadata */
-	FdwScanPrivateMetadataQueueId
+	FdwScanPrivateRetrievedAttrs
 };
 
 /*
