@@ -129,7 +129,7 @@ static void pxfEndForeignScan(ForeignScanState *node);
 /* Foreign updates */
 
 #ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
-static List *pxfPlanForeignModify (PlannerInfo *root, ModifyTable *plan, Index resultRelation, int subplan_index);
+static List *pxfPlanForeignModify(PlannerInfo *root, ModifyTable *plan, Index resultRelation, int subplan_index);
 #endif
 
 static void pxfBeginForeignInsert(ModifyTableState *mtstate, ResultRelInfo *resultRelInfo);
@@ -454,6 +454,7 @@ pxfExplainForeignScan(ForeignScanState *node, ExplainState *es)
  *   called during executor startup. perform any initialization
  *   needed, but not start the actual scan.
  */
+
 static void
 pxfBeginForeignScan(ForeignScanState *node, int eflags)
 {
@@ -664,12 +665,21 @@ pxfBeginForeignInsert(ModifyTableState *mtstate,
 }
 
 #ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
+/*
+ * pxfPlanForeignModify
+ *		Plan an insert/update/delete operation on a foreign table.
+ * 
+ * Used to assign Metadata queue id for further possible operations
+ * with external commit protocol.
+ */
 static List *
-pxfPlanForeignModify (PlannerInfo *root,
-						ModifyTable *plan,
-						Index resultRelation,
-						int subplan_index)
+pxfPlanForeignModify(PlannerInfo *root,
+					 ModifyTable *plan,
+					 Index resultRelation,
+					 int subplan_index)
 {
+	initMetadataInterface();
+	Assert(PQMetadataInterface_p.loaded);
 	ggMetadataQueueId metadata_queue_id = CALL_PQ_FN(PQMetadataNextQueueId);
 	return list_make1_int(metadata_queue_id);
 }

@@ -21,6 +21,7 @@
 
 #ifndef PXF_FDW_H
 #define PXF_FDW_H
+
 #define PXF_METADATA_INVALID_QUEUE_ID -1
 /* in pxf_deparse.c */
 extern void deparseTargetList(Relation rel, Bitmapset *attrs_used, List **retrieved_attrs);
