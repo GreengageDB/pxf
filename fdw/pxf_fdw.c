@@ -454,7 +454,6 @@ pxfExplainForeignScan(ForeignScanState *node, ExplainState *es)
  *   called during executor startup. perform any initialization
  *   needed, but not start the actual scan.
  */
-
 static void
 pxfBeginForeignScan(ForeignScanState *node, int eflags)
 {
@@ -679,7 +678,10 @@ pxfPlanForeignModify(PlannerInfo *root,
 					 int subplan_index)
 {
 	initMetadataInterface();
-	Assert(PQMetadataInterface_p.loaded);
+
+	if (!PQMetadataInterface_p.loaded)
+		return NIL;
+
 	ggMetadataQueueId metadata_queue_id = CALL_PQ_FN(PQMetadataNextQueueId);
 	return list_make1_int(metadata_queue_id);
 }
