@@ -7,6 +7,7 @@
 -- m/^DEBUG1?:  GetSockAddr socket ai_family/
 -- m/^DEBUG1?:  CommitTransactionCommand:/
 -- m/^DEBUG1?:  CommitTransaction:/
+-- m/^DEBUG1?:  rehashing catalog cache id/
 -- m/^DEBUG:  GPORCA produced plan/
 -- m/^LOG: .*Feature not supported: Foreign Data/
 -- m/^LOG: .*Feature not supported: SIRV functions/
