@@ -790,6 +790,8 @@ InitForeignModify(Relation relation, List *fdw_private)
 	if (Gp_role == GP_ROLE_DISPATCH && IsExtCommitMetadata(options) && PQMetadataInterface_p.loaded && pxfmstate->metadata_queue_id != PXF_METADATA_INVALID_QUEUE_ID)
 	{
 		CALL_PQ_FN(PQCreateMetadataQueue, pxfmstate->metadata_queue_id);
+
+		elog(DEBUG1, "pxf_fdw: metadata queue created with id: %d", pxfmstate->metadata_queue_id);
 	}
 #endif
 
@@ -921,6 +923,7 @@ FinishForeignModify(PxfFdwModifyState *pxfmstate)
 			if (PxfBridgeReceiveMetadata(pxfmstate, &buf) > 0)
 			{
 				CALL_PQ_FN(pq_metadatasend, buf.data, buf.len, pxfmstate->metadata_queue_id);
+				elog(DEBUG1, "pxf_fdw: Executor sent metadata (%d bytes) to queue metadata_queue_id: %d", buf.len, pxfmstate->metadata_queue_id);
 			}
 
 			pfree(buf.data);
@@ -1296,6 +1299,7 @@ CollectMetadata(PxfFdwModifyState *pxfmstate, StringInfo msgbuf)
 		appendBinaryStringInfo(msgbuf, &metadata.metadataLen, sizeof(metadata.metadataLen));
 		appendBinaryStringInfo(msgbuf, metadata.data, metadata.metadataLen);
 	}
+	elog(DEBUG2, "pxf_fdw: Executor collected metadata from queue metadata_queue_id: %d", pxfmstate->metadata_queue_id);
 }
 
 

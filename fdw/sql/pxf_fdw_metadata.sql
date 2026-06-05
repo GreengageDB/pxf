@@ -1,3 +1,18 @@
+--
+-- start_matchignore
+-- m/^DEBUG1?:  Interconnect State:/
+-- m/^DEBUG1?:  TeardownUDPIFCInterconnect successful/
+-- m/^DEBUG1?:  Message type/
+-- m/^DEBUG1?:  Query plan size to/
+-- m/^DEBUG1?:  GetSockAddr socket ai_family/
+-- m/^DEBUG1?:  CommitTransactionCommand:/
+-- m/^DEBUG1?:  CommitTransaction:/
+-- m/^DEBUG:  GPORCA produced plan/
+-- m/^LOG: .*Feature not supported: Foreign Data/
+-- m/^LOG: .*Feature not supported: SIRV functions/
+-- m/^LOG: .*Falling back to Postgres-based planner because GPORCA/
+-- end_matchignore
+
 -- Check if metatata is supported in this version of Greengage (6.31+)
 with version as (
     select string_to_array(substring(version(), '(?:Database\s)(\d+\.\d+)(?:\.\d+)'), '.') as ver
@@ -6,9 +21,8 @@ select ver[1]::int = 6 and ver[2]::int >= 31 from version;
 
 CREATE EXTENSION IF NOT EXISTS pxf_fdw;
 
-2:!& python3 pxf_mock.py > /tmp/pxf_mock.log 2>&1;
-
-1:! curl --retry 10 --retry-delay 1 --retry-connrefused -s -o /dev/null http://localhost:5889/;
+\! python3 pxf_mock.py > /tmp/pxf_mock.log 2>&1 &
+\! curl --retry 10 --retry-delay 1 --retry-connrefused -s -o /dev/null http://localhost:5889/
 
 CREATE FOREIGN DATA WRAPPER pxf_ext_v1
     HANDLER pxf_fdw_handler
@@ -30,7 +44,7 @@ OPTIONS (resource 'fdw_file', format 'csv', delimiter ',');
 
 -- ANALYZE is not supported by pxf_fdw
 set gp_autostats_mode = none;
-set client_min_messages = info;
+set client_min_messages = debug1;
 
 INSERT INTO test_t VALUES('hello world', 1);
 
@@ -40,12 +54,11 @@ INSERT INTO test_t VALUES('hello world', 1);
 
 SELECT * FROM test_t ORDER BY t0;
 
-1:!& curl http://localhost:5889/shutdown;
-
-1:! wait $(pgrep -f "python3 pxf_mock.py" | head -1);
+\! curl -sS http://localhost:5889/shutdown
+\! wait $(pgrep -f "python3 pxf_mock.py" | head -1)
 
 -- sleep to allow the shell properly close the files
-1: select pg_sleep(1);
+select pg_sleep(1);
 
-1:! cat /tmp/pxf_mock.log;
+\! cat /tmp/pxf_mock.log
 
