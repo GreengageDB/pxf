@@ -31,7 +31,8 @@ import java.util.function.Predicate;
  */
 @Service
 @Slf4j
-public class ReadServiceImpl extends BaseServiceImpl<OperationResult> implements ReadService {
+public class ReadServiceImpl extends BaseServiceImpl implements ReadService {
+
     private final Map<RequestIdentifier, Bridge> readExecutionMap = new ConcurrentHashMap<>();
 
     private final FragmenterService fragmenterService;

@@ -24,7 +24,8 @@ public class OperationStats {
 
     public enum Operation {
         READ(MetricsReporter.PxfMetric.RECORDS_SENT, MetricsReporter.PxfMetric.BYTES_SENT),
-        WRITE(MetricsReporter.PxfMetric.RECORDS_RECEIVED, MetricsReporter.PxfMetric.BYTES_RECEIVED);
+        WRITE(MetricsReporter.PxfMetric.RECORDS_RECEIVED, MetricsReporter.PxfMetric.BYTES_RECEIVED),
+        COMMIT(null, null);
 
         private final MetricsReporter.PxfMetric recordMetric;
         private final MetricsReporter.PxfMetric byteMetric;
@@ -77,13 +78,13 @@ public class OperationStats {
         }
 
         long recordsProcessed = recordCount - lastReportedRecordCount;
-        if (recordsProcessed != 0) {
+        if (recordsProcessed != 0 && operation.recordMetric != null) {
             metricsReporter.reportCounter(operation.recordMetric, recordsProcessed, context);
             lastReportedRecordCount = recordCount;
         }
 
         long bytesProcessed = byteCount - lastReportedByteCount;
-        if (bytesProcessed != 0) {
+        if (bytesProcessed != 0 && operation.byteMetric != null) {
             metricsReporter.reportCounter(operation.byteMetric, bytesProcessed, context);
             lastReportedByteCount = byteCount;
         }

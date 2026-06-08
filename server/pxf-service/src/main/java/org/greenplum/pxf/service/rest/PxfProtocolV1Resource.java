@@ -58,8 +58,7 @@ public class PxfProtocolV1Resource {
         });
     }
 
-    private List<byte[]> deserializeToByteArrayList(byte[] raw)
-    {
+    private List<byte[]> deserializeToByteArrayList(byte[] raw) {
         List<byte[]> metadata = new ArrayList<>();
 
         ByteBuffer buffer = ByteBuffer.wrap(raw).order(ByteOrder.LITTLE_ENDIAN);

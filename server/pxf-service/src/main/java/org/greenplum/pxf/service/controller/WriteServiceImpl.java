@@ -24,7 +24,7 @@ import java.util.function.Predicate;
  */
 @Service
 @Slf4j
-public class WriteServiceImpl extends BaseServiceImpl<OperationResult> implements WriteService {
+public class WriteServiceImpl extends BaseServiceImpl implements WriteService {
 
     private final Map<RequestIdentifier, Bridge> writeExecutionMap = new ConcurrentHashMap<>();
 
@@ -49,7 +49,7 @@ public class WriteServiceImpl extends BaseServiceImpl<OperationResult> implement
 
     @Override
     public void commitData(RequestContext context, List<byte[]> fullMetadata) throws Exception {
-        processData(context, () -> processCommit(context, fullMetadata));
+        processData(context, OperationStats.Operation.COMMIT, () -> processCommit(context, fullMetadata));
     }
 
     @Override
