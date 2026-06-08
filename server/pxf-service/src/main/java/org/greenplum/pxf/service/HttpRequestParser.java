@@ -145,7 +145,7 @@ public class HttpRequestParser implements RequestParser<MultiValueMap<String, St
         context.setResolver(params.removeUserProperty("RESOLVER"));
         context.setSegmentId(params.removeIntProperty("SEGMENT-ID"));
         context.setServerName(params.removeUserProperty("SERVER"));
-        context.setSchemaName(params.removeProperty("SCHEMA-NAME", false));
+        context.setSchemaName(params.removeProperty("SCHEMA-NAME"));
         context.setTableName(params.removeProperty("TABLE-NAME"));
 
         // An optional CONFIG value specifies the name of the server
@@ -474,13 +474,9 @@ public class HttpRequestParser implements RequestParser<MultiValueMap<String, St
          * @throws IllegalArgumentException if property key is missing
          */
         private String removeProperty(String property) {
-            return removeProperty(property, true);
-        }
-
-        private String removeProperty(String property, boolean required) {
             String result = remove(PROP_PREFIX + property);
 
-            if (result == null && required) {
+            if (result == null) {
                 protocolViolation(property);
             }
 
