@@ -531,7 +531,7 @@ PxfBridgeCommitStart(PxfFdwModifyState *pxfmstate)
 
 	BuildHttpHeaders(pxfmstate->churl_headers,
 					 pxfmstate->options,
-					 NULL, // Relation is not available at this point
+					 pxfmstate->relation,
 					 NULL,
 					 NULL,
 					 NULL);
