@@ -32,6 +32,7 @@ plugins {
 // https://github.com/spring-projects/spring-framework/issues/32342
 ext['spring-framework.version'] = '6.1.5'
 ext['tomcat.version'] = '10.1.28'
+ext['jackson-bom.version'] = jacksonVersion
 
 def javaProjects = subprojects.findAll {
     it.name.startsWith("pxf-")
@@ -101,7 +102,7 @@ configure(javaProjects) {
             dependency("commons-io:commons-io:2.7")
             dependency("commons-lang:commons-lang:2.6")
             dependency("commons-logging:commons-logging:1.1.3")
-            dependency("io.airlift:aircompressor:0.21")
+            dependency("io.airlift:aircompressor:${aircompressorVersion}")
             dependency("javax.jdo:jdo-api:3.0.1")
             dependency("joda-time:joda-time:2.8.1")
             dependency("net.sf.opencsv:opencsv:2.3")
@@ -136,7 +137,7 @@ configure(javaProjects) {
             dependency("org.apache.httpcomponents:httpcore:4.4.16")
 
             // https://projectlombok.org
-            dependency("org.projectlombok:lombok:1.18.20")
+            dependency("org.projectlombok:lombok:1.18.22")
 
             // The snappy-java:1.1.8.4 is required for PPC64LE arch.
             dependency("org.xerial.snappy:snappy-java:1.1.8.4")
@@ -205,6 +206,7 @@ configure(javaProjects) {
 
             // Parquet dependencies
             dependencySet(group:"org.apache.parquet", version:"${parquetVersion}") {
+                entry("parquet-avro")
                 entry("parquet-column")
                 entry("parquet-common")
                 entry("parquet-encoding")
@@ -212,8 +214,10 @@ configure(javaProjects) {
                 entry("parquet-format-structures")
                 entry("parquet-hadoop")
                 entry("parquet-jackson")
-                entry("parquet-pig")
             }
+
+            // todo: get rid of that dependency since it was removed from latest parquet libraries
+            dependency("org.apache.parquet:parquet-pig:1.15.2")
 
             // Compression
             dependency("com.github.luben:zstd-jni:1.5.0-1")
@@ -232,7 +236,7 @@ configure(javaProjects) {
             }
 
             // Avro dependencies
-            dependencySet(group:"org.apache.avro", version:"1.10.2") {
+            dependencySet(group:"org.apache.avro", version:"${avroVersion}") {
                 entry("avro")
                 entry("avro-mapred")
             }
@@ -243,12 +247,46 @@ configure(javaProjects) {
                 entry("jackson-mapper-asl")
             }
 
+            dependencySet(group:"io.github.resilience4j", version:"${resilience4jVersion}") {
+                entry("resilience4j-retry")
+            }
+
             // AWS SDK dependencies
             dependencySet(group:"com.amazonaws", version:"${awsJavaSdk}") {
                 entry("aws-java-sdk-core")
                 entry("aws-java-sdk-kms")
                 entry("aws-java-sdk-s3")
             }
+
+            // AWS SDK v2 dependencies (required by iceberg-aws for S3FileIO and Glue catalog)
+            dependencySet(group:"software.amazon.awssdk", version:"${awsSdkV2Version}") {
+                entry("auth")
+                entry("dynamodb")
+                entry("glue")
+                entry("kms")
+                entry("regions")
+                entry("s3")
+                entry("sdk-core")
+                entry("sts")
+                entry("url-connection-client")
+            }
+
+            // Iceberg dependencies
+            dependencySet(group:"org.apache.iceberg", version:"${icebergVersion}") {
+                entry("iceberg-api")
+                entry("iceberg-core")
+                entry("iceberg-aws")
+                entry("iceberg-data")
+                entry("iceberg-hive-metastore")
+                entry("iceberg-orc")
+                entry("iceberg-parquet")
+                entry("iceberg-bundled-guava")
+            }
+
+            dependency("com.github.ben-manes.caffeine:caffeine:${caffeineVersion}")
+            dependency("org.roaringbitmap:RoaringBitmap:1.3.0")
+            dependency("dev.failsafe:failsafe:3.3.2")
+            dependency("org.apache.httpcomponents.client5:httpclient5:5.5")
 
             // Unit test dependencies
             dependencySet(group:"org.apache.hadoop.thirdparty", version:"1.1.1") {
