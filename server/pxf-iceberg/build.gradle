@@ -23,6 +23,7 @@ dependencies {
      *******************************/
 
     // Iceberg core and format support
+    implementation("org.apache.iceberg:iceberg-common")                    { transitive = false }
     implementation("org.apache.iceberg:iceberg-core")                    { transitive = false }
     implementation("org.apache.iceberg:iceberg-data")                    { transitive = false }
     implementation("org.apache.iceberg:iceberg-parquet")                 { transitive = false }
@@ -68,7 +69,7 @@ dependencies {
 
     // Hive Metastore client (required by iceberg-hive-metastore)
     implementation("io.arenadata.hive:hive-metastore")                   { transitive = false }
-    implementation("io.arenadata.hive:hive-exec")                        { transitive = false }
+    implementation("io.arenadata.hive:hive-exec:${hiveVersion}:core")    { transitive = false }
     implementation("io.arenadata.hive:hive-serde")                       { transitive = false }
     implementation("org.apache.thrift:libthrift")                        { transitive = false }
     implementation("javax.jdo:jdo-api")                                  { transitive = false }

@@ -28,11 +28,7 @@ plugins {
     id 'io.spring.dependency-management' version '1.0.11.RELEASE'
 }
 
-// override Spring Framework version to pick the Spring MVC 5.3.33 with the async race condition fix
-// https://github.com/spring-projects/spring-framework/issues/32342
-ext['spring-framework.version'] = '6.1.5'
 ext['tomcat.version'] = '10.1.28'
-ext['jackson-bom.version'] = jacksonVersion
 
 def javaProjects = subprojects.findAll {
     it.name.startsWith("pxf-")
@@ -274,6 +270,7 @@ configure(javaProjects) {
             // Iceberg dependencies
             dependencySet(group:"org.apache.iceberg", version:"${icebergVersion}") {
                 entry("iceberg-api")
+                entry("iceberg-common")
                 entry("iceberg-core")
                 entry("iceberg-aws")
                 entry("iceberg-data")
@@ -294,18 +291,7 @@ configure(javaProjects) {
                 entry("hadoop-shaded-protobuf_3_7")
             }
 
-            // currently imported BOM spring-boot-dependencies:2.5.12 includes log4j-bom:2.17.2 and
-            // importing a module log4j-spring-boot:2.17.2 results in its transitive Junit dependencies
-            // being put into compileClasspath so we have to exclude them here so they are not shipped with PXF
-            // this is fixed in log4j-spring-boot:2.19.0, which is used by spring-boot-dependencies:3.0.0+
-            // so when we upgrade to Spring Boot version 3.0.0+ we should remove this fix
-            // alternatively we can bump log4j-spring-boot to 2.19.0 and not use excludes
-            // dependency("org.apache.logging.log4j:log4j-spring-boot:2.19.0")
-            dependency("org.apache.logging.log4j:log4j-spring-boot:2.17.2") {
-                exclude("org.junit.vintage:junit-vintage-engine")
-                exclude("org.junit.jupiter:junit-jupiter-engine")
-                exclude("org.junit.jupiter:junit-jupiter-api")
-            }
+            dependency("org.apache.logging.log4j:log4j-spring-boot:2.17.2")
         }
     }
 
@@ -355,6 +341,11 @@ configure(javaProjects) {
         all*.exclude group: 'javax.servlet', module: 'servlet-api'
         all*.exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
         all*.exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+    }
+
+    dependencies {
+        // required by Gradle 8.x for JUnit 5 test discovery
+        testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     }
 
     test {

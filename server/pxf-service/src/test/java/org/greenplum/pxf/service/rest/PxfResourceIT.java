@@ -15,10 +15,10 @@ import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.util.MultiValueMap;
@@ -45,13 +45,13 @@ public class PxfResourceIT {
     @Autowired
     private MockMvc mvc;
 
-    @MockBean
+    @MockitoBean
     private RequestParser<MultiValueMap<String, String>> mockParser;
 
-    @MockBean
+    @MockitoBean
     private WriteService mockWriteService;
 
-    @MockBean
+    @MockitoBean
     private HttpHeaderDecoder mockHttpHeaderDecoder;
 
     @Mock

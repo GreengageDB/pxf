@@ -13,8 +13,8 @@ import org.mockito.Mock;
 import org.mockito.stubbing.Answer;
 import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.util.MultiValueMap;
 
@@ -35,13 +35,13 @@ public class PxfMetricsIT {
     @LocalServerPort
     private int port;
 
-    @MockBean
+    @MockitoBean
     private RequestParser<MultiValueMap<String, String>> mockParser;
 
-    @MockBean
+    @MockitoBean
     private ReadService readService;
 
-    @MockBean
+    @MockitoBean
     private WriteService mockWriteService;
 
     @Mock
@@ -117,9 +117,9 @@ public class PxfMetricsIT {
                 .expectStatus().isOk()
                 .expectBody(String.class).returnResult().getResponseBody();
         assertNotNull(prometheusResponse);
-        assertThat(prometheusResponse).contains("http_server_requests_seconds_count{application=\"pxf-service\",error=\"none\",exception=\"none\",method=\"GET\",outcome=\"SUCCESS\",profile=\"profile:test\",segment=\"77\",server=\"speedy\",status=\"200\",uri=\"/pxf/read\",user=\"reader\",} 1.0\n");
-        assertThat(prometheusResponse).contains("http_server_requests_seconds_count{application=\"pxf-service\",error=\"none\",exception=\"none\",method=\"POST\",outcome=\"SUCCESS\",profile=\"profile:test\",segment=\"77\",server=\"speedy\",status=\"200\",uri=\"/pxf/write\",user=\"writer\",} 1.0\n");
-        assertThat(prometheusResponse).contains("http_server_requests_seconds_count{application=\"pxf-service\",error=\"none\",exception=\"none\",method=\"GET\",outcome=\"SUCCESS\",profile=\"unknown\",segment=\"unknown\",server=\"unknown\",status=\"200\",uri=\"/actuator/health\",user=\"unknown\",} 1.0\n");
+        assertThat(prometheusResponse).contains("http_server_requests_seconds_count{application=\"pxf-service\",error=\"none\",exception=\"none\",method=\"GET\",outcome=\"SUCCESS\",profile=\"profile:test\",segment=\"77\",server=\"speedy\",status=\"200\",uri=\"/pxf/read\",user=\"reader\"} 1\n");
+        assertThat(prometheusResponse).contains("http_server_requests_seconds_count{application=\"pxf-service\",error=\"none\",exception=\"none\",method=\"POST\",outcome=\"SUCCESS\",profile=\"profile:test\",segment=\"77\",server=\"speedy\",status=\"200\",uri=\"/pxf/write\",user=\"writer\"} 1\n");
+        assertThat(prometheusResponse).contains("http_server_requests_seconds_count{application=\"pxf-service\",error=\"none\",exception=\"none\",method=\"GET\",outcome=\"SUCCESS\",profile=\"unknown\",segment=\"unknown\",server=\"unknown\",status=\"200\",uri=\"/actuator/health\",user=\"unknown\"} 1\n");
     }
 
     private void mockServices() throws Exception {
