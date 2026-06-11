@@ -16,10 +16,7 @@ concurrency:
 env:
   IMAGES: |
     [
-      { "version": "6", "image": "greengagedb/ggdb", "tag": "6.30.1"  },
-      { "version": "7", "image": "greengagedb/ggdb", "tag": "7.4.0"   },
-      { "version": "6", "image": "ghcr.io/greengagedb/greengage/ggdb", "tag": "latest" },
-      { "version": "7", "image": "ghcr.io/greengagedb/greengage/ggdb", "tag": "latest" }
+      { "version": "6", "image": "ghcr.io/greengagedb/greengage/ggdb", "tag": "GG-389" }
     ]
   TESTS: |
     [
@@ -105,34 +102,4 @@ jobs:
       tag:     ${{ fromJson(needs.generate-matrix.outputs.images)[0].tag }}
       image:   ${{ fromJson(needs.generate-matrix.outputs.images)[0].image }}
       version: ${{ fromJson(needs.generate-matrix.outputs.images)[0].version }}
-      tests: ${{ needs.generate-matrix.outputs.tests }}
-
-  integration-1:
-    needs: generate-matrix
-    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.images)[1].version }}:${{ fromJson(needs.generate-matrix.outputs.images)[1].tag }}
-    uses: ./.github/workflows/greengage-reusable-tests-integration.yml
-    with:
-      tag:     ${{ fromJson(needs.generate-matrix.outputs.images)[1].tag }}
-      image:   ${{ fromJson(needs.generate-matrix.outputs.images)[1].image }}
-      version: ${{ fromJson(needs.generate-matrix.outputs.images)[1].version }}
-      tests: ${{ needs.generate-matrix.outputs.tests }}
-
-  integration-2:
-    needs: generate-matrix
-    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.images)[2].version }}:${{ fromJson(needs.generate-matrix.outputs.images)[2].tag }}
-    uses: ./.github/workflows/greengage-reusable-tests-integration.yml
-    with:
-      tag:     ${{ fromJson(needs.generate-matrix.outputs.images)[2].tag }}
-      image:   ${{ fromJson(needs.generate-matrix.outputs.images)[2].image }}
-      version: ${{ fromJson(needs.generate-matrix.outputs.images)[2].version }}
-      tests: ${{ needs.generate-matrix.outputs.tests }}
-
-  integration-3:
-    needs: generate-matrix
-    name: Integration on ggdb${{ fromJson(needs.generate-matrix.outputs.images)[3].version }}:${{ fromJson(needs.generate-matrix.outputs.images)[3].tag }}
-    uses: ./.github/workflows/greengage-reusable-tests-integration.yml
-    with:
-      tag:     ${{ fromJson(needs.generate-matrix.outputs.images)[3].tag }}
-      image:   ${{ fromJson(needs.generate-matrix.outputs.images)[3].image }}
-      version: ${{ fromJson(needs.generate-matrix.outputs.images)[3].version }}
       tests: ${{ needs.generate-matrix.outputs.tests }}

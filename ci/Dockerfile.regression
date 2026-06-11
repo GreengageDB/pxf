@@ -1,6 +1,6 @@
 # https://github.com/GreengageDB/greengage/tree/main/ci
 # OLD version
-ARG GGDB_IMAGE=greengagedb/ggdb6_ubuntu:6.29.0
+ARG GGDB_IMAGE=ghcr.io/greengagedb/greengage/ggdb6_ubuntu:GG-389
 FROM $GGDB_IMAGE AS base
 
 # install go, ginkgo and keep env variables which may be used as a part of base image
