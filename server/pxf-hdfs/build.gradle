@@ -104,7 +104,8 @@ dependencies {
     testCompileOnly("org.apache.hadoop:hadoop-annotations")
 
     testImplementation("io.airlift:aircompressor")       // for HcfsTypeTest for testing write URI with LzopCodec
-    testImplementation("org.apache.parquet:parquet-pig") // for parquet tests
+    testImplementation("org.locationtech.jts:jts-core")  // parquet-column 1.15+ requires JTS for geometry type support
+    testImplementation("org.xerial.snappy:snappy-java")   // parquet compression support in tests
     testImplementation('org.springframework.boot:spring-boot-starter-test')
 
     // https://projectlombok.org

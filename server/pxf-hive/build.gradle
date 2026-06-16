@@ -61,7 +61,7 @@ dependencies {
     implementation("org.codehaus.jackson:jackson-mapper-asl")        { transitive = false }
     implementation("org.jodd:jodd-core")                             { transitive = false }
     implementation("javax.servlet:javax.servlet-api:4.0.1")          { transitive = false }
-    implementation("org.locationtech.jts:jts-core:1.20.0")           { transitive = false }
+    implementation("org.locationtech.jts:jts-core")           { transitive = false }
 
     // transitive dependency for reading Hive tables with SerDe 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
     implementation("net.sf.opencsv:opencsv")                         { transitive = false }

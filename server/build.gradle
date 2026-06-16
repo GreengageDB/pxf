@@ -212,8 +212,7 @@ configure(javaProjects) {
                 entry("parquet-jackson")
             }
 
-            // todo: get rid of that dependency since it was removed from latest parquet libraries
-            dependency("org.apache.parquet:parquet-pig:1.15.2")
+            dependency("org.locationtech.jts:jts-core:1.20.0")
 
             // Compression
             dependency("com.github.luben:zstd-jni:1.5.0-1")

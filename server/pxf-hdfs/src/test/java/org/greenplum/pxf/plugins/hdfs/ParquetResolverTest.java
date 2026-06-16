@@ -13,7 +13,7 @@ import org.apache.parquet.io.ColumnIOFactory;
 import org.apache.parquet.io.MessageColumnIO;
 import org.apache.parquet.io.RecordReader;
 import org.apache.parquet.io.api.Binary;
-import org.apache.parquet.pig.convert.DecimalUtils;
+import java.math.BigInteger;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.GroupType;
@@ -147,7 +147,7 @@ public class ParquetResolverTest {
         assertEquals(1, group.getInteger(2, 0));
         assertEquals(6.0d, group.getDouble(3, 0), 0d);
         assertEquals(BigDecimal.valueOf(1234560000000000000L, 18),
-                DecimalUtils.binaryToDecimal(group.getBinary(4, 0), 19, 18));
+                new BigDecimal(new BigInteger(group.getBinary(4, 0).getBytes()), 18));
 
         NanoTime nanoTime = NanoTime.fromBinary(group.getInt96(5, 0));
         assertEquals(2456488, nanoTime.getJulianDay()); // 14 Jul 2013 in Julian days
