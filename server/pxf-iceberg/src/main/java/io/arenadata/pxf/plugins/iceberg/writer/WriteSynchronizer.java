@@ -8,20 +8,26 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @RequiredArgsConstructor
 public class WriteSynchronizer {
 
     private final String transactionId;
+    private final AtomicBoolean closed = new AtomicBoolean(false);
     private final Semaphore semaphore = new Semaphore(Integer.MAX_VALUE);
     private final ConcurrentMap<Integer, Collection<FileToCommit>> files = new ConcurrentHashMap<>();
 
     public boolean isInUse() {
-        return semaphore.availablePermits() < Integer.MAX_VALUE;
+        return !closed.get() && semaphore.availablePermits() < Integer.MAX_VALUE;
     }
 
     public boolean open(int segmentId) {
+        if(closed.get()) {
+            log.warn("Synchronizer has been already closed");
+            return false;
+        }
         log.info("Open transaction id {}, segment id {}", transactionId, segmentId);
         try {
             semaphore.acquire();
@@ -32,11 +38,17 @@ public class WriteSynchronizer {
         return true;
     }
 
-    public void clean() {
-        files.clear();
+    public void close() {
+        if(closed.compareAndSet(false, true)) {
+            files.clear();
+        }
     }
 
     public Collection<FileToCommit> saveAndGetFullListIfCompleted(int segmentId, Collection<FileToCommit> inputFiles) {
+        if(closed.get()) {
+            log.warn("Can't save result, synchronizer has been already closed");
+            return List.of();
+        }
         log.info("Complete transaction id {}, segment id {}", transactionId, segmentId);
         files.put(segmentId, inputFiles);
         try {

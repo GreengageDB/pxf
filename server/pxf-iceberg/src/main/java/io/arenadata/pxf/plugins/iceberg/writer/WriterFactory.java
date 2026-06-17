@@ -48,7 +48,7 @@ public class WriterFactory {
             return writer;
         }
         return new IcebergWriterWithSynchronization(context.getSegmentId(), writer, synchronizer,
-                () -> cleanSynchronizers(context.getTransactionId())
+                (force) -> cleanSynchronizer(context.getTransactionId(), force)
         );
 
     }
@@ -84,12 +84,12 @@ public class WriterFactory {
         };
     }
 
-    private void cleanSynchronizers(String transactionId) {
+    private void cleanSynchronizer(String transactionId, boolean force) {
         synchronizers.computeIfPresent(transactionId, (key, synchronizer) -> {
-            if(synchronizer.isInUse()) {
+            if(!force && synchronizer.isInUse()) {
                 return synchronizer;
             }
-            synchronizer.clean();
+            synchronizer.close();
             return null;
         });
     }
