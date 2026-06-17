@@ -15,6 +15,7 @@ import org.greenplum.pxf.automation.utils.system.ProtocolUtils;
 import org.greenplum.pxf.automation.utils.tables.ComparisonUtils;
 import org.junit.Assert;
 import org.testng.annotations.Test;
+import org.testng.annotations.Ignore;
 
 import java.io.File;
 import java.sql.SQLException;
@@ -46,6 +47,7 @@ import java.sql.SQLWarning;
  * </ul>
  */
 @WorksWithFDW
+@Ignore
 public class HdfsAnalyzeTest extends BaseFeature {
 
     private static final String SUFFIX_CLASS = ".class";

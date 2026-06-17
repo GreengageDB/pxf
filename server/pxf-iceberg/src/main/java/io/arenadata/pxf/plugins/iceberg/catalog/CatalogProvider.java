@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import static java.util.stream.Collectors.toMap;
@@ -30,15 +31,18 @@ public class CatalogProvider implements AutoCloseable {
 
     public CatalogWrapper get(IcebergSettings settings) {
         var catalogKey = new CatalogKey(settings.getCatalogName(), settings.getCatalogType());
-        return catalogs.compute(catalogKey, (key, current) -> {
-            if(current != null && Objects.equals(current.getSettings(), settings)) {
+        AtomicReference<CatalogWrapper> toClose = new AtomicReference<>();
+        var result = catalogs.compute(catalogKey, (key, current) -> {
+            if (current != null && Objects.equals(current.getSettings(), settings)) {
                 return current;
             }
-            if(current != null) {
-                current.close();
-            }
+            toClose.set(current);
             return createCatalog(key, settings);
         });
+        if (toClose.get() != null) {
+            toClose.get().close();
+        }
+        return result;
     }
 
     private CatalogWrapper createCatalog(CatalogKey catalogKey, IcebergSettings settings) {

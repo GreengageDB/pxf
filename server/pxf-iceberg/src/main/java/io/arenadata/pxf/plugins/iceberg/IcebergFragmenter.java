@@ -25,7 +25,8 @@ public class IcebergFragmenter extends BasePlugin implements Fragmenter {
 
     private static final Comparator<Fragment> fragmentComparator =
             Comparator.<Fragment, String>comparing(f -> ((IcebergFragmentMetadata)f.getMetadata()).task().file().location())
-                    .thenComparing(f -> ((IcebergFragmentMetadata)f.getMetadata()).task().file().pos());
+                    .thenComparing(f -> ((IcebergFragmentMetadata)f.getMetadata()).task().file().pos(),
+                            Comparator.nullsLast(Comparator.naturalOrder()));
 
     private final CatalogProvider catalogProvider;
 

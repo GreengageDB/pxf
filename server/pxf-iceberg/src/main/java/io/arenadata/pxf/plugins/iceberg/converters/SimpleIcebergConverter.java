@@ -27,6 +27,6 @@ public class SimpleIcebergConverter<V> implements IcebergConverter<V> {
 
     @Override
     public Object convertFromIcebergToGreengage(Object input) {
-        return greengageConverterFunction.apply(input);
+        return input != null ? greengageConverterFunction.apply(input) : null;
     }
 }
