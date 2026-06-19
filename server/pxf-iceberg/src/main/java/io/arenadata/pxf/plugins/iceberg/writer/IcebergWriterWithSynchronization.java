@@ -5,7 +5,6 @@ import org.apache.iceberg.data.Record;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.function.Consumer;
 
 @RequiredArgsConstructor
 public class IcebergWriterWithSynchronization implements IcebergWriter {
@@ -13,7 +12,7 @@ public class IcebergWriterWithSynchronization implements IcebergWriter {
     private final int segmentId;
     private final IcebergWriter delegate;
     private final WriteSynchronizer synchronizer;
-    private final Consumer<Boolean> synchronizerCleaner;
+    private final Runnable synchronizerCleaner;
 
     @Override
     public void write(Record record) throws IOException {
@@ -21,14 +20,11 @@ public class IcebergWriterWithSynchronization implements IcebergWriter {
     }
 
     @Override
-    public Collection<FileToCommit> completeAndGetFilesToCommit() throws IOException {
+    public Collection<FileToCommit> completeAndGetFilesToCommit() throws Exception {
         try{
-            var filesToCommit = synchronizer.saveAndGetFullListIfCompleted(segmentId, delegate.completeAndGetFilesToCommit());
-            synchronizerCleaner.accept(false);
-            return filesToCommit;
-        } catch(Exception e) {
-            synchronizerCleaner.accept(true);
-            throw e;
+            return synchronizer.saveAndGetFullListIfCompleted(segmentId, delegate::completeAndGetFilesToCommit);
+        } finally {
+            synchronizerCleaner.run();
         }
     }
 

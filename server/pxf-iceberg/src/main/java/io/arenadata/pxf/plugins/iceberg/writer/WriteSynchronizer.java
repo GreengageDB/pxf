@@ -8,27 +8,30 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @RequiredArgsConstructor
 public class WriteSynchronizer {
 
+    public interface FilesToCommitProvider {
+        Collection<FileToCommit> get() throws Exception;
+    }
+
     private final String transactionId;
-    private final AtomicBoolean closed = new AtomicBoolean(false);
     private final Semaphore semaphore = new Semaphore(Integer.MAX_VALUE);
     private final ConcurrentMap<Integer, Collection<FileToCommit>> files = new ConcurrentHashMap<>();
 
     public boolean isInUse() {
-        return !closed.get() && semaphore.availablePermits() < Integer.MAX_VALUE;
+        return getNumberOfActiveThreads() > 0;
+    }
+
+    private int getNumberOfActiveThreads() {
+        return Integer.MAX_VALUE - semaphore.availablePermits();
     }
 
     public boolean open(int segmentId) {
-        if(closed.get()) {
-            log.warn("Synchronizer has been already closed");
-            return false;
-        }
-        log.info("Open transaction id {}, segment id {}", transactionId, segmentId);
+        log.info("Open transaction id {}, segment id {}, current number of active threads is {}",
+                transactionId, segmentId, getNumberOfActiveThreads());
         try {
             semaphore.acquire();
         } catch (InterruptedException e) {
@@ -38,36 +41,26 @@ public class WriteSynchronizer {
         return true;
     }
 
-    public void close() {
-        if(closed.compareAndSet(false, true)) {
-            files.clear();
-        }
-    }
-
-    public Collection<FileToCommit> saveAndGetFullListIfCompleted(int segmentId, Collection<FileToCommit> inputFiles) {
-        if(closed.get()) {
-            log.warn("Can't save result, synchronizer has been already closed");
-            return List.of();
-        }
-        log.info("Complete transaction id {}, segment id {}", transactionId, segmentId);
-        files.put(segmentId, inputFiles);
-        try {
-            return tryToCompleteEverything(segmentId);
-        } finally {
-            semaphore.release();
-        }
+    public Collection<FileToCommit> saveAndGetFullListIfCompleted(int segmentId, FilesToCommitProvider filesProvider) throws Exception {
+        log.info("Complete transaction id {}, segment id {}, current number of active threads is {}",
+                transactionId, segmentId, getNumberOfActiveThreads());
+        files.put(segmentId, filesProvider.get());
+        semaphore.release();
+        return tryToCompleteEverything(segmentId);
     }
 
     private Collection<FileToCommit> tryToCompleteEverything(int segmentId) {
         //check if the current segment is last
-        if(!semaphore.tryAcquire(Integer.MAX_VALUE - 1)) {
+        if(!semaphore.tryAcquire(Integer.MAX_VALUE)) {
             return List.of();
         }
         log.info("Attempt to complete transaction id {}, segment id {} on node", transactionId, segmentId);
         try{
-            return files.values().stream().flatMap(Collection::stream).toList();
+            var result = files.values().stream().flatMap(Collection::stream).toList();
+            files.clear();
+            return result;
         } finally {
-            semaphore.release(Integer.MAX_VALUE - 1);
+            semaphore.release(Integer.MAX_VALUE);
         }
     }
 

@@ -9,6 +9,6 @@ public interface IcebergWriter {
 
     void write(Record record) throws IOException;
 
-    Collection<FileToCommit> completeAndGetFilesToCommit() throws IOException;
+    Collection<FileToCommit> completeAndGetFilesToCommit() throws Exception;
 
 }

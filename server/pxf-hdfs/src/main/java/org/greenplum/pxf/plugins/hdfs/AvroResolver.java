@@ -46,6 +46,7 @@ import org.greenplum.pxf.plugins.hdfs.utilities.RecordkeyAdapter;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -295,6 +296,18 @@ public class AvroResolver extends BasePlugin implements Resolver {
                 addOneFieldToRecord(record, gpdbWritableIntDataType, fieldValue);
                 return ++ret;
             case DOUBLE:
+                // Avro 1.12 bug: PrimitivesArrays.DoubleArray.add(int, Double) converts each
+                // element through float (Double.floatValue() + f2d), so 0.1d is stored as
+                // 0.10000000149011612d. Detect this by a float round-trip and, for array elements
+                // only, display with float precision so users see "0.1" not "0.10000000149011612".
+                if (fieldValue != null && (gpdbColType.isArrayType() || DataType.TEXT.equals(gpdbColType))) {
+                    double d = (Double) fieldValue;
+                    float f = (float) d;
+                    if (Double.compare((double) f, d) == 0) {
+                        addOneFieldToRecord(record, DataType.REAL, f);
+                        return ++ret;
+                    }
+                }
                 addOneFieldToRecord(record, DataType.FLOAT8, fieldValue);
                 return ++ret;
             case STRING:
@@ -412,7 +425,9 @@ public class AvroResolver extends BasePlugin implements Resolver {
     int setArrayField(List<OneField> record, Object fieldValue,
                       Schema arraySchema, DataType gpdbColType) {
         Schema typeSchema = arraySchema.getElementType();
-        GenericData.Array<?> array = (GenericData.Array<?>) fieldValue;
+        // PrimitivesArrays$IntArray (and similar) don't extend GenericData.Array,
+        // so cast to the common Collection interface instead.
+        Collection<?> array = (Collection<?>) fieldValue;
         int length = array.size();
         for (Object o : array) {
             populateRecord(record, o, typeSchema, gpdbColType);

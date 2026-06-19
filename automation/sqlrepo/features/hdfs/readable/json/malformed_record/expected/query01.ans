@@ -10,23 +10,8 @@
 SELECT *
 FROM jsontest_malformed_record
 ORDER BY id;
-ERROR:  error while parsing json record 'Unexpected character (':' (code 58)): was expecting comma to separate Object entries
-
- at [Source: (String)"{
-      "record":
-        "created_at":"Fri Jun 07 22:45:02 +0000 2013",
-        "id":343136547123646465,
-        "id_str":"343136547123646465",
-        "text":"text2",
-        "source":"\u003ca href=\"http:\/\/twitter.com\/download\/android\" rel=\"nofollow\"\u003eTwitter for Android\u003c\/a\u003e",
-        "user":{
-          "id":102904200,
-          "id_str":"102904200",
-          "name":"Ardianto",
-          "screen_name":"patronusdeadly",
-          "location":"Bekasi-Surabaya"
-        },
- "[truncated 73 chars]; line: 3, column: 22]'. invalid JSON record
+psql:features/hdfs/readable/json/malformed_record/sql/query01.sql:12: ERROR:  error while parsing json record 'Unexpected character (':' (code 58)): was expecting comma to separate Object entries
+ at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 3, column: 21]'. invalid JSON record
 {
       "record":
         "created_at":"Fri Jun 07 22:45:02 +0000 2013",
@@ -46,29 +31,14 @@ ERROR:  error while parsing json record 'Unexpected character (':' (code 58)): w
 
           ]
         }
-      }
-External table jsontest_malformed_record
+      }  (seg1 slice1 172.18.0.5:6002 pid=2185)
+CONTEXT:  External table jsontest_malformed_record
 SELECT *
 FROM jsontest_malformed_record
 WHERE id IS NULL
 ORDER BY id;
-ERROR:  error while parsing json record 'Unexpected character (':' (code 58)): was expecting comma to separate Object entries
-
- at [Source: (String)"{
-      "record":
-        "created_at":"Fri Jun 07 22:45:02 +0000 2013",
-        "id":343136547123646465,
-        "id_str":"343136547123646465",
-        "text":"text2",
-        "source":"\u003ca href=\"http:\/\/twitter.com\/download\/android\" rel=\"nofollow\"\u003eTwitter for Android\u003c\/a\u003e",
-        "user":{
-          "id":102904200,
-          "id_str":"102904200",
-          "name":"Ardianto",
-          "screen_name":"patronusdeadly",
-          "location":"Bekasi-Surabaya"
-        },
- "[truncated 73 chars]; line: 3, column: 22]'. invalid JSON record
+psql:features/hdfs/readable/json/malformed_record/sql/query01.sql:16: ERROR:  error while parsing json record 'Unexpected character (':' (code 58)): was expecting comma to separate Object entries
+ at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 3, column: 21]'. invalid JSON record
 {
       "record":
         "created_at":"Fri Jun 07 22:45:02 +0000 2013",
@@ -88,29 +58,13 @@ ERROR:  error while parsing json record 'Unexpected character (':' (code 58)): w
 
           ]
         }
-      }
-External table jsontest_malformed_record
-
+      }  (seg3 slice1 172.18.0.4:6001 pid=2170)
+CONTEXT:  External table jsontest_malformed_record
 SELECT *
 FROM jsontest_malformed_record_filefrag
 ORDER BY id;
-ERROR:  error while parsing json record 'Unexpected character (':' (code 58)): was expecting comma to separate Object entries
-
- at [Source: (String)"{
-      "record":
-        "created_at":"Fri Jun 07 22:45:02 +0000 2013",
-        "id":343136547123646465,
-        "id_str":"343136547123646465",
-        "text":"text2",
-        "source":"\u003ca href=\"http:\/\/twitter.com\/download\/android\" rel=\"nofollow\"\u003eTwitter for Android\u003c\/a\u003e",
-        "user":{
-          "id":102904200,
-          "id_str":"102904200",
-          "name":"Ardianto",
-          "screen_name":"patronusdeadly",
-          "location":"Bekasi-Surabaya"
-        },
- "[truncated 73 chars]; line: 3, column: 22]'. invalid JSON record
+psql:features/hdfs/readable/json/malformed_record/sql/query01.sql:20: ERROR:  error while parsing json record 'Unexpected character (':' (code 58)): was expecting comma to separate Object entries
+ at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 3, column: 21]'. invalid JSON record
 {
       "record":
         "created_at":"Fri Jun 07 22:45:02 +0000 2013",
@@ -130,29 +84,14 @@ ERROR:  error while parsing json record 'Unexpected character (':' (code 58)): w
 
           ]
         }
-      }
-External table jsontest_malformed_record_filefrag
+      }  (seg5 slice1 172.18.0.4:6003 pid=2172)
+CONTEXT:  External table jsontest_malformed_record_filefrag
 SELECT *
 FROM jsontest_malformed_record_filefrag
 WHERE id IS NULL
 ORDER BY id;
-ERROR:  error while parsing json record 'Unexpected character (':' (code 58)): was expecting comma to separate Object entries
-
- at [Source: (String)"{
-      "record":
-        "created_at":"Fri Jun 07 22:45:02 +0000 2013",
-        "id":343136547123646465,
-        "id_str":"343136547123646465",
-        "text":"text2",
-        "source":"\u003ca href=\"http:\/\/twitter.com\/download\/android\" rel=\"nofollow\"\u003eTwitter for Android\u003c\/a\u003e",
-        "user":{
-          "id":102904200,
-          "id_str":"102904200",
-          "name":"Ardianto",
-          "screen_name":"patronusdeadly",
-          "location":"Bekasi-Surabaya"
-        },
- "[truncated 73 chars]; line: 3, column: 22]'. invalid JSON record
+psql:features/hdfs/readable/json/malformed_record/sql/query01.sql:24: ERROR:  error while parsing json record 'Unexpected character (':' (code 58)): was expecting comma to separate Object entries
+ at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 3, column: 21]'. invalid JSON record
 {
       "record":
         "created_at":"Fri Jun 07 22:45:02 +0000 2013",
@@ -172,5 +111,5 @@ ERROR:  error while parsing json record 'Unexpected character (':' (code 58)): w
 
           ]
         }
-      }
-External table jsontest_malformed_record_filefrag
+      }  (seg1 slice1 172.18.0.5:6002 pid=2185)
+CONTEXT:  External table jsontest_malformed_record_filefrag

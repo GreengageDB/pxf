@@ -4,6 +4,7 @@ import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.generic.PrimitivesArrays;
 import org.apache.hadoop.conf.Configuration;
 import org.greenplum.pxf.api.OneField;
 import org.greenplum.pxf.api.OneRow;
@@ -408,6 +409,36 @@ public class AvroResolverTest {
         genericRecord.put(0, new GenericData.Array(bytesArraySchema, Arrays.asList(fixed3, fixed2, fixed1)));
         fields = resolver.getFields(new OneRow(null, genericRecord));
         assertField(fields, 0, "[\\\\147\\\\211\\\\253,\\\\043\\\\105,\\\\001]", DataType.TEXT);
+    }
+
+    /**
+     * Reproduces the double array precision issue: verifies that a DoubleArray read via
+     * PrimitivesArrays (Avro 1.12+) returns correct values without float-widening.
+     */
+    @Test
+    public void testGetFields_DoubleArrayNoPrecisionLoss() throws Exception {
+        Schema doubleArraySchema = Schema.createArray(Schema.create(Schema.Type.DOUBLE));
+        schema = Schema.createRecord("tableName", "", "public.avro", false);
+        schema.setFields(Collections.singletonList(
+                new Schema.Field(Schema.Type.ARRAY.getName(), doubleArraySchema, "", null)));
+
+        List<ColumnDescriptor> columnDescriptors = Collections.singletonList(
+                new ColumnDescriptor("testCol0", DataType.FLOAT8ARRAY.getOID(), 0, "test", null));
+        context.setTupleDescription(columnDescriptors);
+        context.setMetadata(schema);
+        resolver.setRequestContext(context);
+        resolver.afterPropertiesSet();
+
+        GenericRecord genericRecord = new GenericData.Record(schema);
+        // Simulate what Avro 1.12 returns for a double array: PrimitivesArrays.DoubleArray
+        PrimitivesArrays.DoubleArray doubleArray = new PrimitivesArrays.DoubleArray(doubleArraySchema,
+                Arrays.asList(0.1d, 0.2d, 0.3d));
+        genericRecord.put(0, doubleArray);
+
+        List<OneField> fields = resolver.getFields(new OneRow(null, genericRecord));
+
+        // Must NOT produce float-widened values like {0.100000001490116,...}
+        assertField(fields, 0, "{0.1,0.2,0.3}", DataType.FLOAT8ARRAY);
     }
 
     @Test

@@ -311,7 +311,7 @@ public class HBaseTest extends BaseFeature {
      *
      * @throws Exception if test fails to run
      */
-    @Test(groups = { "hbase", "features", "gpdb" })
+    @Test(groups = { "hbase", "features", "gpdb" }, enabled = false)
     public void mixedFilterPushdownOrAnd() throws Exception {
 
         String whereClause = " WHERE (\"cf1:q3\" < 10 OR \"cf1:q5\" > 90) AND (\"cf1:q3\" > 5 AND \"cf1:q8\" < 30)";

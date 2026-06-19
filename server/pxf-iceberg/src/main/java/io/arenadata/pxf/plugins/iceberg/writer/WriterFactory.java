@@ -43,12 +43,18 @@ public class WriterFactory {
             // we don't need to add synchronization since it will be done by using master-commit protocol
             return writer;
         }
-        var synchronizer = synchronizers.computeIfAbsent(context.getTransactionId(), WriteSynchronizer::new);
-        if(!synchronizer.open(context.getSegmentId())) {
+        var synchronizer = synchronizers.compute(context.getTransactionId(), (key, existed) -> {
+            var current = existed != null ? existed : new WriteSynchronizer(key);
+            if(current.open(context.getSegmentId())) {
+                return current;
+            }
+            return null;
+        });
+        if(synchronizer == null) {
             return writer;
         }
         return new IcebergWriterWithSynchronization(context.getSegmentId(), writer, synchronizer,
-                (force) -> cleanSynchronizer(context.getTransactionId(), force)
+                () -> cleanSynchronizer(context.getTransactionId())
         );
 
     }
@@ -84,14 +90,10 @@ public class WriterFactory {
         };
     }
 
-    private void cleanSynchronizer(String transactionId, boolean force) {
-        synchronizers.computeIfPresent(transactionId, (key, synchronizer) -> {
-            if(!force && synchronizer.isInUse()) {
-                return synchronizer;
-            }
-            synchronizer.close();
-            return null;
-        });
+    private void cleanSynchronizer(String transactionId) {
+        synchronizers.computeIfPresent(transactionId,
+                (key, synchronizer) -> synchronizer.isInUse() ? synchronizer : null
+        );
     }
 
 }
