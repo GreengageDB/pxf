@@ -4,18 +4,33 @@ name: Greengage PXF Reusable Integration Tests
 on:
   workflow_call:
     inputs:
-      image:
-        required: true
-        type: string
       version:
+        description: 'GGDB major version (e.g., 6 or 7)'
         required: true
         type: string
-      tag:
+      target_os:
+        description: 'Target OS (e.g., ubuntu)'
+        required: true
+        type: string
+      target_os_version:
+        description: 'Target OS version (e.g., 24.04)'
+        required: true
+        type: string
+      release:
+        description: |
+          Artifacts suffix. The value 'devel' triggers using GHCR
+          (ghcr.io/greengagedb/greengage) as the image source;
+          any other value (e.g., 'prod') uses DockerHub (greengagedb).
         required: true
         type: string
       tests:
         required: true
         type: string  # JSON string with test matrix
+      tag:
+        description: 'Developers tag'
+        required: false
+        default: 'latest'
+        type: string
 
 jobs:
   integration:
@@ -24,34 +39,35 @@ jobs:
       matrix:
         include: ${{ fromJson(inputs.tests) }}
 
-    name: Test ${{ matrix.test }}${{ matrix.fdw && ' FDW' || '' }}${{ matrix.ssl && ' SSL' || '' }} on ${{ inputs.image }}${{ inputs.version }}_ubuntu:${{ inputs.tag }}
+    name: ${{ matrix.test }}${{ matrix.fdw && ' FDW' || '' }}${{ matrix.ssl && ' SSL' || '' }} with ${{ inputs.release }}${{ inputs.tag && format(' {0}', inputs.tag) }} ggdb${{ inputs.version}} on ${{ inputs.target_os}} ${{ inputs.target_os_version }}
 
     runs-on: ubuntu-latest
     env:
-      DEV_HOME: /home/gpadmin
-      PXF_HOME: /usr/local/greengage-db-devel/pxf
-      GPHOME:   /usr/local/greengage-db-devel
-      PROFILE: ${{ matrix.test }}
-      GROUP: ${{ matrix.test }}
-      USE_FDW: ${{ matrix.fdw }}
-      USE_SSL: ${{ matrix.ssl }}
-      GGDB_IMAGE: ${{ inputs.image }}${{ inputs.version }}_ubuntu:${{ inputs.tag }}
-      IT_IMAGE: ${{ inputs.image }}${{ inputs.version }}_ubuntu_pxf_automation
-      IT_TAG: ${{ inputs.tag }}
+      DEV_HOME:   /home/gpadmin
+      PXF_HOME:   /usr/local/greengage-db-devel/pxf
+      GPHOME:     /usr/local/greengage-db-devel
+      PROFILE:    ${{ matrix.test }}
+      GROUP:      ${{ matrix.test }}
+      USE_FDW:    ${{ matrix.fdw }}
+      USE_SSL:    ${{ matrix.ssl }}
+      GGDB_IMAGE: ${{ inputs.release == 'devel' && 'ghcr.io/greengagedb/greengage' || 'greengagedb' }}/ggdb${{ inputs.version}}_${{ inputs.target_os}}${{ inputs.target_os_version != '22.04' && inputs.target_os_version || '' }}:${{ inputs.tag || 'latest' }}
+      IT_IMAGE:   ggdb${{ inputs.version}}_${{ inputs.target_os}}${{ inputs.target_os_version }}_pxf_automation_${{ inputs.release }}
+      IT_TAG:     it
       JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
-      DEBIAN_FRONTEND: noninteractive
+      DEBIAN_FRONTEND:    noninteractive
 
     steps:
       # Maximize build space for Docker
       - name: Maximize disk space
         uses: greengagedb/greengage-ci/.github/actions/maximize-disk-space@v19
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build ${{ env.IT_IMAGE }}:${{ env.IT_TAG }} image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
+          push: false
           file: ci/Dockerfile.integration
           tags: ${{ env.IT_IMAGE }}:${{ env.IT_TAG }}
           build-args: GGDB_IMAGE=${{ env.GGDB_IMAGE }}
@@ -64,8 +80,8 @@ jobs:
 
       - name: Upload artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: integration-ggdb${{ inputs.version }}-${{ inputs.tag }}-${{ matrix.test }}${{ matrix.fdw && '-fdw' || '' }}${{ matrix.ssl && '-ssl' || '' }}
+          name: integration-ggdb${{ inputs.version}}_${{ inputs.target_os}}${{ inputs.target_os_version }}-${{ inputs.release }}${{ inputs.tag && format('-{0}' ,inputs.tag) }}-${{ matrix.test }}${{ matrix.fdw && '-fdw' || '' }}${{ matrix.ssl && '-ssl' || '' }}
           path: automation/env/artifacts/
           retention-days: 7

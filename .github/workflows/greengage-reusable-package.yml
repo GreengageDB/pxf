@@ -1,0 +1,85 @@
+# .github/workflows/greengage-reusable-package.yml
+name: Greengage PXF Reusable Package Builds
+
+on:
+  workflow_call:
+    inputs:
+      builds:
+        required: true
+        type: string  # JSON string with builds matrix
+
+jobs:
+  deb-packages:
+    name: deb with ${{ matrix.release }}${{ matrix.tag && format(' {0}', matrix.tag) }} greengage${{ matrix.version }} for ${{ matrix.target_os }} ${{ matrix.target_os_version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(inputs.builds) }}
+
+    env:
+      GGDB_IMAGE:   ${{ matrix.release == 'devel' && 'ghcr.io/greengagedb/greengage' || 'greengagedb' }}/ggdb${{ matrix.version}}_${{ matrix.target_os}}${{ matrix.target_os_version != '22.04' && matrix.target_os_version || '' }}:${{ matrix.tag || 'latest' }}
+      DEB_PACKAGES: deb-packages-pxf${{ matrix.version }}-${{ matrix.target_os }}${{ matrix.target_os_version }}${{ matrix.release == 'devel' && '-devel' || '' }}${{ matrix.tag && format('-{0}', matrix.tag) }}
+
+    steps:
+      - name: Skip notify
+        if: ${{ matrix.skip_package == 'true' }}
+        run: echo "Job will be skipped due to flag 'skip_package'"
+
+      - uses: actions/checkout@v6
+        if: ${{ matrix.skip_package != 'true' }}
+      - name: Build in Docker using docker run
+        if: ${{ matrix.skip_package != 'true' }}
+        env:
+          GOPATH:   /opt/go
+          DEV_HOME: /home/gpadmin
+          PXF_HOME: /opt/greengagedb/pxf
+          GPHOME:   /opt/greengagedb/greengage${{ matrix.version }}
+          PXF_SRC:  /home/gpadmin/pxf
+          PATH:     /opt/greengagedb/greengage${{ matrix.version }}/bin:/opt/greengagedb/pxf/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/go/bin:/opt/go/bin
+          DEBIAN_FRONTEND:    noninteractive
+          JAVA_TOOL_OPTIONS:  -Dfile.encoding=UTF8
+          GREENGAGE_VERSION:  ${{ matrix.version }}
+          GREENGAGE_REPO_URL: https://greengagedb.org
+
+        run: |
+          set -eux
+          # Fix for old stable images w/o Greengage GPG
+          curl -fsSL ${GREENGAGE_REPO_URL}/repositories/gpg 2>curl.err | \
+            sudo gpg --dearmor -o /etc/apt/keyrings/greengagedb.gpg 1>gpg.log 2>>gpg.err || \
+            (echo -e "### ❌ Error: ${GREENGAGE_REPO_URL} GPG installation\n$(cat curl.err gpg.{err,log})\n\n" ; exit 1)
+          docker run \
+            --rm \
+            -v /etc/apt/keyrings/greengagedb.gpg:/etc/apt/keyrings/greengagedb.gpg \
+            -v ${{ github.workspace }}:$PXF_SRC \
+            -w $PXF_SRC \
+            -e DEV_HOME \
+            -e PXF_HOME \
+            -e GPHOME \
+            -e GOPATH \
+            -e PXF_SRC \
+            -e PATH \
+            -e DEBIAN_FRONTEND \
+            -e JAVA_TOOL_OPTIONS \
+            -e GREENGAGE_VERSION \
+            $GGDB_IMAGE \
+            /bin/bash ci/build_in_docker.sh
+
+          mv Package $DEB_PACKAGES
+
+      - name: Upload Package artifacts
+        if: ${{ matrix.skip_package != 'true' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.DEB_PACKAGES }}
+          path: ${{ env.DEB_PACKAGES }}
+
+      - name: Test install deb-packages in Docker 
+        if: ${{ matrix.skip_package != 'true' }}
+        uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@v44
+        with:
+          test_docker: ${{ matrix.target_os}}:${{ matrix.target_os_version }}
+          artifact_name: ${{ env.DEB_PACKAGES }}
+          verify_commands: |
+            dpkg -l greengage* 2>/dev/null || true
+            dpkg -l pxf*

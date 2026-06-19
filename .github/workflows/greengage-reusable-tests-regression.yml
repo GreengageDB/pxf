@@ -1,0 +1,63 @@
+# .github/workflows/greengage-reusable-tests-regression.yml
+name: Greengage PXF Reusable regression Tests
+
+on:
+  workflow_call:
+    inputs:
+      builds:
+        required: true
+        type: string  # JSON string with builds matrix
+
+jobs:
+  regression:
+    name: with ${{ matrix.release }}${{ matrix.tag && format(' {0}', matrix.tag) }} ggdb${{ matrix.version}} on ${{ matrix.target_os}} ${{ matrix.target_os_version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(inputs.builds) }}
+
+    env:
+      TEST_IMAGE: ggdb${{ matrix.version}}_${{ matrix.target_os}}${{ matrix.target_os_version }}_pxf_regression_${{ matrix.release  }}
+      GGDB_IMAGE: ${{ matrix.release == 'devel' && 'ghcr.io/greengagedb/greengage' || 'greengagedb' }}/ggdb${{ matrix.version}}_${{ matrix.target_os}}${{ matrix.target_os_version != '22.04' && matrix.target_os_version || '' }}:${{ matrix.tag || 'latest' }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build PXF regression image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          file: ./ci/Dockerfile.regression
+          tags: ${{ env.TEST_IMAGE }}
+          build-args: |
+            GGDB_IMAGE=${{ env.GGDB_IMAGE }}
+
+      - name: Run regression
+        shell: bash
+        run: |
+          mkdir logs
+          docker run --user root:root \
+            -v ./logs:/logs \
+            --sysctl 'kernel.sem=500 1024000 200 4096' \
+            --privileged \
+            ${{ env.TEST_IMAGE }} \
+            bash -c "
+              set +e
+              cd /tmp/build || status=1
+              pxf_src/ci/test_in_docker.sh
+              status=\$?
+              find /tmp/build/pxf_src/fdw -type f -name *.diffs -exec mv -f {} /logs \;
+              echo \">>> STATUS \$status\"
+              exit \${status:-1}
+            "
+
+      - name: Upload regression artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: regression-ggdb${{ matrix.version}}_${{ matrix.target_os}}${{ matrix.target_os_version }}-${{ matrix.release }}${{ matrix.tag && format('-{0}', matrix.tag) }}
+          path: logs
+          retention-days: 7
+          if-no-files-found: warn
