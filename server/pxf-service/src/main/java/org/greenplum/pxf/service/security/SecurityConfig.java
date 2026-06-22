@@ -31,28 +31,37 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.util.matcher.IpAddressMatcher;
 
+import java.util.List;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private static final String LOCALHOST_IP_ADDRESS = "127.0.0.1";
+    private static final String LOCALHOST_IPV4_ADDRESS = "127.0.0.1";
+    private static final String LOCALHOST_IPV6_ADDRESS = "::1";
+    private static final List<IpAddressMatcher> ipAddressMatchers = List.of(
+            new IpAddressMatcher(LOCALHOST_IPV4_ADDRESS),
+            new IpAddressMatcher(LOCALHOST_IPV6_ADDRESS)
+    );
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/pxf/reload").access(hasIpAddress(LOCALHOST_IP_ADDRESS))
-                        .requestMatchers("/**").permitAll())
-                ;
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/pxf/reload").access(hasLocalhostIpAddress())
+                        .requestMatchers("/**").permitAll());
+
         return http.build();
     }
 
-    private static AuthorizationManager<RequestAuthorizationContext> hasIpAddress(String ipAddress) {
-        IpAddressMatcher ipAddressMatcher = new IpAddressMatcher(ipAddress);
+    private static AuthorizationManager<RequestAuthorizationContext> hasLocalhostIpAddress() {
         return (authentication, context) -> {
             HttpServletRequest request = context.getRequest();
-            return new AuthorizationDecision(ipAddressMatcher.matches(request));
+            boolean allowed = ipAddressMatchers.stream()
+                    .anyMatch(matcher -> matcher.matches(request));
+            return new AuthorizationDecision(allowed);
         };
     }
 }
