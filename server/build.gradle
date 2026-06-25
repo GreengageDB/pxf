@@ -133,7 +133,7 @@ configure(javaProjects) {
             dependency("org.apache.httpcomponents:httpcore:4.4.16")
 
             // https://projectlombok.org
-            dependency("org.projectlombok:lombok:1.18.22")
+            dependency("org.projectlombok:lombok:1.18.30")
 
             // The snappy-java:1.1.8.4 is required for PPC64LE arch.
             dependency("org.xerial.snappy:snappy-java:1.1.8.4")
