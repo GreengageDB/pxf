@@ -1,5 +1,34 @@
 # Changelog
 
+## 6.16.0 (06/29/2026)
+
+### Enhancements:
+
+- [#25](https://github.com/GreengageDB/pxf/pull/25) Added support for master commit in PXF with new extended write and commit endpoints
+- [#35](https://github.com/GreengageDB/pxf/pull/35) Added Prometheus metrics validation and a Grafana dashboard for PXF monitoring
+- [#38](https://github.com/GreengageDB/pxf/pull/38) Implemented the extended commit protocol for PXF
+- [#39](https://github.com/GreengageDB/pxf/pull/39) Implemented sending queue id from the dispatcher to the QE
+- [#40](https://github.com/GreengageDB/pxf/pull/40) Added support for `TIMESTAMP WITH LOCAL TIME ZONE` in PXF JDBC Hive and `TIMESTAMP_WITH_TIME_ZONE` for writable JDBC tables
+- [#43](https://github.com/GreengageDB/pxf/pull/43) Added support for the Iceberg format in ADB6
+- [#48](https://github.com/GreengageDB/pxf/pull/48) Enabled the ORC format reader for the Iceberg connector
+
+
+### Bug Fixes:
+
+- [#28](https://github.com/GreengageDB/pxf/pull/28) Disabled selecting from `ANY` and master tables in PXF FDW
+- [#45](https://github.com/GreengageDB/pxf/pull/45) Fixed the "Fragmenter & Bridge Call Rate" Grafana dashboard
+- [#45](https://github.com/GreengageDB/pxf/pull/45) Fixed the `pxf cluster reload` command by allowing the local `/pxf/reload` endpoint to be accessed through both IPv4 `127.0.0.1` and IPv6 `::1` loopback addresses
+
+### Packaging and CI:
+
+- [#29](https://github.com/GreengageDB/pxf/pull/29) Split pxf build into 3 packages
+- [#31](https://github.com/GreengageDB/pxf/pull/31) Added the ability to run regression tests with PXF over both HTTP and HTTPS
+- [#32](https://github.com/GreengageDB/pxf/pull/32) Reworked PXF CI to support different Greengage base branches
+- [#33](https://github.com/GreengageDB/pxf/pull/33) Implemented CODEOWNERS approach for GitHub workflows
+- [#44](https://github.com/GreengageDB/pxf/pull/44) Refactored the build pipeline, replaced composite actions
+- [#46](https://github.com/GreengageDB/pxf/pull/46) Refactored the PXF release workflow
+
+
 ## 6.10.1 (03/27/2024)
 
 ### Bug Fixes:
