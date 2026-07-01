@@ -82,6 +82,24 @@ RUN mkdir workspace && ln -s /home/gpadmin/pxf_src /home/gpadmin/workspace/pxf &
 
 # Need to run automation tests
 ENV PXF_HOME=${GPHOME}/pxf
+
+# Set up PXF_HOME structure; the Java server JAR is injected via docker-compose volumes at runtime
+RUN mkdir -p ${PXF_HOME}/application \
+             ${PXF_HOME}/share \
+             ${PXF_HOME}/lib \
+             ${PXF_HOME}/lib/native \
+             ${PXF_HOME}/bin \
+             ${PXF_HOME}/servers/default \
+             ${PXF_HOME}/logs \
+             ${PXF_HOME}/run \
+             ${PXF_HOME}/keytabs
+COPY ./server/pxf-service/src/scripts ${PXF_HOME}/bin/
+COPY ./server/pxf-service/src/templates/templates ${PXF_HOME}/templates/
+COPY ./version /tmp/pxf_version
+RUN version=$(cat /tmp/pxf_version) && \
+    sed -i "s/_PXF_VERSION_/${version}/g" ${PXF_HOME}/bin/pxf && \
+    chmod +x ${PXF_HOME}/bin/* && \
+    rm /tmp/pxf_version
 RUN localedef -c -i ru_RU -f CP1251 ru_RU.CP1251
 RUN cp ${PXF_HOME}/templates/hbase-site.xml \
     ${PXF_HOME}/templates/hdfs-site.xml \
@@ -92,7 +110,8 @@ RUN cp ${PXF_HOME}/templates/hbase-site.xml \
     ${PXF_HOME}/templates/jdbc-site.xml \
     ${PXF_HOME}/servers/default/
 
-# Copy pxf-application.properties
+# Copy default conf files, then override with automation-specific versions
+COPY ./server/pxf-service/src/templates/conf ${PXF_HOME}/conf/
 COPY ./automation/env/conf/pxf-application.properties ${PXF_HOME}/conf/pxf-application.properties
 COPY ./automation/env/conf/pxf-env.sh ${PXF_HOME}/conf/pxf-env.sh
 

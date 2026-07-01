@@ -20,6 +20,7 @@ services:
       - MINIO_SECRET_KEY=minio123
     volumes:
       - "m2:/home/gpadmin/.m2:rw"
+      - "../../server/build/stage/application:/usr/local/greengage-db-devel/pxf/application:ro"
       - "share-lib:/usr/local/greengage-db-devel/pxf/share/:rw"
       - "./conf/cluster.xml:/home/gpadmin/workspace/pxf/automation/src/test/resources/sut/default.xml:ro"
       - "./conf/servers/hbase-site.xml:/etc/hbase/conf/hbase-site.xml:ro"
@@ -63,6 +64,7 @@ services:
       - MINIO_ACCESS_KEY=minio
       - MINIO_SECRET_KEY=minio123
     volumes:
+      - "../../server/build/stage/application:/usr/local/greengage-db-devel/pxf/application:ro"
       - "./conf/servers:/usr/local/greengage-db-devel/pxf/servers/default/:ro"
       - "./conf/pxf-profile.xml:/usr/local/greengage-db-devel/pxf/conf/pxf-profiles.xml:ro"
       - "./conf/encryption/pxfkeystore.jks:/usr/local/greengage-db-devel/pxf/conf/pxfkeystore.jks:ro"
@@ -95,6 +97,7 @@ services:
       - MINIO_ACCESS_KEY=minio
       - MINIO_SECRET_KEY=minio123
     volumes:
+      - "../../server/build/stage/application:/usr/local/greengage-db-devel/pxf/application:ro"
       - "./conf/servers:/usr/local/greengage-db-devel/pxf/servers/default/:ro"
       - "./conf/pxf-profile.xml:/usr/local/greengage-db-devel/pxf/conf/pxf-profiles.xml:ro"
       - "./conf/encryption/pxfkeystore.jks:/usr/local/greengage-db-devel/pxf/conf/pxfkeystore.jks:ro"
