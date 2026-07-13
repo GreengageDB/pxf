@@ -8,16 +8,16 @@ RUN set -eux; \
     ARCH="$(uname -m)"; \
     case "${ARCH}" in \
        aarch64|armhf|armv7l|amd64|x86_64) \
-         wget https://go.dev/dl/go1.21.3.linux-amd64.tar.gz \
-         && rm -rf /usr/local/go && tar -C /usr/local -xzf go1.21.3.linux-amd64.tar.gz && rm go1.21.3.linux-amd64.tar.gz \
+         wget https://go.dev/dl/go1.26.5.linux-amd64.tar.gz \
+         && rm -rf /usr/local/go && tar -C /usr/local -xzf go1.26.5.linux-amd64.tar.gz && rm go1.26.5.linux-amd64.tar.gz \
          ;; \
        arm64) \
-         wget https://go.dev/dl/go1.21.3.linux-arm64.tar.gz \
-         && rm -rf /usr/local/go && tar -C /usr/local -xzf go1.21.3.linux-arm64.tar.gz && rm go1.21.3.linux-arm64.tar.gz \
+         wget https://go.dev/dl/go1.26.5.linux-arm64.tar.gz \
+         && rm -rf /usr/local/go && tar -C /usr/local -xzf go1.26.5.linux-arm64.tar.gz && rm go1.26.5.linux-arm64.tar.gz \
          ;; \
        ppc64el|ppc64le) \
-         wget https://go.dev/dl/go1.21.3.linux-ppc64le.tar.gz \
-         && rm -rf /usr/local/go && tar -C /usr/local -xzf go1.21.3.linux-ppc64le.tar.gz && rm go1.21.3.linux-ppc64le.tar.gz \
+         wget https://go.dev/dl/go1.26.5.linux-ppc64le.tar.gz \
+         && rm -rf /usr/local/go && tar -C /usr/local -xzf go1.26.5.linux-ppc64le.tar.gz && rm go1.26.5.linux-ppc64le.tar.gz \
          ;; \
        *) \
          echo "Unsupported arch: ${ARCH}"; \

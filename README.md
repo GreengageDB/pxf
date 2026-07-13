@@ -79,7 +79,7 @@ To build PXF, you must have:
 
    To install Java 17, download and install the appropriate package for your platforms from [Java SE 17 Archive Downloads](https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html)
 
-4. Go (1.21.3 or later)
+4. Go (1.26.5 or later)
 
    To install Go, download the appropriate version for your platforms from: [Go downloads page](https://golang.org/dl/).
 

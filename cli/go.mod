@@ -1,6 +1,6 @@
 module pxf-cli
 
-go 1.21.3
+go 1.26.5
 
 require (
 	github.com/GreengageDB/gp-common-go-libs v1.0.23
@@ -28,7 +28,7 @@ require (
 	github.com/jackc/pgx/v4 v4.18.3 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect
 	github.com/spf13/pflag v1.0.3 // indirect
-	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect

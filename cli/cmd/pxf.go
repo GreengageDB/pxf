@@ -112,7 +112,7 @@ func (cmd *command) GetFunctionToExecute() (func(string) string, error) {
 				return nil, err
 			}
 		}
-		gplog.Info(fmt.Sprintf("Execute command: %s", reloadCommand))
+		gplog.Info("Execute command: %s", reloadCommand)
 		return func(_ string) string { return reloadCommand }, nil
 	default:
 		var effectivePxfBase string
