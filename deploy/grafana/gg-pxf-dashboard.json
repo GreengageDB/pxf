@@ -385,7 +385,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(pxf_operation_seconds_active_count{application=~\"$application\", profile=~\"$profile\", instance=~\"$instance\", operation=\"read\"})",
+          "expr": "sum(pxf_operation_seconds_count{application=~\"$application\", profile=~\"$profile\", instance=~\"$instance\", operation=\"read\"})",
           "instant": true,
           "legendFormat": "reads",
           "refId": "A"
@@ -454,7 +454,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(pxf_operation_seconds_active_count{application=~\"$application\", profile=~\"$profile\", instance=~\"$instance\", operation=\"write\"})",
+          "expr": "sum(pxf_operation_seconds_count{application=~\"$application\", profile=~\"$profile\", instance=~\"$instance\", operation=\"write\"})",
           "instant": true,
           "legendFormat": "writes",
           "refId": "A"
@@ -549,7 +549,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum by (operation, profile, datasource) (pxf_operation_seconds_active_count{application=~\"$application\", profile=~\"$profile\", instance=~\"$instance\"})",
+          "expr": "sum by (operation, profile, datasource) (pxf_operation_seconds_count{application=~\"$application\", profile=~\"$profile\", instance=~\"$instance\"})",
           "legendFormat": "{{operation}} / {{profile}} /{{datasource}}",
           "range": true,
           "refId": "A"
@@ -982,7 +982,7 @@
                 "uid": "${DS_PROMETHEUS}"
               },
               "editorMode": "code",
-              "expr": "sum by (profile, datasource) (pxf_fragments_sent_seconds_active_count{application=~\"$application\", profile=~\"$profile\", instance=~\"$instance\"})",
+              "expr": "sum by (profile, datasource) (pxf_fragments_sent_seconds_count{application=~\"$application\", profile=~\"$profile\", instance=~\"$instance\"})",
               "hide": false,
               "legendFormat": "{{profile}} / {{datasource}}",
               "range": true,
@@ -2920,7 +2920,7 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "label_values(pxf_operation_seconds_active_count{application=~\"$application\"}, profile)",
+        "definition": "label_values(pxf_operation_seconds_count{application=~\"$application\"}, profile)",
         "hide": 0,
         "includeAll": true,
         "label": "Profile",
@@ -2928,7 +2928,7 @@
         "name": "profile",
         "options": [],
         "query": {
-          "query": "label_values(pxf_operation_seconds_active_count{application=~\"$application\"}, profile)",
+          "query": "label_values(pxf_operation_seconds_count{application=~\"$application\"}, profile)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,

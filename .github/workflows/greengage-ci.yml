@@ -7,6 +7,8 @@ on:
     tags: ['**']   # Trigger on tags for versioned releases
   pull_request:
     branches: ['**'] # Trigger on pull requests for all branches
+  schedule:
+    - cron: '0 2 * * *'  # Nightly at 2:00 AM UTC
 
 # Concurrency control to cancel previous runs on new push to same PR/branch
 concurrency:
@@ -14,13 +16,16 @@ concurrency:
   cancel-in-progress: true  # Automatically cancel any previous runs for the same group
 
 env:
-  MATRIX_BUILDS: |
+  MATRIX_BUILDS_PR: |
     [
       { "version": "6", "target_os": "ubuntu", "target_os_version": "22.04", "release": "prod"  },
-      { "version": "6", "target_os": "ubuntu", "target_os_version": "22.04", "release": "devel" },
-      { "version": "6", "target_os": "ubuntu", "target_os_version": "24.04", "release": "prod"  },
-      { "version": "6", "target_os": "ubuntu", "target_os_version": "24.04", "release": "devel" },
-      { "version": "7", "target_os": "ubuntu", "target_os_version": "22.04", "release": "prod",  "skip_package": "true" },
+      { "version": "7", "target_os": "ubuntu", "target_os_version": "22.04", "release": "prod",  "skip_package": "true" }
+    ]
+  MATRIX_BUILDS_NIGHTLY: |
+    [
+      { "version": "6", "target_os": "ubuntu", "target_os_version": "22.04", "release": "devel", "skip_package": "true" },
+      { "version": "6", "target_os": "ubuntu", "target_os_version": "24.04", "release": "prod",  "skip_package": "true" },
+      { "version": "6", "target_os": "ubuntu", "target_os_version": "24.04", "release": "devel", "skip_package": "true" },
       { "version": "7", "target_os": "ubuntu", "target_os_version": "22.04", "release": "devel", "skip_package": "true" }
     ]
   MATRIX_TESTS: |
@@ -42,15 +47,23 @@ jobs:
       builds: ${{ steps.builds.outputs.matrix }}
       tests:  ${{ steps.tests.outputs.tests }}
     steps:
-      - name: Generate builds mtrix
+      - name: Generate builds matrix
         id: builds
         run: |
-          cat > /tmp/builds.json << 'JSON_END'
-          ${{ env.MATRIX_BUILDS }}
+          cat > /tmp/builds_pr.json << 'JSON_END'
+          ${{ env.MATRIX_BUILDS_PR }}
           JSON_END
+          cat > /tmp/builds_nightly.json << 'JSON_END'
+          ${{ env.MATRIX_BUILDS_NIGHTLY }}
+          JSON_END
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            cp /tmp/builds_pr.json /tmp/builds.json
+          else
+            cp /tmp/builds_nightly.json /tmp/builds.json
+          fi
           echo "matrix=$(jq -c . /tmp/builds.json)" >> $GITHUB_OUTPUT
 
-      - name: Generate tests mtrix
+      - name: Generate tests matrix
         id: tests
         run: |
           cat > /tmp/tests.json << 'JSON_END'
@@ -66,7 +79,7 @@ jobs:
       builds: ${{ needs.generate-matrix.outputs.builds }}
 
   regression:
-    if: github.event_name == 'pull_request'  # Only for PR
+    if: github.event_name == 'pull_request' || github.event_name == 'schedule'
     needs: generate-matrix
     name: Regression tests
     uses: ./.github/workflows/greengage-reusable-tests-regression.yml
@@ -74,9 +87,9 @@ jobs:
       builds: ${{ needs.generate-matrix.outputs.builds }}
 
   integration:
-    if: github.event_name == 'pull_request'  # Only for PR
+    if: github.event_name == 'pull_request' || github.event_name == 'schedule'
     needs: generate-matrix
-    name: Integration with ${{ matrix.release }}${{ matrix.tag && format(' {0}', matrix.tag) }} ggdb${{ matrix.version }} on ${{ matrix.target_os }} ${{ matrix.target_os_version }} 
+    name: Integration with ${{ matrix.release }}${{ matrix.tag && format(' {0}', matrix.tag) }} ggdb${{ matrix.version }} on ${{ matrix.target_os }} ${{ matrix.target_os_version }}
     strategy:
       fail-fast: false
       matrix:
