@@ -110,7 +110,7 @@ public class JdbcAccessorTest {
             accessor.afterPropertiesSet();
             Exception e = assertThrows(RuntimeException.class,
                     () -> accessor.openForRead());
-            assertEquals("Failed to read text of query foo : File '/non-existing-directory/foo.sql' does not exist", e.getMessage());
+            assertEquals("Failed to read text of query foo : /non-existing-directory/foo.sql", e.getMessage());
             jdbcBasePluginMockedStatic.verify(() -> JdbcBasePlugin.closeConnection(mockConnection));
         }
     }
@@ -125,7 +125,7 @@ public class JdbcAccessorTest {
             accessor.afterPropertiesSet();
             Exception e = assertThrows(RuntimeException.class,
                     () -> accessor.openForRead());
-            assertEquals("Failed to read text of query foo : File '/tmp/foo.sql' does not exist", e.getMessage());
+            assertEquals("Failed to read text of query foo : /tmp/foo.sql", e.getMessage());
             jdbcBasePluginMockedStatic.verify(() -> JdbcBasePlugin.closeConnection(mockConnection));
         }
     }
