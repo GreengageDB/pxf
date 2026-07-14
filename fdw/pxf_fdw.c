@@ -1296,7 +1296,7 @@ CollectMetadata(PxfFdwModifyState *pxfmstate, StringInfo msgbuf)
 		
 		CALL_PQ_FN(PQgetMetadata, it, &metadata);
 
-		appendBinaryStringInfo(msgbuf, &metadata.metadataLen, sizeof(metadata.metadataLen));
+		appendBinaryStringInfo(msgbuf, (const char *)&metadata.metadataLen, sizeof(metadata.metadataLen));
 		appendBinaryStringInfo(msgbuf, metadata.data, metadata.metadataLen);
 	}
 	elog(DEBUG2, "pxf_fdw: Executor collected metadata from queue metadata_queue_id: %d", pxfmstate->metadata_queue_id);
