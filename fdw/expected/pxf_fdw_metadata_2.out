@@ -1,13 +1,13 @@
 --
 -- start_matchignore
--- m/^DEBUG?:  Interconnect State:/
--- m/^DEBUG?:  TeardownUDPIFCInterconnect successful/
--- m/^DEBUG?:  Message type/
--- m/^DEBUG?:  Query plan size to/
--- m/^DEBUG?:  GetSockAddr socket ai_family/
--- m/^DEBUG?:  CommitTransactionCommand:/
--- m/^DEBUG?:  CommitTransaction:/
--- m/^DEBUG?:  rehashing catalog cache id/
+-- m/^DEBUG1?:  Interconnect State:/
+-- m/^DEBUG1?:  TeardownUDPIFCInterconnect successful/
+-- m/^DEBUG1?:  Message type/
+-- m/^DEBUG1?:  Query plan size to/
+-- m/^DEBUG1?:  GetSockAddr socket ai_family/
+-- m/^DEBUG1?:  CommitTransactionCommand:/
+-- m/^DEBUG1?:  CommitTransaction:/
+-- m/^DEBUG1?:  rehashing catalog cache id/
 -- m/^DEBUG:  GPORCA produced plan/
 -- m/^LOG: .*Feature not supported: Foreign Data/
 -- m/^LOG: .*Feature not supported: SIRV functions/
@@ -20,7 +20,7 @@ with version as (
 select ver[1]::int = 6 and ver[2]::int >= 31 from version;
  ?column? 
 ----------
- t
+ f
 (1 row)
 
 CREATE EXTENSION IF NOT EXISTS pxf_fdw;
@@ -43,13 +43,13 @@ CREATE FOREIGN TABLE test_t(
 OPTIONS (resource 'fdw_file', format 'csv', delimiter ',');
 -- ANALYZE is not supported by pxf_fdw
 set gp_autostats_mode = none;
-set client_min_messages = DEBUG;
+set client_min_messages = debug1;
 INSERT INTO test_t VALUES('hello world', 1);
 LOG:  statement: INSERT INTO test_t VALUES('hello world', 1);
 DEBUG:  pxf_fdw: metadata queue created with id: 0
-DEBUG:  pxf_fdw: Executor sent metadata (24 bytes) to queue metadata_queue_id: 0  (seg0 127.0.1.1:6002 pid=224388)
-DEBUG:  pxf_fdw: Executor sent metadata (24 bytes) to queue metadata_queue_id: 0  (seg2 127.0.1.1:6004 pid=224387)
-DEBUG:  pxf_fdw: Executor sent metadata (24 bytes) to queue metadata_queue_id: 0  (seg1 127.0.1.1:6003 pid=224386)
+DEBUG:  pxf_fdw: Executor sent metadata (24 bytes) to queue metadata_queue_id: 0
+DEBUG:  pxf_fdw: Executor sent metadata (24 bytes) to queue metadata_queue_id: 0
+DEBUG:  pxf_fdw: Executor sent metadata (24 bytes) to queue metadata_queue_id: 0
 SELECT * FROM test_t ORDER BY t0;
 LOG:  statement: SELECT * FROM test_t ORDER BY t0;
  t0 | a1 
@@ -62,9 +62,9 @@ LOG:  statement: SELECT * FROM test_t ORDER BY t0;
 INSERT INTO test_t VALUES('hello world', 1);
 LOG:  statement: INSERT INTO test_t VALUES('hello world', 1);
 DEBUG:  pxf_fdw: metadata queue created with id: 1
-DEBUG:  pxf_fdw: Executor sent metadata (24 bytes) to queue metadata_queue_id: 1  (seg2 127.0.1.1:6004 pid=224387)
-DEBUG:  pxf_fdw: Executor sent metadata (24 bytes) to queue metadata_queue_id: 1  (seg0 127.0.1.1:6002 pid=224388)
-DEBUG:  pxf_fdw: Executor sent metadata (24 bytes) to queue metadata_queue_id: 1  (seg1 127.0.1.1:6003 pid=224386)
+DEBUG:  pxf_fdw: Executor sent metadata (24 bytes) to queue metadata_queue_id: 1
+DEBUG:  pxf_fdw: Executor sent metadata (24 bytes) to queue metadata_queue_id: 1
+DEBUG:  pxf_fdw: Executor sent metadata (24 bytes) to queue metadata_queue_id: 1
 SELECT * FROM test_t ORDER BY t0;
 LOG:  statement: SELECT * FROM test_t ORDER BY t0;
  t0 | a1 
