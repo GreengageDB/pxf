@@ -19,7 +19,7 @@ env:
   MATRIX_BUILDS_PR: |
     [
       { "version": "6", "target_os": "ubuntu", "target_os_version": "22.04", "release": "prod"  },
-      { "version": "7", "target_os": "ubuntu", "target_os_version": "22.04", "release": "prod",  "skip_package": "true" }
+      { "version": "7", "target_os": "ubuntu", "target_os_version": "22.04", "release": "devel",  "skip_package": "true", "tag": "GG-627" }
     ]
   MATRIX_BUILDS_NIGHTLY: |
     [
