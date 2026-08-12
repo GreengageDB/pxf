@@ -1,5 +1,17 @@
 # Changelog
 
+## 6.17.0 (07/27/2026)
+
+### Bug Fixes:
+
+- [#51](https://github.com/GreengageDB/pxf/pull/51) Fixed Prometheus metric names used by the PXF Grafana dashboard
+- [#55](https://github.com/GreengageDB/pxf/pull/55) Fixed HDFS HA configuration handling for the Iceberg Hive catalog
+
+### Packaging and CI:
+
+- [#54](https://github.com/GreengageDB/pxf/pull/54) Adjusted regression tests for extended metadata support in Greengage 7.x
+
+
 ## 6.16.0 (06/29/2026)
 
 ### Enhancements:
