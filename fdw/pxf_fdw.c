@@ -782,16 +782,18 @@ InitForeignModify(Relation relation, List *fdw_private)
 
 #ifdef LIBPQ_HAS_EXT_METADATA_COMMIT_V1
 	pxfmstate->metadata_queue_id = PXF_METADATA_INVALID_QUEUE_ID;
-	if (fdw_private != NULL)
+	if (IsExtCommitMetadata(options) && fdw_private != NULL)
 	{
+		Assert(list_length(fdw_private) == 1);
+
 		pxfmstate->metadata_queue_id = list_nth_int(fdw_private, 0);
-	}
 
-	if (Gp_role == GP_ROLE_DISPATCH && IsExtCommitMetadata(options) && PQMetadataInterface_p.loaded && pxfmstate->metadata_queue_id != PXF_METADATA_INVALID_QUEUE_ID)
-	{
-		CALL_PQ_FN(PQCreateMetadataQueue, pxfmstate->metadata_queue_id);
+		if (Gp_role == GP_ROLE_DISPATCH && PQMetadataInterface_p.loaded && pxfmstate->metadata_queue_id != PXF_METADATA_INVALID_QUEUE_ID)
+		{
+			CALL_PQ_FN(PQCreateMetadataQueue, pxfmstate->metadata_queue_id);
 
-		elog(DEBUG1, "pxf_fdw: metadata queue created with id: %d", pxfmstate->metadata_queue_id);
+			elog(DEBUG1, "pxf_fdw: metadata queue created with id: %d", pxfmstate->metadata_queue_id);
+		}
 	}
 #endif
 
