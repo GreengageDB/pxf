@@ -18,13 +18,13 @@ concurrency:
 env:
   MATRIX_BUILDS_PR: |
     [
-      { "version": "6", "target_os": "ubuntu", "target_os_version": "22.04", "release": "prod"  },
-      { "version": "7", "target_os": "ubuntu", "target_os_version": "22.04", "release": "prod",  "skip_package": "true" }
+      { "version": "6", "target_os": "ubuntu", "target_os_version": "22.04", "release": "prod" },
+      { "version": "6", "target_os": "ubuntu", "target_os_version": "24.04", "release": "prod" },
+      { "version": "7", "target_os": "ubuntu", "target_os_version": "22.04", "release": "prod" }
     ]
   MATRIX_BUILDS_NIGHTLY: |
     [
       { "version": "6", "target_os": "ubuntu", "target_os_version": "22.04", "release": "devel", "skip_package": "true" },
-      { "version": "6", "target_os": "ubuntu", "target_os_version": "24.04", "release": "prod",  "skip_package": "true" },
       { "version": "6", "target_os": "ubuntu", "target_os_version": "24.04", "release": "devel", "skip_package": "true" },
       { "version": "7", "target_os": "ubuntu", "target_os_version": "22.04", "release": "devel", "skip_package": "true" }
     ]
@@ -56,10 +56,10 @@ jobs:
           cat > /tmp/builds_nightly.json << 'JSON_END'
           ${{ env.MATRIX_BUILDS_NIGHTLY }}
           JSON_END
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            cp /tmp/builds_pr.json /tmp/builds.json
-          else
+          if [ "${{ github.event_name }}" = "schedule" ]; then
             cp /tmp/builds_nightly.json /tmp/builds.json
+          else
+            cp /tmp/builds_pr.json /tmp/builds.json
           fi
           echo "matrix=$(jq -c . /tmp/builds.json)" >> $GITHUB_OUTPUT
 
@@ -72,6 +72,7 @@ jobs:
           echo "tests=$(jq -c . /tmp/tests.json)" >> $GITHUB_OUTPUT
 
   package:
+    if: github.event_name != 'schedule'
     needs: generate-matrix
     name: Create packages
     uses: ./.github/workflows/greengage-reusable-package.yml
