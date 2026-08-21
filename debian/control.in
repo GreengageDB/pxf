@@ -2,7 +2,6 @@ Source: pxf
 Maintainer: Greengage <greengage@greengagedb.org>
 Section: database
 Build-Depends: debhelper (>= 13),
-	dh-python,
 	lsb-release
 Description: The PXF package with FDW extension provides connection pool for the Greengage Database
 	PXF is an extensible framework that allows a distributed database like

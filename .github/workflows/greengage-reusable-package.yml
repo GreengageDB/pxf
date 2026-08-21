@@ -10,7 +10,7 @@ on:
 
 jobs:
   deb-packages:
-    name: deb with ${{ matrix.release }}${{ matrix.tag && format(' {0}', matrix.tag) }} greengage${{ matrix.version }} for ${{ matrix.target_os }} ${{ matrix.target_os_version }}
+    name: ${{ matrix.skip_package == 'true' && '[SKIPPED] ' || '' }}deb with ${{ matrix.release }}${{ matrix.tag && format(' {0}', matrix.tag) }} greengage${{ matrix.version }} for ${{ matrix.target_os }} ${{ matrix.target_os_version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -24,7 +24,15 @@ jobs:
     steps:
       - name: Skip notify
         if: ${{ matrix.skip_package == 'true' }}
-        run: echo "Job will be skipped due to flag 'skip_package'"
+        run: |
+          echo "### ⏭️ Packaging Skipped" >> $GITHUB_STEP_SUMMARY
+          echo "This matrix job was intentionally skipped due to the \`skip_package: true\` flag." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Configuration:**" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target OS:** ${{ matrix.target_os }} ${{ matrix.target_os_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release:** ${{ matrix.release }}${{ matrix.tag && format(' (tag: {0})', matrix.tag) || '' }}" >> $GITHUB_STEP_SUMMARY
+          
+          echo "::notice title=Skipped Process::Build and packaging are disabled for this configuration."
 
       - uses: actions/checkout@v6
         if: ${{ matrix.skip_package != 'true' }}
@@ -76,7 +84,7 @@ jobs:
 
       - name: Test install deb-packages in Docker 
         if: ${{ matrix.skip_package != 'true' }}
-        uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@v44
+        uses: greengagedb/greengage-ci/.github/actions/tests/install/deb@v45
         with:
           test_docker: ${{ matrix.target_os}}:${{ matrix.target_os_version }}
           artifact_name: ${{ env.DEB_PACKAGES }}
