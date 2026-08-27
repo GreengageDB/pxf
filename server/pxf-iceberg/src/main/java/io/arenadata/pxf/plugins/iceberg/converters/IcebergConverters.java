@@ -38,7 +38,7 @@ public interface IcebergConverters {
             //  date converter
             new SimpleIcebergConverter<>(Types.DateType.get(), DataType.DATE, LocalDate::parse),
             //  time converter
-            new SimpleIcebergConverter<>(Types.TimeType.get(), DataType.TIME, Time::valueOf),
+            new SimpleIcebergConverter<>(Types.TimeType.get(), DataType.TIME, val -> Time.valueOf(val).toLocalTime()),
             //  timestamp converter
             new SimpleIcebergConverter<>(Types.TimestampType.withoutZone(), DataType.TIMESTAMP, val ->
                     LocalDateTime.parse(val, GreenplumDateTime.DATETIME_FORMATTER)
