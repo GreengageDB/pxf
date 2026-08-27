@@ -21,6 +21,7 @@ public interface IcebergConverters {
     IcebergConverter<Object> unsupportedTypeConverter = new SimpleIcebergConverter<>(Types.UnknownType.get(), DataType.UNSUPPORTED_TYPE, Objects::toString);
 
     List<IcebergConverter<?>> converters = List.of(
+            new SimpleIcebergConverter<>(Types.UUIDType.get(), DataType.UUID, UUID::fromString),
             // integer converter
             new SimpleIcebergConverter<>(Types.IntegerType.get(), DataType.INTEGER, Integer::parseInt),
             // long converter
@@ -28,6 +29,7 @@ public interface IcebergConverters {
             // boolean converter
             new SimpleIcebergConverter<>(Types.BooleanType.get(), DataType.BOOLEAN, Boolean::parseBoolean),
 
+            new SimpleIcebergConverter<>(Types.FloatType.get(), DataType.REAL, Float::valueOf),
             new SimpleIcebergConverter<>(Types.DoubleType.get(), DataType.FLOAT8, Double::parseDouble),
             new SimpleIcebergConverter<>(Types.FloatType.get(), DataType.FLOAT8, Float::valueOf,
                     val -> Double.parseDouble(val.toString())
