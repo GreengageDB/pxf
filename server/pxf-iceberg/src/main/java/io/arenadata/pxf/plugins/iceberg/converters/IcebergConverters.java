@@ -7,9 +7,9 @@ import org.greenplum.pxf.api.GreenplumDateTime;
 import org.greenplum.pxf.api.io.DataType;
 
 import java.math.BigDecimal;
-import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.function.Function;
@@ -40,7 +40,7 @@ public interface IcebergConverters {
             //  date converter
             new SimpleIcebergConverter<>(Types.DateType.get(), DataType.DATE, LocalDate::parse),
             //  time converter
-            new SimpleIcebergConverter<>(Types.TimeType.get(), DataType.TIME, val -> Time.valueOf(val).toLocalTime()),
+            new SimpleIcebergConverter<>(Types.TimeType.get(), DataType.TIME, LocalTime::parse),
             //  timestamp converter
             new SimpleIcebergConverter<>(Types.TimestampType.withoutZone(), DataType.TIMESTAMP, val ->
                     LocalDateTime.parse(val, GreenplumDateTime.DATETIME_FORMATTER)
