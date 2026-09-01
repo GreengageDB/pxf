@@ -179,7 +179,7 @@ configure(javaProjects) {
 
             // Hive dependencies
             dependency("org.apache.hive:hive-storage-api:${hiveStorageApiVersion}")
-            dependencySet(group:"io.arenadata.hive", version:"${hiveVersion}") {
+            dependencySet(group:"org.apache.hive", version:"${hiveVersion}") {
                 entry("hive-exec")
                 entry("hive-metastore")
                 entry("hive-serde")
@@ -188,7 +188,7 @@ configure(javaProjects) {
                 entry("hive-service-rpc")
                 entry("hive-jdbc")
             }
-            dependencySet(group:"io.arenadata.hive.shims", version:"${hiveVersion}") {
+            dependencySet(group:"org.apache.hive.shims", version:"${hiveVersion}") {
                 entry("hive-shims-common")
                 entry("hive-shims-0.23")
             }
@@ -217,10 +217,8 @@ configure(javaProjects) {
             dependency("org.lz4:lz4-java:1.8.0")
 
             // Thrift dependencies
-            dependencySet(group:"org.apache.thrift", version:"0.9.3") {
-                entry("libfb303")
-                entry("libthrift")
-            }
+            dependency("org.apache.thrift:libfb303:0.9.3")
+            dependency("org.apache.thrift:libthrift:0.14.1")
 
             // ORC dependencies
             dependencySet(group:"org.apache.orc", version:"${orcVersion}") {
