@@ -8,6 +8,7 @@ import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 import org.greenplum.pxf.automation.features.BaseFeature;
 import org.greenplum.pxf.automation.structures.tables.utils.TableFactory;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
@@ -61,7 +62,8 @@ public class PxfParquetTimezoneParametersTest extends BaseFeature {
     protected void beforeClass() throws Exception {
         hdfsPath = hdfs.getWorkingDirectory() + "/parquet/";
         pxfEnvFile = cluster.getPxfHome() + "/" + PXF_ENV_FILE_RELATIVE_PATH;
-        cluster.runCommandOnAllNodes("sed -i '/PXF_JVM_OPTS=/c\\export PXF_JVM_OPTS=\"-Xmx2g -Xms1g -Duser.timezone=Europe/Moscow\"' " + pxfEnvFile);
+        String command = "sed -i -E '/PXF_JVM_OPTS=/{ /-Duser\\.timezone=/! s#\"$# -Duser.timezone=Europe/Moscow\"#; }' " + pxfEnvFile;
+        cluster.runCommandOnAllNodes(command);
         cluster.restart(pxf);
         // Prepare config
         String pxfHome = cluster.getPxfHome();
@@ -237,10 +239,11 @@ public class PxfParquetTimezoneParametersTest extends BaseFeature {
         hdfs.removeDirectory(hdfsPath);
     }
 
-    @Override
+    @AfterClass
     protected void afterClass() throws Exception {
         super.afterClass();
-        cluster.runCommandOnAllNodes("sed -i '/PXF_JVM_OPTS=/c\\# export PXF_JVM_OPTS=\"-Xmx2g -Xms1g\"' " + pxfEnvFile);
+        String command = "sed -i -E '/PXF_JVM_OPTS=/s#[[:space:]]+-Duser\\.timezone=Europe/Moscow##' " + pxfEnvFile;
+        cluster.runCommandOnAllNodes(command);
         cluster.restart(pxf);
     }
 
