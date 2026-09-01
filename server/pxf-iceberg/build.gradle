@@ -60,7 +60,7 @@ dependencies {
     // ORC format (required by iceberg-orc)
     implementation("org.apache.orc:orc-core")                            { transitive = false }
     implementation("org.apache.orc:orc-shims")                           { transitive = false }
-    implementation("io.arenadata.hive:hive-common")                      { transitive = false }
+    implementation("org.apache.hive:hive-common")                      { transitive = false }
     implementation("org.apache.hive:hive-storage-api")                   { transitive = false } // SearchArgument, VectorizedRowBatch, HiveDecimal
     implementation("com.google.protobuf:protobuf-java")                  { transitive = false }
     implementation("org.threeten:threeten-extra")                        { transitive = false }
@@ -69,9 +69,9 @@ dependencies {
     implementation("org.apache.avro:avro")                               { transitive = false }
 
     // Hive Metastore client (required by iceberg-hive-metastore)
-    implementation("io.arenadata.hive:hive-metastore")                   { transitive = false }
-    implementation("io.arenadata.hive:hive-exec:${hiveVersion}:core")    { transitive = false }
-    implementation("io.arenadata.hive:hive-serde")                       { transitive = false }
+    implementation("org.apache.hive:hive-metastore")                   { transitive = false }
+    implementation("org.apache.hive:hive-exec:${hiveVersion}:core")    { transitive = false }
+    implementation("org.apache.hive:hive-serde")                       { transitive = false }
     implementation("org.apache.thrift:libthrift")                        { transitive = false }
     implementation("javax.jdo:jdo-api")                                  { transitive = false }
 
