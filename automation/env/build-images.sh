@@ -6,13 +6,6 @@ export IT_TAG=${IT_TAG:-it}
 
 export SCRIPT_DIR=${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}
 
-echo "=============================="
-echo "      Clean the project       "
-echo "=============================="
-pushd $SCRIPT_DIR/../../server
-./gradlew clean
-popd
-
 # Uncomment this section if image is not available in the docker registry
 # echo "===================================="
 # echo "      Build Hadoop 3.3.6 image      "
