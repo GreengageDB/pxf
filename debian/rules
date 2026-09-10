@@ -19,10 +19,11 @@ override_dh_auto_clean:
 	@echo "Skipping clean"
 
 override_dh_auto_configure:
-	@echo "=== Generating .install files for GP$(GP_MAJORVERSION) ==="
+	@echo "=== Generating .install files for GP$(GP_MAJORVERSION) and creating symlink for lintian overrides ==="
+	ln  -sf pxf-fdw.lintian-overrides debian/greengage$(GP_MAJORVERSION)-pxf-fdw.lintian-overrides
 	sed 's|@PXF_HOME_REL@|$(PXF_HOME_REL)|g' debian/pxf-server.install.in > debian/pxf-server.install
 	sed 's|@PXF_HOME_REL@|$(PXF_HOME_REL)|g' debian/pxf-cli.install.in    > debian/pxf-cli.install
-	sed 's|@GPHOME_REL@|$(GPHOME_REL)|g'     debian/pxf-fdw.install.in    > debian/pxf-fdw$(GP_MAJORVERSION).install
+	sed 's|@GPHOME_REL@|$(GPHOME_REL)|g'     debian/pxf-fdw.install.in    > debian/greengage$(GP_MAJORVERSION)-pxf-fdw.install
 
 override_dh_auto_build:
 	@echo "Skipping autobuild"

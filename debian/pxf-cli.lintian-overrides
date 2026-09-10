@@ -1,0 +1,7 @@
+# 3rd-party package installed outside vendor-managed directories.
+dir-or-file-in-opt
+
+# pxf-cli is a Go binary. Standard hardening flags (PIE/RELRO) are not
+# applied by the current Go build. Not fixed here — deliberately out of scope.
+hardening-no-pie
+hardening-no-relro
