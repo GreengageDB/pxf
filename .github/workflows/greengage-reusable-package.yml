@@ -89,5 +89,4 @@ jobs:
           test_docker: ${{ matrix.target_os}}:${{ matrix.target_os_version }}
           artifact_name: ${{ env.DEB_PACKAGES }}
           verify_commands: |
-            dpkg -l greengage* 2>/dev/null || true
-            dpkg -l pxf*
+            dpkg -l greengage${{ matrix.version }}-pxf-fdw pxf-server pxf-cli

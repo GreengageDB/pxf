@@ -1,0 +1,9 @@
+# 3rd-party package installed outside vendor-managed directories.
+dir-or-file-in-opt
+
+# 3rd-party package ships jars outside /usr/share/java by design
+# (Greengage layout requires them under PXF_HOME).
+jar-not-in-usr-share
+
+# Lintian does not yet recognise Java 17 class file versions.
+unknown-java-class-version

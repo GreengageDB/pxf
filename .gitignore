@@ -114,9 +114,9 @@ tmp/
 /Package/
 **/debian/*
 !**/debian/co*
-!**/debian/lint*
 !**/debian/rules
 !**/debian/*.install.in
+!**/debian/pxf-*.lintian-overrides
 
 ########################################
 # Disable ignore .github

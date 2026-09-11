@@ -2,30 +2,43 @@ Source: pxf
 Maintainer: Greengage <greengage@greengagedb.org>
 Section: database
 Build-Depends: debhelper (>= 13),
-	lsb-release
-Description: The PXF package with FDW extension provides connection pool for the Greengage Database
-	PXF is an extensible framework that allows a distributed database like
-	Greengage to query external data files, whose metadata is not managed by
-	the database.
-	PXF includes built-in connectors for accessing data that exists inside HDFS
-	files, Hive tables, HBase tables, JDBC-accessible databases and more.
-	Users can also create their own connectors to other data storage or
-	processing engines.
+	 lsb-release
 
 Package: pxf-server
-Architecture: any
+Priority: optional
+Architecture: amd64
 Depends: ${shlibs:Depends}
-Description: PXF Server
+Description: PXF core service
+	The pxf-server package provides the core PXF service and plugins.
+	This package includes the PXF Java service, Tomcat runtime, and all built-in
+	connectors required to query external data sources.
+	PXF is a query federation engine that accesses data residing in external
+	systems such as Hadoop, Hive, HBase, S3, Google Cloud Storage,
+	relational databases, among other external systems.
 
 Package: pxf-cli
-Architecture: any
+Priority: optional
+Architecture: amd64
 Depends: ${shlibs:Depends},
-  pxf-server
-Description: PXF CLI tools
+	 pxf-server
+Description: PXF CLI Utility
+	The pxf-cli package provides the pxf command-line utility for managing
+	the PXF service and configuration on Greengage hosts.
+	The pxf-cli utility allows you to start, stop, and manage PXF instances,
+	synchronize configurations across the cluster, perform other tasks.
+	PXF is a query federation engine that accesses data residing in external
+	systems such as Hadoop, Hive, HBase, S3, Google Cloud Storage,
+	relational databases, among other external systems.
 
-Package: pxf-fdw@GP_MAJORVERSION@
-Architecture: any
+Package: greengage@GP_MAJORVERSION@-pxf-fdw
+Priority: optional
+Architecture: amd64
 Depends: ${shlibs:Depends},
-  greengage@GP_MAJORVERSION@
-Provides: pxf-fdw
-Description: PXF FDW extension for Greengage @GP_MAJORVERSION@
+	 greengage@GP_MAJORVERSION@
+Provides: pxf-fdw, pxf-fdw@GP_MAJORVERSION@
+Description: PXF Foreign Data Wrapper for Greengage@GP_MAJORVERSION@
+	The greengage@GP_MAJORVERSION@-pxf-fdw package provides the Greengage@GP_MAJORVERSION@ extension that
+	implements a Foreign Data Wrapper (FDW) for PXF.
+	PXF is a query federation engine that accesses data residing in external
+	systems such as Hadoop, Hive, HBase, S3, Google Cloud Storage,
+	relational databases, among other external systems.

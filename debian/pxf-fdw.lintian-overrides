@@ -1,0 +1,3 @@
+# 3rd-party package installed outside vendor-managed directories
+# (Greengage install layout under /opt is expected here).
+dir-or-file-in-opt
