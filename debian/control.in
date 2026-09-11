@@ -35,7 +35,7 @@ Priority: optional
 Architecture: amd64
 Depends: ${shlibs:Depends},
 	 greengage@GP_MAJORVERSION@
-Provides: greengage@GP_MAJORVERSION@-pxf-fdw
+Provides: pxf-fdw
 Description: PXF Foreign Data Wrapper for Greengage@GP_MAJORVERSION@
 	The greengage@GP_MAJORVERSION@-pxf-fdw package provides the Greengage@GP_MAJORVERSION@ extension that
 	implements a Foreign Data Wrapper (FDW) for PXF.
