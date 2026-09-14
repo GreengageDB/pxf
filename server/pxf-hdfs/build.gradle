@@ -75,7 +75,7 @@ dependencies {
     // ORC dependencies
     implementation("org.apache.orc:orc-core")                        { transitive = false }
     implementation("org.apache.orc:orc-shims")                       { transitive = false }
-    implementation("io.arenadata.hive:hive-common")                  { transitive = false }
+    implementation("org.apache.hive:hive-common")                  { transitive = false }
     implementation("com.google.protobuf:protobuf-java")              { transitive = false }
     implementation("org.threeten:threeten-extra")                    { transitive = false }
 
