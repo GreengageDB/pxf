@@ -46,6 +46,7 @@ dependencies {
     implementation("org.springframework:spring-web")
     implementation("org.springframework.cloud:spring-cloud-starter-vault-config:${springCloudVaultVersion}")
     implementation("io.arenadata.tools:sslprops-spring-boot-starter")
+    implementation("commons-logging:commons-logging")
 
     implementation("org.apache.hadoop:hadoop-hdfs-client")           { transitive = false }
     implementation("org.apache.hadoop:hadoop-auth")                  { transitive = false }
