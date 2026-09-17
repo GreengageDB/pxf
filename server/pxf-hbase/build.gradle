@@ -43,7 +43,7 @@ dependencies {
     implementation("org.apache.yetus:audience-annotations")          { transitive = false }
     implementation("io.opentelemetry:opentelemetry-api")             { transitive = false }
     implementation("io.opentelemetry:opentelemetry-context")         { transitive = false }
-    implementation("io.opentelemetry:opentelemetry-semconv")         { transitive = false }
+    implementation("io.opentelemetry.semconv:opentelemetry-semconv") { transitive = false }
     implementation("io.dropwizard.metrics:metrics-core")             { transitive = false }
 
     implementation("org.springframework.boot:spring-boot-starter-log4j2")
