@@ -294,8 +294,8 @@ pxfGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	 * Identify which baserestrictinfo clauses can be sent to the remote
 	 * server and which can't.
 	 */
-	classifyConditions(root, baserel, baserel->baserestrictinfo,
-					   &fpinfo->remote_conds, &fpinfo->local_conds);
+	pxf_classifyConditions(root, baserel, baserel->baserestrictinfo,
+					       &fpinfo->remote_conds, &fpinfo->local_conds);
 
 	/*
 	 * Identify which attributes will need to be retrieved from the remote
@@ -313,7 +313,7 @@ pxfGetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 		pull_varattnos((Node *) rinfo->clause, baserel->relid, &fpinfo->attrs_used);
 	}
 
-	deparseTargetList(rel, fpinfo->attrs_used, &fpinfo->retrieved_attrs);
+	pxf_deparseTargetList(rel, fpinfo->attrs_used, &fpinfo->retrieved_attrs);
 
 	heap_close(rel, NoLock);
 
