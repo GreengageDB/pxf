@@ -417,9 +417,9 @@ churl_init(const char *url, CHURL_HEADERS headers, churl_ssl_options *ssl_option
 	create_curl_handle(context);
 	clear_error_buffer(context);
 
-/* Required for resolving localhost on some docker environments that
- * had intermittent networking issues when using pxf on HAWQ.
- */
+	/* Required for resolving localhost on some docker environments that
+	* had intermittent networking issues when using pxf on HAWQ.
+	*/
 	if (strstr(url, LocalhostIpV4) != NULL)
 	{
 		struct curl_slist *resolve_hosts = NULL;

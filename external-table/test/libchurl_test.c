@@ -38,6 +38,18 @@ curl_slist_append_test_helper(struct curl_slist *slist, char *header_string)
 	will_return(curl_slist_append, slist);
 }
 
+/* set mock behavior for check_response() called after each multi_perform() */
+static void
+check_response_test_helper(CURL *curl_handle, CURLM *multi_handle, long response_code)
+{
+	expect_value(curl_easy_getinfo, curl, curl_handle);
+	expect_value(curl_easy_getinfo, info, CURLINFO_RESPONSE_CODE);
+	will_return(curl_easy_getinfo, response_code);
+
+	expect_value(curl_multi_info_read, multi_handle, multi_handle);
+	will_return(curl_multi_info_read, NULL);
+}
+
 static void
 test_set_curl_option(void **state)
 {
@@ -57,6 +69,30 @@ test_set_curl_option(void **state)
 	pfree(context);
 }
 
+
+static void
+test_get_url_port(void **state)
+{
+	/* port from the URL authority */
+	assert_int_equal(get_url_port("http://localhost:5888/pxf/v15"), 5888);
+	assert_int_equal(get_url_port("https://mdw:1234/pxf/v15"), 1234);
+	assert_int_equal(get_url_port("localhost:4321/pxf"), 4321);
+	assert_int_equal(get_url_port("http://localhost:6000"), 6000);
+
+	/* no port in the URL, the default PXF port is used */
+	unsetenv(ENV_PXF_PORT);
+	assert_int_equal(get_url_port("http://localhost/pxf/v15"), PXF_DEFAULT_PORT);
+	assert_int_equal(get_url_port("http://localhost"), PXF_DEFAULT_PORT);
+	/* a colon in the path is not a port */
+	assert_int_equal(get_url_port("http://localhost/pxf?opt=a:b"), PXF_DEFAULT_PORT);
+
+	/* no port in the URL, the PXF port from the environment is used */
+	setenv(ENV_PXF_PORT, "7777", 1);
+	assert_int_equal(get_url_port("http://localhost/pxf/v15"), 7777);
+	/* the port in the URL takes precedence over the environment */
+	assert_int_equal(get_url_port("http://localhost:5888/pxf/v15"), 5888);
+	unsetenv(ENV_PXF_PORT);
+}
 
 static CURL *
 test_churl_init()
@@ -97,6 +133,7 @@ test_churl_init_upload(void **state)
 	curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_POST);
 	curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_READFUNCTION);
 	curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_READDATA);
+	curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_TIMEOUT);
 
 	struct curl_slist *mock_curl_slist = palloc0(sizeof(struct curl_slist));
 	curl_slist_append_test_helper(mock_curl_slist, "Content-Type: application/octet-stream");
@@ -119,6 +156,7 @@ test_churl_init_upload(void **state)
 	expect_value(curl_multi_perform, multi_handle, mock_multi_handle);
 	expect_any(curl_multi_perform, running_handles);
 	will_return(curl_multi_perform, CURLM_OK);
+	check_response_test_helper(mock_curl_handle, mock_multi_handle, 200);
 
 	/* function call */
 	CHURL_HANDLE handle = churl_init_upload(uri_param, headers);
@@ -164,6 +202,7 @@ test_churl_init_download(void **state)
 	expect_value(curl_multi_perform, multi_handle, mock_multi_handle);
 	expect_any(curl_multi_perform, running_handles);
 	will_return(curl_multi_perform, CURLM_OK);
+	check_response_test_helper(mock_curl_handle, mock_multi_handle, 200);
 
 	/* function call */
 	CHURL_HANDLE handle = churl_init_download(uri_param, headers);
@@ -241,7 +280,7 @@ static void
 test_churl_read(void **state)
 {
 	/* context setup */
-	CHURL_HANDLE handle = palloc0(sizeof(CHURL_HANDLE));
+	CHURL_HANDLE handle = palloc0(sizeof(churl_context));
 	churl_context *context = (churl_context *) handle;
 	/* mock curl_multi_init */
 	CURLM	   *mock_multi_handle = palloc0(1);
@@ -256,8 +295,12 @@ test_churl_read(void **state)
 	context->upload = 0;
 	context->download_buffer->top = 0;
 	context->download_buffer->bot = 0;
-	context->download_buffer->ptr = palloc0(sizeof(READ_LEN));
+	context->download_buffer->ptr = palloc0(READ_LEN);
 	context->download_buffer->max = READ_LEN;
+
+	/* set up curl_multi_timeout mock behavior, timeout is left unset */
+	expect_value(curl_multi_timeout, multi_handle, mock_multi_handle);
+	will_return(curl_multi_timeout, CURLM_OK);
 
 	/* set up curl_multi_fdset mock behavior */
 	int fd = 1;
@@ -284,6 +327,7 @@ test_churl_read(void **state)
 	expect_any(curl_multi_perform, running_handles);
 	will_assign_value(curl_multi_perform, running_handles, 0);
 	will_return_with_sideeffect(curl_multi_perform, CURLM_OK, write_callback_wrapper, context);
+	check_response_test_helper(context->curl_handle, mock_multi_handle, 200);
 
 	/* function call */
 	size_t	buffer_offset = churl_read(handle, buf, READ_LEN);
@@ -295,7 +339,9 @@ test_churl_read(void **state)
 	assert_true(context->download_buffer->bot == 13);
 	assert_true(context->download_buffer->bot == context->download_buffer->top);
 
+	pfree(context->download_buffer->ptr);
 	pfree(context->download_buffer);
+	pfree(mock_multi_handle);
 	pfree(handle);
 }
 
@@ -307,6 +353,7 @@ main(int argc, char *argv[])
 
 	const		UnitTest tests[] = {
 		unit_test(test_set_curl_option),
+		unit_test(test_get_url_port),
 		unit_test(test_churl_init_ssl_options_override_env),
 		unit_test(test_churl_init_upload),
 		unit_test(test_churl_init_download),
