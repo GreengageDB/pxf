@@ -18,8 +18,8 @@
  *
  */
 
-#include "pxf_bridge.h"
-#include "pxf_header.h"
+#include "pxf_fdw_bridge.h"
+#include "pxf_fdw_header.h"
 
 #include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h"
@@ -57,6 +57,8 @@ static churl_ssl_options *churl_make_ssl_options(PxfOptions *options)
 {
 	churl_ssl_options *ssl_options = palloc0(sizeof(churl_ssl_options));
 
+	ssl_options->use_ssl = IsProtocolHttps(options->pxf_protocol);
+
 	if (options->pxf_ssl_cacert)
 		ssl_options->pxf_ssl_cacert = pstrdup(options->pxf_ssl_cacert);
 
@@ -75,32 +77,6 @@ static churl_ssl_options *churl_make_ssl_options(PxfOptions *options)
 	ssl_options->pxf_ssl_verify_peer = options->pxf_ssl_verify_peer;
 
 	return ssl_options;
-}
-
-static void free_churl_ssl_options(churl_ssl_options *ssl_options)
-{
-	if (ssl_options->pxf_ssl_cacert)
-		pfree(ssl_options->pxf_ssl_cacert);
-
-	if (ssl_options->pxf_ssl_cert)
-		pfree(ssl_options->pxf_ssl_cert);
-
-	if (ssl_options->pxf_ssl_cert_type)
-		pfree(ssl_options->pxf_ssl_cert_type);
-
-	if (ssl_options->pxf_ssl_key)
-		pfree(ssl_options->pxf_ssl_key);
-	
-	if (ssl_options->pxf_ssl_keypasswd)
-		pfree(ssl_options->pxf_ssl_keypasswd);
-
-	pfree(ssl_options);
-}
-
-static bool
-IsProtocolHttps(const char *protocol) 
-{
-	return protocol != NULL && (strcmp("https", protocol) == 0);	
 }
 
 static void
@@ -244,7 +220,7 @@ PxfBridgeImportStart(PxfFdwScanState *pxfsstate)
 {
 	MemoryContext oldcontext;
 	PxfFdwCancelState *pxfcstate;
-	churl_ssl_options *ssl_options = NULL;
+	churl_ssl_options *ssl_options = churl_make_ssl_options(pxfsstate->options);
 
 	pxfsstate->churl_headers = churl_headers_init();
 
@@ -254,11 +230,7 @@ PxfBridgeImportStart(PxfFdwScanState *pxfsstate)
 					 pxfsstate->relation,
 					 pxfsstate->filter_str,
 					 pxfsstate->retrieved_attrs,
-					 pxfsstate->projectionInfo);
-
-	if (IsProtocolHttps(pxfsstate->options->pxf_protocol)) {
-		ssl_options = churl_make_ssl_options(pxfsstate->options);
-	}
+					 pxfsstate->projectionInfo);	
 
 	pxfsstate->churl_handle = churl_init_download_ssl(pxfsstate->uri.data, pxfsstate->churl_headers, ssl_options);
 	if (ssl_options != NULL) {
@@ -291,7 +263,7 @@ PxfBridgeImportStart(PxfFdwScanState *pxfsstate)
 void
 PxfBridgeExportStart(PxfFdwModifyState *pxfmstate)
 {
-	churl_ssl_options *ssl_options = NULL; /* NULL if SSL not used */
+	churl_ssl_options *ssl_options = churl_make_ssl_options(pxfmstate->options);
 	BuildUriForWrite(pxfmstate);
 	pxfmstate->churl_headers = churl_headers_init();
 	BuildHttpHeaders(pxfmstate->churl_headers,
@@ -301,15 +273,9 @@ PxfBridgeExportStart(PxfFdwModifyState *pxfmstate)
 					 NULL,
 					 NULL);
 
-	if (IsProtocolHttps(pxfmstate->options->pxf_protocol)) {
-		ssl_options = churl_make_ssl_options(pxfmstate->options);
-	}
-
 	pxfmstate->churl_handle = churl_init_upload_ssl(pxfmstate->uri.data, pxfmstate->churl_headers, ssl_options);
 
-	if (ssl_options != NULL) {
-		free_churl_ssl_options(ssl_options);
-	}
+	free_churl_ssl_options(ssl_options);
 }
 
 /*
@@ -520,7 +486,7 @@ FillBuffer(CHURL_HANDLE churl_handle, char *start, size_t size)
 void
 PxfBridgeCommitStart(PxfFdwModifyState *pxfmstate)
 {
-	churl_ssl_options *ssl_options = NULL; /* NULL if SSL not used */
+	churl_ssl_options *ssl_options = churl_make_ssl_options(pxfmstate->options);
 
 	Assert(Gp_role == GP_ROLE_DISPATCH);
 	Assert(pxfmstate != NULL);
@@ -536,18 +502,10 @@ PxfBridgeCommitStart(PxfFdwModifyState *pxfmstate)
 					 NULL,
 					 NULL);
 
-	if (IsProtocolHttps(pxfmstate->options->pxf_protocol))
-	{
-		ssl_options = churl_make_ssl_options(pxfmstate->options);
-	}
-
 	pxfmstate->churl_handle = churl_init_upload_ssl(pxfmstate->uri.data,
 		pxfmstate->churl_headers, ssl_options);
 
-	if (ssl_options != NULL)
-	{
-		free_churl_ssl_options(ssl_options);
-	}
+	free_churl_ssl_options(ssl_options);
 
 	elog(DEBUG5, "pxf_fdw: PxfBridgeCommitStart done on segment: %d", PXF_SEGMENT_ID);
 }

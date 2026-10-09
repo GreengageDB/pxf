@@ -385,11 +385,6 @@ test_gpbridge_read_next_fragment_buffer(void **state)
 	expect_set_headers_call(headers, "X-GP-FRAGMENT-USER-DATA", fragment->user_data);
 	expect_set_headers_call(headers, "X-GP-PROFILE", context->gphd_uri->profile);
 
-	expect_value(churl_download_restart, handle, handle);
-	expect_value(churl_download_restart, url, context->uri.data);
-	expect_value(churl_download_restart, headers, headers);
-	will_be_called(churl_download_restart);
-
 	expect_value(churl_read_check_connectivity, handle, handle);
 	will_be_called(churl_read_check_connectivity);
 

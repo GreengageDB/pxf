@@ -1,4 +1,5 @@
 #include "pxfutils.h"
+#include "libchurl.h"
 
 #if PG_VERSION_NUM >= 90400
 #include "access/htup_details.h"
@@ -52,26 +53,6 @@ TypeOidGetTypename(Oid typid)
 	return typname;
 }
 
-/* Concatenate multiple literal strings using stringinfo */
-char *
-concat(int num_args,...)
-{
-	va_list		ap;
-	StringInfoData str;
-
-	initStringInfo(&str);
-
-	va_start(ap, num_args);
-
-	for (int i = 0; i < num_args; i++)
-	{
-		appendStringInfoString(&str, va_arg(ap, char *));
-	}
-	va_end(ap);
-
-	return str.data;
-}
-
 static const char*
 getenv_char(const char *name, const char *default_value)
 {
@@ -95,10 +76,44 @@ get_authority(void)
 	return psprintf("%s:%d", get_pxf_host(), get_pxf_port());
 }
 
+/*
+ * Build SSL options from the PXF_PROTOCOL and PXF_SSL_* environment variables.
+ * Returns NULL if the protocol is not https, otherwise palloc'ed options
+ * with palloc'ed strings, an empty key password is left NULL.
+ */
+churl_ssl_options *
+get_pxf_ssl_options_from_env(void)
+{
+	const char *protocol = get_pxf_protocol();
+	const char *keypasswd;
+	churl_ssl_options *ssl_options;
+
+	ssl_options = palloc0(sizeof(churl_ssl_options));
+
+	ssl_options->use_ssl = IsProtocolHttps(protocol);
+	ssl_options->pxf_ssl_cert = pstrdup(get_pxf_ssl_cert());
+	ssl_options->pxf_ssl_key = pstrdup(get_pxf_ssl_key());
+	ssl_options->pxf_ssl_cert_type = pstrdup(get_pxf_ssl_certtype());
+	ssl_options->pxf_ssl_cacert = pstrdup(get_pxf_ssl_cacert());
+
+	keypasswd = get_pxf_ssl_keypasswd();
+	ssl_options->pxf_ssl_keypasswd = (keypasswd != NULL && keypasswd[0] != '\0') ? pstrdup(keypasswd) : NULL;
+
+	ssl_options->pxf_ssl_verify_peer = get_pxf_ssl_verifypeer();
+
+	return ssl_options;
+}
+
 const char *
 get_pxf_protocol(void)
 {
 	return getenv_char(ENV_PXF_PROTOCOL, PXF_DEFAULT_PROTOCOL);
+}
+
+bool
+IsProtocolHttps(const char *protocol)
+{
+	return protocol != NULL && (strcmp("https", protocol) == 0);
 }
 
 /* Returns the PXF Host defined in the PXF_HOST

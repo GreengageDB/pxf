@@ -55,15 +55,6 @@ churl_init_download(const char* url, CHURL_HEADERS headers)
     return (CHURL_HANDLE) mock();
 }
 
-void
-churl_download_restart(CHURL_HANDLE handle, const char* url, CHURL_HEADERS headers)
-{
-    check_expected(handle);
-    check_expected(url);
-    check_expected(headers);
-    mock();
-}
-
 size_t
 churl_write(CHURL_HANDLE handle, const char* buf, size_t bufsize)
 {

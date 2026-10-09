@@ -1,17 +1,17 @@
 /*
- * pxf_option.h
+ * pxf_fdw_option.h
  *		  Foreign-data wrapper option handling for PXF (Platform Extension Framework)
  *
  * IDENTIFICATION
- *		  fdw/pxf_option.h
+ *		  external-table/src/pxf_fdw_option.h
  */
 
 #include "postgres.h"
 
 #include "nodes/pg_list.h"
 
-#ifndef _PXF_OPTION_H
-#define _PXF_OPTION_H
+#ifndef _PXF_FDW_OPTION_H
+#define _PXF_FDW_OPTION_H
 
 #define PXF_FDW_DEFAULT_PROTOCOL "http"
 #define PXF_FDW_DEFAULT_HOST     "localhost"
@@ -69,7 +69,7 @@ typedef struct PxfOptions
 	const char *database_encoding;	/* The database encoding */
 } PxfOptions;
 
-/* Functions prototypes for pxf_option.c file */
+/* Functions prototypes for pxf_fdw_option.c file */
 PxfOptions *PxfGetOptions(Oid foreigntableid);
 
 #define IsExtProtocol(options) ((options)->ext_protocol_version != NULL)
@@ -77,4 +77,4 @@ PxfOptions *PxfGetOptions(Oid foreigntableid);
 
 bool IsExtCommitMetadata(PxfOptions *options);
 
-#endif							/* _PXF_OPTION_H */
+#endif							/* _PXF_FDW_OPTION_H */

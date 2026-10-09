@@ -111,7 +111,9 @@ static JsonSemAction nullSemAction =
 churl_context *churl_new_context(void);
 static void		create_curl_handle(churl_context *context);
 static void		set_curl_option(churl_context *context, CURLoption option, const void *data);
-static void     set_curl_ssl_options(churl_context *context);
+static void     set_curl_ssl_options(churl_context *context, churl_ssl_options *ssl_options);
+static CHURL_HANDLE churl_init_upload_internal(const char *url, CHURL_HEADERS headers, churl_ssl_options *ssl_options, long timeout);
+static CHURL_HANDLE churl_init_download_internal(const char *url, CHURL_HEADERS headers, churl_ssl_options *ssl_options);
 static size_t	read_callback(void *ptr, size_t size, size_t nmemb, void *userdata);
 static void		setup_multi_handle(churl_context *context);
 static void		multi_perform(churl_context *context);
@@ -386,23 +388,45 @@ log_curl_debug(CURL *handle, curl_infotype type, char *data, size_t size, void *
 	return 0;
 }
 
+/*
+ * Returns the port from the authority part of the given URL,
+ * or the PXF port from the environment if the URL has none.
+ */
+static int
+get_url_port(const char *url)
+{
+	const char *authority = strstr(url, "://");
+	const char *colon;
+	const char *slash;
+
+	authority = authority ? authority + 3 : url;
+	colon = strchr(authority, ':');
+	slash = strchr(authority, '/');
+
+	if (colon != NULL && (slash == NULL || colon < slash))
+		return atoi(colon + 1);
+
+	return get_pxf_port();
+}
+
 static CHURL_HANDLE
-churl_init(const char *url, CHURL_HEADERS headers)
+churl_init(const char *url, CHURL_HEADERS headers, churl_ssl_options *ssl_options)
 {
 	churl_context *context = churl_new_context();
 
 	create_curl_handle(context);
 	clear_error_buffer(context);
 
-/* Required for resolving localhost on some docker environments that
- * had intermittent networking issues when using pxf on HAWQ.
- */
+	/*
+	 * Required for resolving localhost on some docker environments that
+	 * had intermittent networking issues when using pxf on HAWQ.
+	 */
 	if (strstr(url, LocalhostIpV4) != NULL)
 	{
 		struct curl_slist *resolve_hosts = NULL;
 		char	   *pxf_host_entry = (char *) palloc0(LOCAL_HOST_RESOLVE_STRING_MAX_LENGTH);
 
-		snprintf(pxf_host_entry, LOCAL_HOST_RESOLVE_STRING_MAX_LENGTH, LOCAL_HOST_RESOLVE_STRING_FORMAT, get_pxf_port());
+		snprintf(pxf_host_entry, LOCAL_HOST_RESOLVE_STRING_MAX_LENGTH, LOCAL_HOST_RESOLVE_STRING_FORMAT, get_url_port(url));
 		elog(DEBUG3, "adding CURLOPT_RESOLVE with entry '%s'", pxf_host_entry);
 		resolve_hosts = curl_slist_append(NULL, pxf_host_entry);
 		set_curl_option(context, CURLOPT_RESOLVE, resolve_hosts);
@@ -421,7 +445,15 @@ churl_init(const char *url, CHURL_HEADERS headers)
 	set_curl_option(context, CURLOPT_HEADERFUNCTION, header_callback);
 	set_curl_option(context, CURLOPT_HEADERDATA, context);
 
-	set_curl_ssl_options(context);
+	churl_ssl_options *env_ssl_options = NULL;
+
+	if (ssl_options == NULL)
+		ssl_options = env_ssl_options = get_pxf_ssl_options_from_env();
+
+	set_curl_ssl_options(context, ssl_options);
+
+	if (env_ssl_options != NULL)
+		free_churl_ssl_options(env_ssl_options);
 
 	churl_headers_set(context, headers);
 
@@ -429,32 +461,33 @@ churl_init(const char *url, CHURL_HEADERS headers)
 }
 
 static void
-set_curl_ssl_options(churl_context *context)
+set_curl_ssl_options(churl_context *context, churl_ssl_options *ssl_options)
 {
-	const char *protocol = get_pxf_protocol();
+	if (!ssl_options->use_ssl)
+		return;
 
-	if (protocol && strcmp(protocol, "https") == 0)
+	const char *cacert = ssl_options->pxf_ssl_cacert;
+
+	if (ssl_options->pxf_ssl_cert)
+		set_curl_option(context, CURLOPT_SSLCERT, ssl_options->pxf_ssl_cert);
+
+	if (ssl_options->pxf_ssl_key)
+		set_curl_option(context, CURLOPT_SSLKEY, ssl_options->pxf_ssl_key);
+
+	if (ssl_options->pxf_ssl_cert_type)
+		set_curl_option(context, CURLOPT_SSLCERTTYPE, ssl_options->pxf_ssl_cert_type);
+
+	if (ssl_options->pxf_ssl_keypasswd != NULL && ssl_options->pxf_ssl_keypasswd[0] != '\0')
 	{
-		const char *cacert = get_pxf_ssl_cacert();
-		const char *keypasswd = get_pxf_ssl_keypasswd();
-
-		set_curl_option(context, CURLOPT_SSLCERT, get_pxf_ssl_cert());
-		set_curl_option(context, CURLOPT_SSLKEY, get_pxf_ssl_key());
-
-		set_curl_option(context, CURLOPT_SSLCERTTYPE, get_pxf_ssl_certtype());
-
-		if (keypasswd != NULL && keypasswd[0] != '\0') 
-		{
-			set_curl_option(context, CURLOPT_KEYPASSWD, keypasswd);
-		}		
-
-		if (cacert != NULL && cacert[0] != '\0')
-		{
-			set_curl_option(context, CURLOPT_CAINFO, cacert);
-		}
-
-		set_curl_option(context, CURLOPT_SSL_VERIFYPEER, (const void *) get_pxf_ssl_verifypeer());
+		set_curl_option(context, CURLOPT_KEYPASSWD, ssl_options->pxf_ssl_keypasswd);
 	}
+
+	if (cacert != NULL && cacert[0] != '\0')
+	{
+		set_curl_option(context, CURLOPT_CAINFO, cacert);
+	}
+
+	set_curl_option(context, CURLOPT_SSL_VERIFYPEER, (const void *) ssl_options->pxf_ssl_verify_peer);
 }
 
 CHURL_HANDLE
@@ -466,7 +499,25 @@ churl_init_upload(const char *url, CHURL_HEADERS headers)
 CHURL_HANDLE
 churl_init_upload_timeout(const char *url, CHURL_HEADERS headers, long timeout)
 {
-	churl_context *context = churl_init(url, headers);
+	return churl_init_upload_internal(url, headers, NULL, timeout);
+}
+
+CHURL_HANDLE
+churl_init_upload_ssl(const char *url, CHURL_HEADERS headers, churl_ssl_options *ssl_options)
+{
+	return churl_init_upload_internal(url, headers, ssl_options, 0);
+}
+
+CHURL_HANDLE
+churl_init_upload_timeout_ssl(const char *url, CHURL_HEADERS headers, churl_ssl_options *ssl_options, long timeout)
+{
+	return churl_init_upload_internal(url, headers, ssl_options, timeout);
+}
+
+static CHURL_HANDLE
+churl_init_upload_internal(const char *url, CHURL_HEADERS headers, churl_ssl_options *ssl_options, long timeout)
+{
+	churl_context *context = churl_init(url, headers, ssl_options);
 
 	context->upload = true;
 
@@ -485,7 +536,19 @@ churl_init_upload_timeout(const char *url, CHURL_HEADERS headers, long timeout)
 CHURL_HANDLE
 churl_init_download(const char *url, CHURL_HEADERS headers)
 {
-	churl_context *context = churl_init(url, headers);
+	return churl_init_download_internal(url, headers, NULL);
+}
+
+CHURL_HANDLE
+churl_init_download_ssl(const char *url, CHURL_HEADERS headers, churl_ssl_options *ssl_options)
+{
+	return churl_init_download_internal(url, headers, ssl_options);
+}
+
+static CHURL_HANDLE
+churl_init_download_internal(const char *url, CHURL_HEADERS headers, churl_ssl_options *ssl_options)
+{
+	churl_context *context = churl_init(url, headers, ssl_options);
 
 	context->upload = false;
 
@@ -505,27 +568,6 @@ churl_get_local_port(CHURL_HANDLE handle)
 			curl_error, curl_easy_strerror(curl_error));
 
 	return local_port;
-}
-
-void
-churl_download_restart(CHURL_HANDLE handle, const char *url, CHURL_HEADERS headers)
-{
-	churl_context *context = (churl_context *) handle;
-
-	Assert(!context->upload);
-
-	/* halt current transfer */
-	multi_remove_handle(context);
-
-	/* set a new url */
-	set_curl_option(context, CURLOPT_URL, url);
-
-	/* set headers again */
-	if (headers)
-		churl_headers_set(context, headers);
-
-	/* restart */
-	setup_multi_handle(context);
 }
 
 /*
@@ -554,13 +596,12 @@ churl_write(CHURL_HANDLE handle, const char *buf, size_t bufsize)
 
 /*
  * check that connection is ok, read a few bytes and check response.
+ * Upload handles may also read the response, e.g. for metadata commit.
  */
 void
 churl_read_check_connectivity(CHURL_HANDLE handle)
 {
 	churl_context *context = (churl_context *) handle;
-
-	Assert(!context->upload);
 
 	fill_internal_buffer(context, 1);
 }
@@ -574,8 +615,6 @@ churl_read(CHURL_HANDLE handle, char *buf, size_t max_size)
 	int			n = 0;
 	churl_context *context = (churl_context *) handle;
 	churl_buffer *context_buffer = context->download_buffer;
-
-	Assert(!context->upload);
 
 	fill_internal_buffer(context, max_size);
 
@@ -595,6 +634,30 @@ churl_read(CHURL_HANDLE handle, char *buf, size_t max_size)
 	context_buffer->bot += n;
 
 	return n;
+}
+
+/*
+ * Free SSL options and their strings
+ */
+void
+free_churl_ssl_options(churl_ssl_options *ssl_options)
+{
+	if (ssl_options->pxf_ssl_cacert)
+		pfree(ssl_options->pxf_ssl_cacert);
+
+	if (ssl_options->pxf_ssl_cert)
+		pfree(ssl_options->pxf_ssl_cert);
+
+	if (ssl_options->pxf_ssl_cert_type)
+		pfree(ssl_options->pxf_ssl_cert_type);
+
+	if (ssl_options->pxf_ssl_key)
+		pfree(ssl_options->pxf_ssl_key);
+
+	if (ssl_options->pxf_ssl_keypasswd)
+		pfree(ssl_options->pxf_ssl_keypasswd);
+
+	pfree(ssl_options);
 }
 
 void
@@ -786,11 +849,15 @@ static char *
 get_dest_address(CURL *curl_handle)
 {
 	char	   *dest_url = NULL;
+	long		dest_port = 0;
 
 	/* add dest url, if any, and curl was nice to tell us */
 	if (CURLE_OK == curl_easy_getinfo(curl_handle, CURLINFO_PRIMARY_IP, &dest_url) && dest_url)
 	{
-		return psprintf("'%s:%d'", dest_url, get_pxf_port());
+		if (CURLE_OK != curl_easy_getinfo(curl_handle, CURLINFO_PRIMARY_PORT, &dest_port))
+			dest_port = get_pxf_port();
+
+		return psprintf("'%s:%ld'", dest_url, dest_port);
 	}
 	return dest_url;
 }

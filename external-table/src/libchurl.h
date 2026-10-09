@@ -32,6 +32,20 @@ typedef void *CHURL_HEADERS;
 typedef void *CHURL_HANDLE;
 
 /*
+ * SSL options for the *_ssl functions
+ */
+typedef struct churl_ssl_options
+{
+	bool        use_ssl;
+	char	   *pxf_ssl_cacert;
+	char	   *pxf_ssl_cert;
+	char	   *pxf_ssl_cert_type;
+	char	   *pxf_ssl_key;
+	char	   *pxf_ssl_keypasswd;
+	long		pxf_ssl_verify_peer;
+} churl_ssl_options;
+
+/*
  * PUT example
  * -----------
  *
@@ -103,9 +117,19 @@ void		churl_headers_cleanup(CHURL_HEADERS headers);
 /*
  * Start an upload to url
  * returns a handle to churl transfer
+ * SSL settings are taken from the PXF_PROTOCOL and PXF_SSL_* environment variables
  */
 CHURL_HANDLE churl_init_upload(const char *url, CHURL_HEADERS headers);
 CHURL_HANDLE churl_init_upload_timeout(const char *url, CHURL_HEADERS headers, long timeout);
+
+/*
+ * SSL versions of upload functions
+ * SSL settings are taken from ssl_options, or from the environment if NULL
+ */
+CHURL_HANDLE churl_init_upload_ssl(const char *url, CHURL_HEADERS headers,
+								   churl_ssl_options *ssl_options);
+CHURL_HANDLE churl_init_upload_timeout_ssl(const char *url, CHURL_HEADERS headers,
+										   churl_ssl_options *ssl_options, long timeout);
 
 /*
  * Returns local port of connected handle or 0
@@ -115,14 +139,16 @@ int			churl_get_local_port(CHURL_HANDLE handle);
 /*
  * Start a download to url
  * returns a handle to churl transfer
+ * SSL settings are taken from the PXF_PROTOCOL and PXF_SSL_* environment variables
  */
 CHURL_HANDLE churl_init_download(const char *url, CHURL_HEADERS headers);
 
 /*
- * Restart a session to a new URL
- * This will use the same headers
+ * SSL version of download function
+ * SSL settings are taken from ssl_options, or from the environment if NULL
  */
-void		churl_download_restart(CHURL_HANDLE, const char *url, CHURL_HEADERS headers);
+CHURL_HANDLE churl_init_download_ssl(const char *url, CHURL_HEADERS headers,
+									 churl_ssl_options *ssl_options);
 
 /*
  * Send buf of bufsize
@@ -143,6 +169,11 @@ void		churl_read_check_connectivity(CHURL_HANDLE handle);
  * Cleanup churl resources
  */
 void		churl_cleanup(CHURL_HANDLE handle, bool after_error);
+
+/*
+ * Free SSL options and their strings
+ */
+void		free_churl_ssl_options(churl_ssl_options *ssl_options);
 
 #define LOCAL_HOST_RESOLVE_STRING_FORMAT "localhost:%d:127.0.0.1"
 /* PORT can be at most five digits giving a total length for the resolve string

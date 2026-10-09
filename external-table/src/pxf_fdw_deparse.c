@@ -1,13 +1,13 @@
 /*-------------------------------------------------------------------------
  *
- * pxf_deparse.c
+ * pxf_fdw_deparse.c
  *		  Query deparser for pxf_fdw
  *
  * This file includes functions that examine query WHERE clauses to see
  * whether they're safe to send to the remote server for execution.
  *
  * IDENTIFICATION
- *		  fdw/pxf_deparse.c
+ *		  external-table/src/pxf_fdw_deparse.c
  *
  *-------------------------------------------------------------------------
  */
@@ -20,7 +20,7 @@
  * returned to *retrieved_attrs.
  */
 void
-deparseTargetList(Relation rel, Bitmapset *attrs_used, List **retrieved_attrs)
+pxf_deparseTargetList(Relation rel, Bitmapset *attrs_used, List **retrieved_attrs)
 {
 	TupleDesc	tupdesc = RelationGetDescr(rel);
 	bool		have_wholerow;
@@ -56,11 +56,11 @@ deparseTargetList(Relation rel, Bitmapset *attrs_used, List **retrieved_attrs)
  *	- local_conds contains expressions that can't be evaluated remotely
  */
 void
-classifyConditions(PlannerInfo *root,
-				   RelOptInfo *baserel,
-				   List *input_conds,
-				   List **remote_conds,
-				   List **local_conds)
+pxf_classifyConditions(PlannerInfo *root,
+				       RelOptInfo *baserel,
+				       List *input_conds,
+				       List **remote_conds,
+				       List **local_conds)
 {
 	ListCell   *lc;
 
