@@ -1,9 +1,9 @@
 /*
- * pxf_option.c
+ * pxf_fdw_option.c
  *		  Foreign-data wrapper option handling for PXF (Platform Extension Framework)
  *
  * IDENTIFICATION
- *		  fdw/pxf_option.c
+ *		  external-table/src/pxf_fdw_option.c
  */
 
 #include "postgres.h"
