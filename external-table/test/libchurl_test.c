@@ -72,11 +72,10 @@ test_churl_init()
 	will_return(curl_easy_init, mock_curl_handle);
 
 	/* set mock behavior for all the curl_easy_setopt calls */
-#ifdef CURLOPT_RESOLVE
-	curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_RESOLVE);
 	curl_slist_append_test_helper(NULL, "localhost:5888:127.0.0.1");
-#endif
+	curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_RESOLVE);
 	curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_URL);
+	curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_DEBUGFUNCTION);
 	curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_VERBOSE);
 	curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_ERRORBUFFER);
 	curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_IPRESOLVE);
@@ -188,6 +187,43 @@ test_churl_init_download(void **state)
 	pfree(handle);
 }
 
+/*
+ * Explicit SSL options with use_ssl = false (e.g. FDW server defined with
+ * pxf_protocol 'http') must take precedence over PXF_PROTOCOL=https from the
+ * environment: no CURLOPT_SSL* options are expected to be set.
+ */
+static void
+test_churl_init_ssl_options_override_env(void **state)
+{
+	CHURL_HEADERS headers = palloc0(sizeof(CHURL_HEADERS));
+	churl_ssl_options *ssl_options = palloc0(sizeof(churl_ssl_options));
+
+	setenv(ENV_PXF_PROTOCOL, "https", 1);
+
+	ssl_options->use_ssl = false;
+	ssl_options->pxf_ssl_cert = "client.pem";
+	ssl_options->pxf_ssl_key = "client.key";
+	ssl_options->pxf_ssl_cert_type = "PEM";
+	ssl_options->pxf_ssl_cacert = "ca.pem";
+
+	/* only the non-SSL curl_easy_setopt calls are expected */
+	CURL	   *mock_curl_handle = test_churl_init();
+
+	/* function call */
+	CHURL_HANDLE handle = churl_init(uri_param, headers, ssl_options);
+	churl_context *context = (churl_context *) handle;
+
+	/* test assertions */
+	assert_true(context->curl_handle == mock_curl_handle);
+
+	/* tear down */
+	unsetenv(ENV_PXF_PROTOCOL);
+	pfree(mock_curl_handle);
+	pfree(ssl_options);
+	pfree(headers);
+	pfree(handle);
+}
+
 /*  wrapper function to enable sideeffect testing with multiple parameters */
 static void
 #if PG_VERSION_NUM >= 90400
@@ -271,12 +307,15 @@ main(int argc, char *argv[])
 
 	const		UnitTest tests[] = {
 		unit_test(test_set_curl_option),
+		unit_test(test_churl_init_ssl_options_override_env),
 		unit_test(test_churl_init_upload),
 		unit_test(test_churl_init_download),
 		unit_test(test_churl_read)
 	};
 
 	MemoryContextInit();
+	/* churl_new_context() allocates the context in CurTransactionContext */
+	CurTransactionContext = TopMemoryContext;
 
 	return run_tests(tests);
 }

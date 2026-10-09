@@ -36,6 +36,7 @@ typedef void *CHURL_HANDLE;
  */
 typedef struct churl_ssl_options
 {
+	bool        use_ssl;
 	char	   *pxf_ssl_cacert;
 	char	   *pxf_ssl_cert;
 	char	   *pxf_ssl_cert_type;

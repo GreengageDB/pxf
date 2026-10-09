@@ -12,6 +12,9 @@ char	   *TypeOidGetTypename(Oid typid);
 /* Get protocol for the PXF server URL */
 const char *get_pxf_protocol(void);
 
+/* Check whether the given protocol is https */
+bool		IsProtocolHttps(const char *protocol);
+
 /* Get authority (host:port) for the PXF server URL */
 char	   *get_authority(void);
 

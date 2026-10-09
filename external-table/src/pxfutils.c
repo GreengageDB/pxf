@@ -88,11 +88,9 @@ get_pxf_ssl_options_from_env(void)
 	const char *keypasswd;
 	churl_ssl_options *ssl_options;
 
-	if (protocol == NULL || strcmp(protocol, "https") != 0)
-		return NULL;
-
 	ssl_options = palloc0(sizeof(churl_ssl_options));
 
+	ssl_options->use_ssl = IsProtocolHttps(protocol);
 	ssl_options->pxf_ssl_cert = pstrdup(get_pxf_ssl_cert());
 	ssl_options->pxf_ssl_key = pstrdup(get_pxf_ssl_key());
 	ssl_options->pxf_ssl_cert_type = pstrdup(get_pxf_ssl_certtype());
@@ -110,6 +108,12 @@ const char *
 get_pxf_protocol(void)
 {
 	return getenv_char(ENV_PXF_PROTOCOL, PXF_DEFAULT_PROTOCOL);
+}
+
+bool
+IsProtocolHttps(const char *protocol)
+{
+	return protocol != NULL && (strcmp("https", protocol) == 0);
 }
 
 /* Returns the PXF Host defined in the PXF_HOST
