@@ -17,15 +17,6 @@ ifndef PGXS
 endif
 include $(PGXS)
 
-.PHONY: stage
-stage: pxf.so
-	mkdir -p build/stage/gpextable
-	install -c -m 755 pxf.so build/stage/gpextable/pxf.so
-	install -c -m 644 pxf.control build/stage/gpextable/
-	install -c -m 644 $(DATA) build/stage/gpextable/
-	@echo "gpdb.version=$(GP_VERSION)" > build/stage/gpextable/metadata
-	@echo "gpdb.major-version=$(GP_MAJORVERSION)" >> build/stage/gpextable/metadata
-
 .PHONY: clean-all
 clean-all: clean
 	rm -rf build

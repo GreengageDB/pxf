@@ -23,16 +23,6 @@ endif
 PG_CPPFLAGS+=-I$(shell $(PG_CONFIG) --includedir)
 include $(PGXS)
 
-
-.PHONY: stage
-stage: pxf_fdw.so
-	mkdir -p $(DESTDIR)build/stage/fdw
-	install -c -m 755 pxf_fdw.so $(DESTDIR)build/stage/fdw/pxf_fdw.so
-	install -c -m 644 pxf_fdw.control $(DESTDIR)build/stage/fdw/
-	install -c -m 644 pxf_fdw--1.0.sql $(DESTDIR)build/stage/fdw/
-	@echo "gpdb.version=$(GP_VERSION)" > $(DESTDIR)build/stage/fdw/metadata
-	@echo "gpdb.major-version=$(GP_MAJORVERSION)" >> $(DESTDIR)build/stage/fdw/metadata
-
 .PHONY: clean-all
 clean-all: clean
 	rm -rf build
