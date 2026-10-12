@@ -445,15 +445,19 @@ churl_init(const char *url, CHURL_HEADERS headers, churl_ssl_options *ssl_option
 	set_curl_option(context, CURLOPT_HEADERFUNCTION, header_callback);
 	set_curl_option(context, CURLOPT_HEADERDATA, context);
 
-	churl_ssl_options *env_ssl_options = NULL;
+	if (ssl_options != NULL)
+		set_curl_ssl_options(context, ssl_options);
+	else
+	{
+		churl_ssl_options *env_ssl_options = get_pxf_ssl_options_from_env();
 
-	if (ssl_options == NULL)
-		ssl_options = env_ssl_options = get_pxf_ssl_options_from_env();
-
-	set_curl_ssl_options(context, ssl_options);
-
-	if (env_ssl_options != NULL)
-		free_churl_ssl_options(env_ssl_options);
+		/* libcurl copies the SSL option strings, so they can be freed right away */
+		if (env_ssl_options != NULL)
+		{
+			set_curl_ssl_options(context, env_ssl_options);
+			free_churl_ssl_options(env_ssl_options);
+		}
+	}
 
 	churl_headers_set(context, headers);
 
@@ -463,9 +467,6 @@ churl_init(const char *url, CHURL_HEADERS headers, churl_ssl_options *ssl_option
 static void
 set_curl_ssl_options(churl_context *context, churl_ssl_options *ssl_options)
 {
-	if (!ssl_options->use_ssl)
-		return;
-
 	const char *cacert = ssl_options->pxf_ssl_cacert;
 
 	if (ssl_options->pxf_ssl_cert)
