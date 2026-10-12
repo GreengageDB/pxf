@@ -25,7 +25,7 @@ help:
 	@echo	"  - install - install pxf-cli binary into $PXF_HOME/bin/"
 	@echo	"  - clean - remove pxf-cli binary"
 
-all: test stage install
+all: test install
 
 build:
 	@if [ -d ${HOME}/.go-mod-cached-sources ] && [ ! -d $(GOMODCACHE) ]; then \
@@ -33,10 +33,6 @@ build:
 		ln -s ${HOME}/.go-mod-cached-sources $(GOMODCACHE); \
 	fi
 	go build -v $(LDFLAGS) -o build/$(TARGET) $(MODULE_NAME)
-
-stage: test
-	mkdir -p $(DESTDIR)$(PXF_CLI_DIR)/build/stage/bin
-	cp build/$(TARGET) $(DESTDIR)$(PXF_CLI_DIR)/build/stage/bin
 
 install: build
 	@if [ -z "$(PXF_HOME)" ]; then \

@@ -18,9 +18,6 @@ include $(PGXS)
 ifeq ($(shell test $(GP_MAJORVERSION) -lt 6; echo $$?),0)
 	SKIP_FDW_BUILD_REASON := "GPDB version $(GP_MAJORVERSION) is less than 6."
 endif
-ifeq ($(shell test $(GP_MAJORVERSION) -lt 7; echo $$?),0)
-	SKIP_FDW_PACKAGE_REASON := "GPDB version $(GP_MAJORVERSION) is less than 7."
-endif
 
 ifeq ($(BLD_ARCH),)
 	GP_BUILD_ARCH := $(PORTNAME)-$(subst _,-,$(host_cpu))
@@ -29,20 +26,15 @@ else
 endif
 
 export SKIP_FDW_BUILD_REASON
-export SKIP_FDW_PACKAGE_REASON
 export GP_MAJORVERSION
 export GP_BUILD_ARCH
-
-PACKAGE_NAME := $(shell grep '^Source:' debian/control.in | awk '{print $$2}')
-PXF_PACKAGE_NAME := $(PACKAGE_NAME)-$(PXF_VERSION)-$(GP_BUILD_ARCH)
-export PXF_PACKAGE_NAME
 
 LICENSE ?= ASL 2.0
 VENDOR ?= Open Source
 
 default: all
 
-.PHONY: all extensions external-table fdw cli server install install-server tar deb deb-tar clean test it help
+.PHONY: all extensions external-table fdw cli server install install-server clean test it help
 
 all: extensions cli server
 	@echo "===> PXF compilation is complete <==="
