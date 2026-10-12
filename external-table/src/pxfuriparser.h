@@ -64,7 +64,6 @@ typedef struct GPHDUri
  * Parses a string URI into a data structure
  */
 GPHDUri    *parseGPHDUri(const char *uri_str);
-GPHDUri    *parseGPHDUriHostPort(const char *uri_str, const char *host, const int port);
 
 /*
  * Validation functions

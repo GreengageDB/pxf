@@ -116,14 +116,14 @@ void		churl_headers_cleanup(CHURL_HEADERS headers);
 /*
  * Start an upload to url
  * returns a handle to churl transfer
- * SSL settings are taken from the PXF_PROTOCOL and PXF_SSL_* environment variables
+ * SSL is not used
  */
 CHURL_HANDLE churl_init_upload(const char *url, CHURL_HEADERS headers);
 CHURL_HANDLE churl_init_upload_timeout(const char *url, CHURL_HEADERS headers, long timeout);
 
 /*
  * SSL versions of upload functions
- * SSL settings are taken from ssl_options, or from the environment if NULL
+ * SSL settings are taken from ssl_options, SSL is not used if NULL
  */
 CHURL_HANDLE churl_init_upload_ssl(const char *url, CHURL_HEADERS headers,
 								   churl_ssl_options *ssl_options);
@@ -138,13 +138,13 @@ int			churl_get_local_port(CHURL_HANDLE handle);
 /*
  * Start a download to url
  * returns a handle to churl transfer
- * SSL settings are taken from the PXF_PROTOCOL and PXF_SSL_* environment variables
+ * SSL is not used
  */
 CHURL_HANDLE churl_init_download(const char *url, CHURL_HEADERS headers);
 
 /*
  * SSL version of download function
- * SSL settings are taken from ssl_options, or from the environment if NULL
+ * SSL settings are taken from ssl_options, SSL is not used if NULL
  */
 CHURL_HANDLE churl_init_download_ssl(const char *url, CHURL_HEADERS headers,
 									 churl_ssl_options *ssl_options);

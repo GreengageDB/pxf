@@ -390,21 +390,47 @@ log_curl_debug(CURL *handle, curl_infotype type, char *data, size_t size, void *
 
 /*
  * Returns the port from the authority part of the given URL,
- * or the PXF port from the environment if the URL has none.
+ * or the PXF port from the environment if the URL has no valid port.
  */
 static int
 get_url_port(const char *url)
 {
 	const char *authority = strstr(url, "://");
-	const char *colon;
-	const char *slash;
+	const char *host;
+	const char *end;
+	const char *colon = NULL;
+	const char *p;
 
 	authority = authority ? authority + 3 : url;
-	colon = strchr(authority, ':');
-	slash = strchr(authority, '/');
+	end = authority + strcspn(authority, "/?#");
 
-	if (colon != NULL && (slash == NULL || colon < slash))
-		return atoi(colon + 1);
+	/* skip userinfo, it may contain a colon */
+	host = authority;
+	for (p = authority; p < end; p++)
+	{
+		if (*p == '@')
+			host = p + 1;
+	}
+
+	/* the port follows the last colon outside of an IPv6 literal */
+	for (p = host; p < end; p++)
+	{
+		if (*p == ']')
+			colon = NULL;
+		else if (*p == ':')
+			colon = p;
+	}
+
+	if (colon != NULL)
+	{
+		char	   *endptr;
+		long		port = strtol(colon + 1, &endptr, 10);
+
+		if (endptr != colon + 1 && endptr == end && port > 0 && port <= 65535)
+			return (int) port;
+
+		elog(DEBUG3, "invalid port in URL '%s', using the PXF port", url);
+	}
 
 	return get_pxf_port();
 }
@@ -447,17 +473,6 @@ churl_init(const char *url, CHURL_HEADERS headers, churl_ssl_options *ssl_option
 
 	if (ssl_options != NULL)
 		set_curl_ssl_options(context, ssl_options);
-	else
-	{
-		churl_ssl_options *env_ssl_options = get_pxf_ssl_options_from_env();
-
-		/* libcurl copies the SSL option strings, so they can be freed right away */
-		if (env_ssl_options != NULL)
-		{
-			set_curl_ssl_options(context, env_ssl_options);
-			free_churl_ssl_options(env_ssl_options);
-		}
-	}
 
 	churl_headers_set(context, headers);
 

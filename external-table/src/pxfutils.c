@@ -195,6 +195,7 @@ GetNamespaceName(Oid nsp_oid)
 	HeapTuple	tuple;
 	Datum		nspnameDatum;
 	bool		isNull;
+	char	   *nspname;
 
 	tuple = SearchSysCache1(NAMESPACEOID, ObjectIdGetDatum(nsp_oid));
 	if (!HeapTupleIsValid(tuple))
@@ -205,7 +206,10 @@ GetNamespaceName(Oid nsp_oid)
 	nspnameDatum = SysCacheGetAttr(NAMESPACEOID, tuple, Anum_pg_namespace_nspname,
 								   &isNull);
 
+	/* copy the name, it points into the tuple which is released below */
+	nspname = pstrdup(NameStr(*DatumGetName(nspnameDatum)));
+
 	ReleaseSysCache(tuple);
 
-	return DatumGetCString(nspnameDatum);
+	return nspname;
 }

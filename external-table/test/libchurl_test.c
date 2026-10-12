@@ -78,13 +78,28 @@ test_get_url_port(void **state)
 	assert_int_equal(get_url_port("https://mdw:1234/pxf/v15"), 1234);
 	assert_int_equal(get_url_port("localhost:4321/pxf"), 4321);
 	assert_int_equal(get_url_port("http://localhost:6000"), 6000);
+	assert_int_equal(get_url_port("http://localhost:6000?opt=a"), 6000);
+	/* the colon in the userinfo is not a port */
+	assert_int_equal(get_url_port("http://user:pw@host:5889"), 5889);
+	assert_int_equal(get_url_port("http://user:pw@host:5889/pxf/v15"), 5889);
+	/* the colons in an IPv6 literal are not a port */
+	assert_int_equal(get_url_port("http://[::1]:5889/pxf/v15"), 5889);
 
 	/* no port in the URL, the default PXF port is used */
 	unsetenv(ENV_PXF_PORT);
 	assert_int_equal(get_url_port("http://localhost/pxf/v15"), PXF_DEFAULT_PORT);
 	assert_int_equal(get_url_port("http://localhost"), PXF_DEFAULT_PORT);
+	assert_int_equal(get_url_port("http://user:pw@host/pxf/v15"), PXF_DEFAULT_PORT);
+	assert_int_equal(get_url_port("http://[::1]/pxf/v15"), PXF_DEFAULT_PORT);
 	/* a colon in the path is not a port */
 	assert_int_equal(get_url_port("http://localhost/pxf?opt=a:b"), PXF_DEFAULT_PORT);
+
+	/* an invalid port in the URL, the default PXF port is used */
+	assert_int_equal(get_url_port("http://localhost:abc/pxf/v15"), PXF_DEFAULT_PORT);
+	assert_int_equal(get_url_port("http://localhost:/pxf/v15"), PXF_DEFAULT_PORT);
+	assert_int_equal(get_url_port("http://localhost:58x8/pxf/v15"), PXF_DEFAULT_PORT);
+	assert_int_equal(get_url_port("http://localhost:0/pxf/v15"), PXF_DEFAULT_PORT);
+	assert_int_equal(get_url_port("http://localhost:65536/pxf/v15"), PXF_DEFAULT_PORT);
 
 	/* no port in the URL, the PXF port from the environment is used */
 	setenv(ENV_PXF_PORT, "7777", 1);
@@ -94,8 +109,12 @@ test_get_url_port(void **state)
 	unsetenv(ENV_PXF_PORT);
 }
 
+/*
+ * Set mock behavior for churl_init(). If ssl_options is not NULL, the
+ * CURLOPT_SSL* calls set_curl_ssl_options() makes for them are expected too.
+ */
 static CURL *
-test_churl_init()
+test_churl_init_ssl(churl_ssl_options *ssl_options)
 {
 	/*
 	 * Set mock behavior for curl handle initialization. curl_easy_init will
@@ -119,9 +138,31 @@ test_churl_init()
 	curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_WRITEDATA);
 	curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_HEADERFUNCTION);
 	curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_HEADERDATA);
+
+	if (ssl_options != NULL)
+	{
+		if (ssl_options->pxf_ssl_cert)
+			curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_SSLCERT);
+		if (ssl_options->pxf_ssl_key)
+			curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_SSLKEY);
+		if (ssl_options->pxf_ssl_cert_type)
+			curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_SSLCERTTYPE);
+		if (ssl_options->pxf_ssl_keypasswd && ssl_options->pxf_ssl_keypasswd[0] != '\0')
+			curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_KEYPASSWD);
+		if (ssl_options->pxf_ssl_cacert && ssl_options->pxf_ssl_cacert[0] != '\0')
+			curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_CAINFO);
+		curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_SSL_VERIFYPEER);
+	}
+
 	curl_easy_setopt_test_helper(mock_curl_handle, CURLOPT_HTTPHEADER);
 
 	return mock_curl_handle;
+}
+
+static CURL *
+test_churl_init()
+{
+	return test_churl_init_ssl(NULL);
 }
 
 static void
@@ -227,26 +268,49 @@ test_churl_init_download(void **state)
 }
 
 /*
- * Explicit SSL options with use_ssl = false (e.g. FDW server defined with
- * pxf_protocol 'http') must take precedence over PXF_PROTOCOL=https from the
- * environment: no CURLOPT_SSL* options are expected to be set.
+ * NULL SSL options mean no SSL, even if PXF_PROTOCOL=https is set in the
+ * environment (e.g. FDW server defined with pxf_protocol 'http'): libchurl
+ * does not read the environment, so no CURLOPT_SSL* options are expected.
  */
 static void
-test_churl_init_ssl_options_override_env(void **state)
+test_churl_init_null_ssl_options_ignore_env(void **state)
+{
+	CHURL_HEADERS headers = palloc0(sizeof(CHURL_HEADERS));
+
+	setenv(ENV_PXF_PROTOCOL, "https", 1);
+
+	/* only the non-SSL curl_easy_setopt calls are expected */
+	CURL	   *mock_curl_handle = test_churl_init();
+
+	/* function call */
+	CHURL_HANDLE handle = churl_init(uri_param, headers, NULL);
+	churl_context *context = (churl_context *) handle;
+
+	/* test assertions */
+	assert_true(context->curl_handle == mock_curl_handle);
+
+	/* tear down */
+	unsetenv(ENV_PXF_PROTOCOL);
+	pfree(mock_curl_handle);
+	pfree(headers);
+	pfree(handle);
+}
+
+/* explicit SSL options are applied to the curl handle */
+static void
+test_churl_init_ssl_options(void **state)
 {
 	CHURL_HEADERS headers = palloc0(sizeof(CHURL_HEADERS));
 	churl_ssl_options *ssl_options = palloc0(sizeof(churl_ssl_options));
 
-	setenv(ENV_PXF_PROTOCOL, "https", 1);
-
-	ssl_options->use_ssl = false;
 	ssl_options->pxf_ssl_cert = "client.pem";
 	ssl_options->pxf_ssl_key = "client.key";
 	ssl_options->pxf_ssl_cert_type = "PEM";
+	ssl_options->pxf_ssl_keypasswd = "secret";
 	ssl_options->pxf_ssl_cacert = "ca.pem";
+	ssl_options->pxf_ssl_verify_peer = 1;
 
-	/* only the non-SSL curl_easy_setopt calls are expected */
-	CURL	   *mock_curl_handle = test_churl_init();
+	CURL	   *mock_curl_handle = test_churl_init_ssl(ssl_options);
 
 	/* function call */
 	CHURL_HANDLE handle = churl_init(uri_param, headers, ssl_options);
@@ -256,7 +320,6 @@ test_churl_init_ssl_options_override_env(void **state)
 	assert_true(context->curl_handle == mock_curl_handle);
 
 	/* tear down */
-	unsetenv(ENV_PXF_PROTOCOL);
 	pfree(mock_curl_handle);
 	pfree(ssl_options);
 	pfree(headers);
@@ -354,7 +417,8 @@ main(int argc, char *argv[])
 	const		UnitTest tests[] = {
 		unit_test(test_set_curl_option),
 		unit_test(test_get_url_port),
-		unit_test(test_churl_init_ssl_options_override_env),
+		unit_test(test_churl_init_null_ssl_options_ignore_env),
+		unit_test(test_churl_init_ssl_options),
 		unit_test(test_churl_init_upload),
 		unit_test(test_churl_init_download),
 		unit_test(test_churl_read)
