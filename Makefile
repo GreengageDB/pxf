@@ -62,8 +62,8 @@ clean:
 	done ;\
 	echo "===> PXF cleaning is complete <==="
 
+# fdw installcheck needs a running cluster, it is run by the regression tests
 test:
-	make -C fdw installcheck
 	make -C cli test
 	make -C server test
 

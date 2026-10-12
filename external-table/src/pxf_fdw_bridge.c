@@ -80,7 +80,7 @@ static churl_ssl_options *churl_make_ssl_options(PxfOptions *options)
 static bool
 IsProtocolHttps(const char *protocol) 
 {
-	return protocol != NULL && (strcmp("https", protocol) == 0);	
+	return protocol != NULL && (strcmp("https", protocol) == 0);
 }
 
 static void
