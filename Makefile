@@ -13,11 +13,8 @@ ifndef PGXS
 endif
 include $(PGXS)
 
-# variables that control whether the FDW extension will be built and packaged,
+# variable that control whether the FDW extension will be packaged,
 # if left empty there is no skipping, otherwise a value should contain a reason for skipping
-ifeq ($(shell test $(GP_MAJORVERSION) -lt 6; echo $$?),0)
-	SKIP_FDW_BUILD_REASON := "GPDB version $(GP_MAJORVERSION) is less than 6."
-endif
 ifeq ($(shell test $(GP_MAJORVERSION) -lt 7; echo $$?),0)
 	SKIP_FDW_PACKAGE_REASON := "GPDB version $(GP_MAJORVERSION) is less than 7."
 endif
@@ -28,7 +25,6 @@ else
 	GP_BUILD_ARCH := $(subst _,-,$(BLD_ARCH))
 endif
 
-export SKIP_FDW_BUILD_REASON
 export SKIP_FDW_PACKAGE_REASON
 export GP_MAJORVERSION
 export GP_BUILD_ARCH
@@ -54,12 +50,8 @@ external-table cli server:
 	make -C $@
 
 fdw:
-ifeq ($(SKIP_FDW_BUILD_REASON),)
 	@echo "===> Compiling [$@] module <==="
 	make -C fdw
-else
-	@echo "Skipping building FDW extension because $(SKIP_FDW_BUILD_REASON)"
-endif
 
 clean:
 	rm -rf build
@@ -71,11 +63,7 @@ clean:
 	echo "===> PXF cleaning is complete <==="
 
 test:
-ifeq ($(SKIP_FDW_BUILD_REASON),)
 	make -C fdw installcheck
-else
-	@echo "Skipping testing FDW extension because $(SKIP_FDW_BUILD_REASON)"
-endif
 	make -C cli test
 	make -C server test
 
@@ -83,10 +71,6 @@ it:
 	make -C automation TEST=$(TEST)
 
 install:
-ifneq ($(SKIP_FDW_BUILD_REASON),)
-	@echo "Skipping installing FDW extension because $(SKIP_FDW_BUILD_REASON)"
-	$(eval PXF_MODULES := $(filter-out fdw,$(PXF_MODULES)))
-endif
 	set -e ;\
 	for module in $${PXF_MODULES[@]}; do \
 		echo "===> Installing [$${module}] module <===" ;\

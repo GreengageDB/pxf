@@ -42,7 +42,6 @@ override_dh_auto_install:
 			PXF_HOME=$(PXF_HOME)
 
 	@echo "=== Installing pxf-fdw ==="
-ifeq ($(SKIP_FDW_BUILD_REASON),)
 	$(MAKE) -C fdw install \
 	    DESTDIR=$(CURDIR)/debian/tmp \
 	    GPHOME=$(GPHOME) \
@@ -51,9 +50,6 @@ ifeq ($(SKIP_FDW_BUILD_REASON),)
 	    DESTDIR=$(CURDIR)/debian/tmp \
 	    GPHOME=$(GPHOME) \
 			PXF_HOME=$(PXF_HOME)
-else
-	@echo "Skipping FDW: $(SKIP_FDW_BUILD_REASON)"
-endif
 
 override_dh_dwz:
 	@echo "Skipping debug simbols compression (not working properly with Golang)"
