@@ -74,7 +74,6 @@ COPY ./automation/env/scripts/compile_pxf_without_test.sh ./pxf_src/concourse/sc
 RUN chmod +x ./pxf_src/concourse/scripts/compile_pxf_without_test.sh
 RUN source gpdb_src/concourse/scripts/common.bash && \
     source ${GPHOME}/greengage_path.sh && \
-    export SKIP_FDW_BUILD_REASON=0 && \
     pxf_src/concourse/scripts/compile_pxf_without_test.sh && \
     chown -R gpadmin:gpadmin /home/gpadmin/pxf_src/
 

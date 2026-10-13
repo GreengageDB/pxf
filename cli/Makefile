@@ -1,6 +1,6 @@
 include ../common.mk
 
-.PHONY: all build stage install test clean clean-all help
+.PHONY: all build install test clean clean-all help
 .DEFAULT_GOAL := build
 
 MODULE_NAME    := $(shell go list -m)
@@ -18,10 +18,9 @@ LDFLAGS := -ldflags "-X $(MODULE_NAME)/cmd.version=$(PXF_VERSION)"
 help:
 	@echo
 	@echo   "Possible targets"
-	@echo	"  - all (build, test, stage, install)"
+	@echo	"  - all (test, install)"
 	@echo	"  - build - build pxf-cli binary"
 	@echo	"  - test - runs tests for pxf-cli binary"
-	@echo	"  - stage - install pxf-cli binary into build/stage/bin directory"
 	@echo	"  - install - install pxf-cli binary into $PXF_HOME/bin/"
 	@echo	"  - clean - remove pxf-cli binary"
 
