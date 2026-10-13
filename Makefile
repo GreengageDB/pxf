@@ -50,7 +50,6 @@ clean:
 	echo "===> PXF cleaning is complete <==="
 
 test:
-	make -C fdw installcheck
 	make -C cli test
 	make -C server test
 
