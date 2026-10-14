@@ -13,6 +13,13 @@ TypeOidGetTypename(Oid typid)
 }
 
 char*
+concat(int num_args, ...)
+{
+	check_expected(num_args);
+	return (char*) mock();
+}
+
+char*
 get_authority(void)
 {
 	return (char*) mock();
