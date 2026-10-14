@@ -115,7 +115,6 @@ function _main() {
 		install_pxf_tarball
 	fi
 
-
 	inflate_singlecluster
 	if [[ ${HADOOP_CLIENT} != HDP_KERBEROS && -z ${PROTOCOL} ]]; then
 		# Setup Hadoop before creating GPDB cluster to use system python for yum install
