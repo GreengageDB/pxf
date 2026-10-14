@@ -13,7 +13,6 @@ ifndef PGXS
 endif
 include $(PGXS)
 
-
 export GP_MAJORVERSION
 
 default: all
