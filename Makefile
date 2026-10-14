@@ -16,7 +16,6 @@ include $(PGXS)
 
 export GP_MAJORVERSION
 
-
 default: all
 
 .PHONY: all extensions external-table fdw cli server install install-server clean test it help
