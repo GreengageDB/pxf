@@ -13,14 +13,8 @@ ifndef PGXS
 endif
 include $(PGXS)
 
-ifeq ($(BLD_ARCH),)
-	GP_BUILD_ARCH := $(PORTNAME)-$(subst _,-,$(host_cpu))
-else
-	GP_BUILD_ARCH := $(subst _,-,$(BLD_ARCH))
-endif
 
 export GP_MAJORVERSION
-export GP_BUILD_ARCH
 
 
 default: all
