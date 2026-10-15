@@ -39,7 +39,4 @@ typedef struct {
 	bool saw_eol;
 } pxfdelimited_state;
 
-extern void
-unpack_delimited(char *data, int len, pxfdelimited_state *myData);
-
 #endif

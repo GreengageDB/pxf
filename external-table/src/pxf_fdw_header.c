@@ -17,8 +17,9 @@
  * under the License.
  */
 
-#include "pxf_filter.h"
-#include "pxf_header.h"
+#include "pxffilters.h"
+#include "pxf_fdw_header.h"
+#include "pxfutils.h"
 
 #if PG_VERSION_NUM >= 90600
 #include "access/external.h"
@@ -43,8 +44,6 @@ static void AddOptionsToHttpHeader(CHURL_HEADERS headers, List *options);
 static void AddProjectionDescHttpHeader(CHURL_HEADERS headers, List *retrieved_attrs, Relation rel);
 static void AddProjectionIndexHeader(CHURL_HEADERS headers, int attno, char *long_number);
 static char *NormalizeKeyName(const char *key);
-static char *TypeOidGetTypename(Oid typid);
-static char *GetNamespaceName(Oid nsp_oid);
 
 /*
  * Add key/value pairs to connection header.
@@ -413,51 +412,4 @@ NormalizeKeyName(const char *key)
 		elog(ERROR, "internal error in pxfutils.c:normalize_key_name, parameter key is null or empty");
 
 	return psprintf("X-GP-OPTIONS-%s", asc_toupper(pstrdup(key), strlen(key)));
-}
-
-/*
- * TypeOidGetTypename
- * Get the name of the type, given the OID
- */
-static char *
-TypeOidGetTypename(Oid typid)
-{
-
-	Assert(OidIsValid(typid));
-
-	HeapTuple	typtup = SearchSysCache(TYPEOID,
-										ObjectIdGetDatum(typid),
-										0, 0, 0);
-
-	if (!HeapTupleIsValid(typtup))
-		elog(ERROR, "cache lookup failed for type %u", typid);
-
-	Form_pg_type typform = (Form_pg_type) GETSTRUCT(typtup);
-	char	   *typname = psprintf("%s", NameStr(typform->typname));
-
-	ReleaseSysCache(typtup);
-
-	return typname;
-}
-
-/* Returns the namespace (schema) name for a given namespace oid */
-static char *
-GetNamespaceName(Oid nsp_oid)
-{
-	HeapTuple	tuple;
-	Datum		nspnameDatum;
-	bool		isNull;
-
-	tuple = SearchSysCache1(NAMESPACEOID, ObjectIdGetDatum(nsp_oid));
-	if (!HeapTupleIsValid(tuple))
-		ereport(ERROR,
-				(errcode(ERRCODE_UNDEFINED_SCHEMA),
-						errmsg("schema with OID %u does not exist", nsp_oid)));
-
-	nspnameDatum = SysCacheGetAttr(NAMESPACEOID, tuple, Anum_pg_namespace_nspname,
-								   &isNull);
-
-	ReleaseSysCache(tuple);
-
-	return DatumGetCString(nspnameDatum);
 }
