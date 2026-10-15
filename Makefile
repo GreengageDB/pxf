@@ -13,6 +13,19 @@ ifndef PGXS
 endif
 include $(PGXS)
 
+# variable that control whether the FDW extension will be packaged,
+# if left empty there is no skipping, otherwise a value should contain a reason for skipping
+ifeq ($(shell test $(GP_MAJORVERSION) -lt 7; echo $$?),0)
+	SKIP_FDW_PACKAGE_REASON := "GPDB version $(GP_MAJORVERSION) is less than 7."
+endif
+
+ifeq ($(BLD_ARCH),)
+	GP_BUILD_ARCH := $(PORTNAME)-$(subst _,-,$(host_cpu))
+else
+	GP_BUILD_ARCH := $(subst _,-,$(BLD_ARCH))
+endif
+
+export SKIP_FDW_PACKAGE_REASON
 export GP_MAJORVERSION
 
 default: all
@@ -41,6 +54,7 @@ clean:
 	done ;\
 	echo "===> PXF cleaning is complete <==="
 
+# fdw installcheck needs a running cluster, it is run by the regression tests
 test:
 	make -C cli test
 	make -C server test

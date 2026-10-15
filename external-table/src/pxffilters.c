@@ -54,7 +54,7 @@ static bool supported_array_type(Oid type);
  * down system catalog operators.
  * See catalog/pg_operator.h in Greengage 6 or catalog/pg_operator_d.h in Greengage 7
  */
-dbop_pxfop_map pxf_supported_opr_op_expr[] =
+static dbop_pxfop_map pxf_supported_opr_op_expr[] =
 {
 	/* int2 */
 	{Int2EqualOperator /* int2eq */ , PXFOP_EQ},
@@ -268,7 +268,7 @@ dbop_pxfop_map pxf_supported_opr_op_expr[] =
 };
 
 
-dbop_pxfop_array_map pxf_supported_opr_scalar_array_op_expr[] =
+static dbop_pxfop_array_map pxf_supported_opr_scalar_array_op_expr[] =
 {
 	/* int2 */
 	{Int2EqualOperator /* int2eq */ , PXFOP_IN, true},
@@ -418,7 +418,7 @@ dbop_pxfop_array_map pxf_supported_opr_scalar_array_op_expr[] =
 #define JSONARRAYOID 199
 #endif
 
-Oid			pxf_supported_types[] =
+static Oid			pxf_supported_types[] =
 {
 	INT2OID,
 	INT4OID,

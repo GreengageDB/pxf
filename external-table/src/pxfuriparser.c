@@ -31,6 +31,8 @@ static void GPHDUri_parse_data(GPHDUri *uri, char **cursor);
 static void GPHDUri_parse_options(GPHDUri *uri, char **cursor);
 static List *GPHDUri_parse_option(char *pair, GPHDUri *uri);
 static void GPHDUri_free_options(GPHDUri *uri);
+static GPHDUri *parseGPHDUriHostPort(const char *uri_str, const char *host, const int port);
+
 
 /* parseGPHDUri
  *
@@ -58,7 +60,7 @@ parseGPHDUri(const char *uri_str)
 	return parseGPHDUriHostPort(uri_str, get_pxf_host(), get_pxf_port());
 }
 
-GPHDUri *
+static GPHDUri *
 parseGPHDUriHostPort(const char *uri_str, const char *host, const int port)
 {
 	GPHDUri    *uri = (GPHDUri *) palloc0(sizeof(GPHDUri));

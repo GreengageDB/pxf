@@ -8,6 +8,39 @@ curl_easy_setopt(CURL* curl, CURLoption option, ...)
     return (CURLcode) mock();
 }
 
+/* only long-valued infos (e.g. CURLINFO_RESPONSE_CODE) are supported */
+CURLcode
+curl_easy_getinfo(CURL* curl, CURLINFO info, ...)
+{
+    va_list ap;
+    long   *value;
+
+    check_expected(curl);
+    check_expected(info);
+
+    va_start(ap, info);
+    value = va_arg(ap, long *);
+    va_end(ap);
+
+    *value = (long) mock();
+    return CURLE_OK;
+}
+
+CURLMsg*
+curl_multi_info_read(CURLM* multi_handle, int* msgs_in_queue)
+{
+    check_expected(multi_handle);
+    return (CURLMsg*) mock();
+}
+
+CURLMcode
+curl_multi_timeout(CURLM* multi_handle, long* milliseconds)
+{
+    check_expected(multi_handle);
+    optional_assignment(milliseconds);
+    return (CURLMcode) mock();
+}
+
 CURL*
 curl_easy_init(void)
 {

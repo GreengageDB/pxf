@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> This documentation is outdated and no longer maintained. For the latest information, please refer to the [current documentation](https://greengagedb.org/en/docs-pxf/current/intro.html).
+
+
 # PXF Documentation
 
 This directory contains the book and markdown source for the PXF docs. You can build the markdown into HTML output using [Bookbinder](https://github.com/cloudfoundry-incubator/bookbinder).  
