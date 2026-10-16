@@ -9,9 +9,6 @@ char	   *normalize_key_name(const char *key);
 /* get the name of the type, given the OID */
 char	   *TypeOidGetTypename(Oid typid);
 
-/* Concatenate multiple literal strings using stringinfo */
-char	   *concat(int num_args,...);
-
 /* Get protocol for the PXF server URL */
 const char *get_pxf_protocol(void);
 
@@ -34,6 +31,10 @@ const char *get_pxf_ssl_cert(void);
 const char *get_pxf_ssl_key(void);
 const char *get_pxf_ssl_certtype(void);
 long get_pxf_ssl_verifypeer(void);
+
+/* Build palloc'ed SSL options from the environment, returns NULL if the protocol is not https */
+struct churl_ssl_options;
+struct churl_ssl_options *get_pxf_ssl_options_from_env(void);
 
 /* Returns the namespace (schema) name for a given namespace oid */
 char	   *GetNamespaceName(Oid nsp_oid);

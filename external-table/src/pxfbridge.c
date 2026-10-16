@@ -75,12 +75,17 @@ gpbridge_cancel(pxfbridge_cancel *cancel)
 	PG_TRY();
 	{
 		CHURL_HANDLE churl_handle;
+		churl_ssl_options *ssl_options;
 
 		churl_headers_append(cancel->churl_headers, "X-GP-CLIENT-PORT", psprintf("%i", local_port));
 
 		initStringInfo(&cancel->uri);
 		build_uri_for_cancel(cancel);
-		churl_handle = churl_init_upload_timeout(cancel->uri.data, cancel->churl_headers, 1L);
+
+		ssl_options = get_pxf_ssl_options_from_env();
+		churl_handle = churl_init_upload_timeout_ssl(cancel->uri.data, cancel->churl_headers, ssl_options, 1L);
+		if (ssl_options != NULL)
+			free_churl_ssl_options(ssl_options);
 
 		churl_cleanup(churl_handle, false);
 	}
@@ -150,12 +155,16 @@ gpbridge_import_start(gphadoop_context *context)
 {
 	MemoryContext oldcontext;
 	pxfbridge_cancel *cancel;
+	churl_ssl_options *ssl_options;
 
 	build_uri_for_read(context);
 	context->churl_headers = churl_headers_init();
 	add_querydata_to_http_headers(context);
 
-	context->churl_handle = churl_init_download(context->uri.data, context->churl_headers);
+	ssl_options = get_pxf_ssl_options_from_env();
+	context->churl_handle = churl_init_download_ssl(context->uri.data, context->churl_headers, ssl_options);
+	if (ssl_options != NULL)
+		free_churl_ssl_options(ssl_options);
 
 	oldcontext = MemoryContextSwitchTo(CurTransactionContext);
 	cancel = palloc0(sizeof(pxfbridge_cancel));
@@ -176,12 +185,17 @@ gpbridge_import_start(gphadoop_context *context)
 void
 gpbridge_export_start(gphadoop_context *context)
 {
+	churl_ssl_options *ssl_options;
+
 	elog(DEBUG2, "pxf: file name for write: %s", context->gphd_uri->data);
 	build_uri_for_write(context);
 	context->churl_headers = churl_headers_init();
 	add_querydata_to_http_headers(context);
 
-	context->churl_handle = churl_init_upload(context->uri.data, context->churl_headers);
+	ssl_options = get_pxf_ssl_options_from_env();
+	context->churl_handle = churl_init_upload_ssl(context->uri.data, context->churl_headers, ssl_options);
+	if (ssl_options != NULL)
+		free_churl_ssl_options(ssl_options);
 }
 
 /*

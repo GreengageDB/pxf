@@ -17,15 +17,15 @@
  * under the License.
  */
 
-#ifndef _PXFHEADERS_H_
-#define _PXFHEADERS_H_
+#ifndef _PXF_FDW_HEADER_H_
+#define _PXF_FDW_HEADER_H_
 
 #define PXF_SERVICE_PREFIX "pxf"
 
 #include "libchurl.h"
 
 #include "pxf_fdw.h"
-#include "pxf_option.h"
+#include "pxf_fdw_option.h"
 
 #include "nodes/execnodes.h"
 #include "nodes/nodeFuncs.h"
@@ -41,4 +41,4 @@ extern void BuildHttpHeaders(CHURL_HEADERS headers,
 							 List *retrieved_attrs,
 							 ProjectionInfo *projectionInfo);
 
-#endif							/* _PXFHEADERS_H_ */
+#endif							/* _PXF_FDW_HEADER_H_ */
