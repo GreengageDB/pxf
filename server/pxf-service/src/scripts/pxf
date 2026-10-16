@@ -124,6 +124,48 @@ function failWithHint() {
     exit 1
 }
 
+function diagnosePxfStartup() {
+    local attempt="$1"
+    echo "========== PXF DIAGNOSTICS: attempt=$attempt =========="
+    date -u
+
+    echo "--- System load ---"
+    uptime
+    free -m
+
+    echo "--- Top processes ---"
+    ps -eo pid,ppid,%cpu,%mem,rss,etime,comm --sort=-rss | head -15
+
+    echo "--- Port ---"
+    ss -lntp 2>/dev/null | grep ":5888 " || true
+
+    echo "--- HTTP response ---"
+    curl --noproxy '*' --verbose \
+         --max-time 5 \
+         -I "${PXF_PROTOCOL}://localhost:5888" \
+         2>&1 | tail -25 || true
+
+    echo "--- PXF service log (last 50 lines) ---"
+    if [[ -f "/usr/local/greengage-db-devel/pxf/logs/pxf-service.log" ]]; then
+        echo "========== START SERVICE LOG =========="
+        tail -n 50 "/usr/local/greengage-db-devel/pxf/logs/pxf-service.log"
+        echo "========== END SERVICE LOG ============"
+    else
+        echo "pxf-service.log not found"
+    fi
+
+    echo "--- PXF application log (last 50 lines) ---"
+    if [[ -f "/usr/local/greengage-db-devel/pxf/logs/pxf-app.out" ]]; then
+        echo "========== START APPLICATION LOG =========="
+        tail -n 50 "/usr/local/greengage-db-devel/pxf/logs/pxf-app.out"
+        echo "========== END APPLICATION LOG ============"
+    else
+        echo "pxf-app.out not found"
+    fi
+
+    echo "========== END DIAGNOSTICS =========="
+}
+
 #
 # waitForSpringBoot waits for spring boot to finish loading
 # for given attempts number.
@@ -144,10 +186,14 @@ function waitForSpringBoot() {
     echoYellow 'Checking if PXF is up and running...'
     until $curl_command | grep 'PXF Server' > /dev/null; do
         if (( ++attempts == max_attempts )); then
+            diagnosePxfStartup "$attempts"
             echoRed 'ERROR: PXF is down - the application is not running'
             return 1
         fi
         if (( attempts >= echo_after_attempts )); then
+            if (( attempts % 5 == 0 )); then
+                diagnosePxfStartup "$attempts"
+            fi
             echoYellow "PXF not responding, re-trying after $sleep_time second (attempt number ${attempts})"
         fi
         sleep $sleep_time
