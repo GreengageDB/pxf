@@ -44,16 +44,6 @@ uninstall: uninstall-shlib-link
 uninstall-shlib-link:
 	rm -f '$(DESTDIR)$(pkglibdir)/$(PXF_FDW_SHLIB)'
 
-# pxf.so itself is staged into ../gpextable by external-table
-.PHONY: stage
-stage: $(PXF_FDW_SHLIB)
-	mkdir -p $(DESTDIR)build/stage/fdw
-	ln -sf ../gpextable/$(PXF_SHLIB) $(DESTDIR)build/stage/fdw/$(PXF_FDW_SHLIB)
-	install -c -m 644 pxf_fdw.control $(DESTDIR)build/stage/fdw/
-	install -c -m 644 pxf_fdw--1.0.sql $(DESTDIR)build/stage/fdw/
-	@echo "gpdb.version=$(GP_VERSION)" > $(DESTDIR)build/stage/fdw/metadata
-	@echo "gpdb.major-version=$(GP_MAJORVERSION)" >> $(DESTDIR)build/stage/fdw/metadata
-
 .PHONY: clean-all
 clean-all: clean
 	rm -rf build
