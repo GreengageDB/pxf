@@ -18,8 +18,8 @@
  *
  */
 
-#include "pxf_bridge.h"
-#include "pxf_header.h"
+#include "pxf_fdw_bridge.h"
+#include "pxf_fdw_header.h"
 
 #include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h"
@@ -77,30 +77,10 @@ static churl_ssl_options *churl_make_ssl_options(PxfOptions *options)
 	return ssl_options;
 }
 
-static void free_churl_ssl_options(churl_ssl_options *ssl_options)
-{
-	if (ssl_options->pxf_ssl_cacert)
-		pfree(ssl_options->pxf_ssl_cacert);
-
-	if (ssl_options->pxf_ssl_cert)
-		pfree(ssl_options->pxf_ssl_cert);
-
-	if (ssl_options->pxf_ssl_cert_type)
-		pfree(ssl_options->pxf_ssl_cert_type);
-
-	if (ssl_options->pxf_ssl_key)
-		pfree(ssl_options->pxf_ssl_key);
-	
-	if (ssl_options->pxf_ssl_keypasswd)
-		pfree(ssl_options->pxf_ssl_keypasswd);
-
-	pfree(ssl_options);
-}
-
 static bool
 IsProtocolHttps(const char *protocol) 
 {
-	return protocol != NULL && (strcmp("https", protocol) == 0);	
+	return protocol != NULL && (strcmp("https", protocol) == 0);
 }
 
 static void

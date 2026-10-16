@@ -13,36 +13,11 @@ ifndef PGXS
 endif
 include $(PGXS)
 
-# variables that control whether the FDW extension will be built and packaged,
-# if left empty there is no skipping, otherwise a value should contain a reason for skipping
-ifeq ($(shell test $(GP_MAJORVERSION) -lt 6; echo $$?),0)
-	SKIP_FDW_BUILD_REASON := "GPDB version $(GP_MAJORVERSION) is less than 6."
-endif
-ifeq ($(shell test $(GP_MAJORVERSION) -lt 7; echo $$?),0)
-	SKIP_FDW_PACKAGE_REASON := "GPDB version $(GP_MAJORVERSION) is less than 7."
-endif
-
-ifeq ($(BLD_ARCH),)
-	GP_BUILD_ARCH := $(PORTNAME)-$(subst _,-,$(host_cpu))
-else
-	GP_BUILD_ARCH := $(subst _,-,$(BLD_ARCH))
-endif
-
-export SKIP_FDW_BUILD_REASON
-export SKIP_FDW_PACKAGE_REASON
 export GP_MAJORVERSION
-export GP_BUILD_ARCH
-
-PACKAGE_NAME := $(shell grep '^Source:' debian/control.in | awk '{print $$2}')
-PXF_PACKAGE_NAME := $(PACKAGE_NAME)-$(PXF_VERSION)-$(GP_BUILD_ARCH)
-export PXF_PACKAGE_NAME
-
-LICENSE ?= ASL 2.0
-VENDOR ?= Open Source
 
 default: all
 
-.PHONY: all extensions external-table fdw cli server install install-server stage tar deb deb-tar clean test it help
+.PHONY: all extensions external-table fdw cli server install install-server clean test it help
 
 all: extensions cli server
 	@echo "===> PXF compilation is complete <==="
@@ -54,12 +29,8 @@ external-table cli server:
 	make -C $@
 
 fdw:
-ifeq ($(SKIP_FDW_BUILD_REASON),)
 	@echo "===> Compiling [$@] module <==="
 	make -C fdw
-else
-	@echo "Skipping building FDW extension because $(SKIP_FDW_BUILD_REASON)"
-endif
 
 clean:
 	rm -rf build
@@ -70,12 +41,8 @@ clean:
 	done ;\
 	echo "===> PXF cleaning is complete <==="
 
+# fdw installcheck needs a running cluster, it is run by the regression tests
 test:
-ifeq ($(SKIP_FDW_BUILD_REASON),)
-	make -C fdw installcheck
-else
-	@echo "Skipping testing FDW extension because $(SKIP_FDW_BUILD_REASON)"
-endif
 	make -C cli test
 	make -C server test
 
@@ -83,10 +50,6 @@ it:
 	make -C automation TEST=$(TEST)
 
 install:
-ifneq ($(SKIP_FDW_BUILD_REASON),)
-	@echo "Skipping installing FDW extension because $(SKIP_FDW_BUILD_REASON)"
-	$(eval PXF_MODULES := $(filter-out fdw,$(PXF_MODULES)))
-endif
 	set -e ;\
 	for module in $${PXF_MODULES[@]}; do \
 		echo "===> Installing [$${module}] module <===" ;\
@@ -105,23 +68,6 @@ install-cli:
 install-fdw:
 	make -C fdw install DESTDIR=$(DESTDIR) GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME)
 	make -C external-table install DESTDIR=$(DESTDIR) GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME)
-
-stage:
-	rm -rf build/stage
-ifneq ($(SKIP_FDW_PACKAGE_REASON),)
-	@echo "Skipping staging FDW extension because $(SKIP_FDW_PACKAGE_REASON)"
-	$(eval PXF_MODULES := $(filter-out fdw,$(PXF_MODULES)))
-endif
-	set -e ;\
-	mkdir -p build/stage/$${PXF_PACKAGE_NAME}/pxf ;\
-	for module in $${PXF_MODULES[@]}; do \
-		echo "===> Staging [$${module}] module <===" ;\
-		make -C $${module} stage  DESTDIR=$(DESTDIR) GPHOME=$(GPHOME) PXF_HOME=$(PXF_HOME) ;\
-		cp -a "$${module}"/build/stage/* "build/stage/$${PXF_PACKAGE_NAME}/pxf" ;\
-	done ;\
-	echo $$(git rev-parse --verify HEAD) > build/stage/$${PXF_PACKAGE_NAME}/pxf/commit.sha ;\
-	cp package/install_binary build/stage/$${PXF_PACKAGE_NAME}/install_component ;\
-	echo "===> PXF staging is complete <==="
 
 #---------------------------------------------------------------------
 # Packaging targets with changelog options
@@ -216,5 +162,4 @@ help:
 	@echo	'  - test - runs tests for Go CLI and server'
 	@echo	'  - install - install external table and foreign data wrapper extensions, CLI and server binaries'
 	@echo	'  - install-server - install server binaries only without running tests'
-	@echo	'  - stage - install external table and foreign data wrapper extensions, CLI, and server binaries into build/stage/pxf directory'
 	@echo	'  - pkg-deb - create PXF DEB packages'

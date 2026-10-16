@@ -414,7 +414,7 @@ find_whole_line(char *data, char *data_border, pxfdelimited_state *myData) {
  * @param len total length of the buffer
  * @param myData struct containing formatter options. it is also where the parsed data will go
  */
-void
+static void
 unpack_delimited(char *data, int len, pxfdelimited_state *myData)
 {
 	char *start = (char*)data;

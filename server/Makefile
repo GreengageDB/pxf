@@ -30,13 +30,12 @@ PXF_GRADLE_PROPERTIES = -Pversion=$(PXF_VERSION) -PapiVersion=$(PXF_API_VERSION)
 help:
 	@echo
 	@echo   "Possible targets"
-	@echo	"  - all (clean, compile, test, stage)"
+	@echo	"  - all (clean, compile, test)"
 	@echo	"  - clean - cleans the workspace of all produced artifacts"
 	@echo	"  - compile - compiles all PXF modules and builds their JAR files"
 	@echo	"  - test - runs unit tests for all PXF modules"
 	@echo   "  - coverage - runs unit tests for all PXF modules and gives a coverage report"
 	@echo	"  - install - setup PXF in the configured deployPath"
-	@echo	"  - stage - build PXF server and stage resulting artifacts for packaging"
 	@echo	"  - doc - creates aggregate javadoc under docs"
 
 all:
