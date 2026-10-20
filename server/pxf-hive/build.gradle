@@ -26,9 +26,9 @@ dependencies {
     implementation("com.google.guava:guava")
     implementation("commons-codec:commons-codec")
     implementation("commons-lang:commons-lang")
-    implementation("io.arenadata.hive:hive-exec:${hiveVersion}:core")  { transitive = false }
-    implementation("io.arenadata.hive:hive-metastore")                 { transitive = false }
-    implementation("io.arenadata.hive:hive-serde")                     { transitive = false }
+    implementation("org.apache.hive:hive-exec:${hiveVersion}:core")  { transitive = false }
+    implementation("org.apache.hive:hive-metastore")                 { transitive = false }
+    implementation("org.apache.hive:hive-serde")                     { transitive = false }
     implementation("com.esotericsoftware:kryo")                        { transitive = false }
 
     /*******************************
@@ -38,9 +38,9 @@ dependencies {
      * other tests to fail.
      *******************************/
 
-    implementation("io.arenadata.hive:hive-common")                  { transitive = false }
-    implementation("io.arenadata.hive.shims:hive-shims-common")      { transitive = false }
-    implementation("io.arenadata.hive.shims:hive-shims-0.23")        { transitive = false }
+    implementation("org.apache.hive:hive-common")                  { transitive = false }
+    implementation("org.apache.hive.shims:hive-shims-common")      { transitive = false }
+    implementation("org.apache.hive.shims:hive-shims-0.23")        { transitive = false }
     implementation("org.apache.commons:commons-lang3")               { transitive = false }
     implementation("org.apache.hive:hive-storage-api")               { transitive = false }
     implementation("org.apache.orc:orc-core")                        { transitive = false }
