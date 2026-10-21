@@ -69,6 +69,7 @@ configure $HADOOP_CONF_DIR/kms-site.xml kms KMS_CONF
 configure $HADOOP_CONF_DIR/mapred-site.xml mapred MAPRED_CONF
 configure $HIVE_HOME/conf/hive-site.xml hive HIVE_SITE_CONF
 configure $TEZ_HOME/conf/tez-site.xml tez TEZ_CONF
+configure $HADOOP_CONF_DIR/capacity-scheduler.xml capacity-scheduler CAPACITY_CONF
 
 if [ "$MULTIHOMED_NETWORK" = "1" ]; then
     echo "Configuring for multihomed network"
@@ -147,11 +148,6 @@ wait_for_it hadoop:8042
 export HIVE_CONF_DIR=$HIVE_HOME/conf
 export HADOOP_CLASSPATH=$TEZ_HOME/*:$TEZ_HOME/lib/*:$TEZ_HOME/conf/
 
-# https://issues.apache.org/jira/browse/HIVE-22915
-rm -rf $HIVE_HOME/lib/guava-19.0.jar
-cp $HADOOP_HOME/share/hadoop/hdfs/lib/guava-27.0-jre.jar $HIVE_HOME/lib/
-
-
 echo "------------------------------"
 echo "Check Hive metastore migration"
 echo "------------------------------"
@@ -184,7 +180,7 @@ hdfs dfs -mkdir -p    /user/hive/warehouse
 hdfs dfs -chmod g+w   /tmp
 hdfs dfs -chmod g+w   /user/hive/warehouse
 
-HADOOP_CLIENT_OPTS="$HADOOP_CLIENT_OPTS -Dhive.log.dir=/tmp/hive -Dhive.log.file=hiveserver2.log"
+export HADOOP_CLIENT_OPTS="$HADOOP_CLIENT_OPTS -Dhive.log.dir=/tmp/hive -Dhive.log.file=hiveserver2.log"
 $HIVE_HOME/bin/hiveserver2 --hiveconf hive.server2.enable.doAs=false &
 wait_for_it hadoop:10000
 

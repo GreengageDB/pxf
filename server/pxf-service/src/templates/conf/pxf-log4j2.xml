@@ -43,5 +43,6 @@
     <Logger name="org.springframework.boot.actuate.endpoint.jmx" level="warn"/>
     <Logger name="org.apache.catalina.loader.WebappClassLoaderBase" level="error"/>
     <Logger name="org.apache.hadoop.fs.s3a.S3AInstrumentation" level="error"/>
+    <Logger name="org.apache.hive.jdbc.HiveStatement" level="error"/>
 </Loggers>
 </Configuration>
