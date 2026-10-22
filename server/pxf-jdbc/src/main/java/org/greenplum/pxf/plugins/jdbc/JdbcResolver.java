@@ -32,6 +32,7 @@ import org.greenplum.pxf.plugins.jdbc.utils.ConnectionManager;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -339,7 +340,13 @@ public class JdbcResolver extends JdbcBasePlugin implements Resolver {
                     if (field.val == null) {
                         statement.setNull(i, Types.BINARY);
                     } else {
-                        statement.setBytes(i, (byte[]) field.val);
+                        if (field.val instanceof ByteBuffer buffer) {
+                            byte[] bytes = new byte[buffer.remaining()];
+                            buffer.get(bytes);
+                            statement.setBytes(i, bytes);
+                        } else {
+                            statement.setBytes(i, (byte[]) field.val);
+                        }
                     }
                     break;
                 case TIMESTAMP:

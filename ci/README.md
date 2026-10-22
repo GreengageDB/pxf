@@ -14,7 +14,7 @@ or `build_local.sh` script building regression tests image `ggdb6_pxf_regression
 bash build_local.sh
 ```
 
-For default Docker will use image `greengagedb/ggdb6_ubuntu:6.29.0` (see ARG `GGDB_IMAGE` in the `Dockerfile`). It may be changed by the `--build-arg` param:
+For default Docker will use image `greengagedb/ggdb6_ubuntu:6.32.0` (see ARG `GGDB_IMAGE` in the `Dockerfile`). It may be changed by the `--build-arg` param:
 
 ```bash
 docker build --target test -t ggdb7_pxf_regression:latest --build-arg GGDB_IMAGE="ggdb7_u22:latest" -f ci/Dockerfile.regression .
