@@ -131,6 +131,7 @@ services:
       - "./hadoop/yarn-env.sh:/etc/hadoop/yarn-env.sh:ro"
       - "./hadoop/hive-env.sh:/opt/hive/conf/hive-env.sh:ro"
       - "./hadoop/hbase-site.xml:/opt/hbase/conf/hbase-site.xml:ro"
+      - "./hadoop/start_hadoop.sh:/start_hadoop.sh:rw"
     healthcheck:
       test: bash /healthcheck_hadoop.sh
       interval: 10s
