@@ -10,8 +10,6 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.greenplum.pxf.automation.structures.tables.basic.Table;
 import org.greenplum.pxf.automation.structures.tables.pxf.ExternalTable;
 import org.greenplum.pxf.automation.structures.tables.utils.TableFactory;
-import org.greenplum.pxf.automation.utils.system.FDWUtils;
-import org.testng.SkipException;
 import org.testng.annotations.Test;
 
 import org.greenplum.pxf.automation.enums.EnumPartitionType;
@@ -515,10 +513,6 @@ public class JdbcTest extends BaseFeature {
 
     @Test(groups = {"features", "jdbc"})
     public void jdbcWritableTableWithDateWideRange() throws Exception {
-        // FDWUtils.useFDW is used to skip the FDW test because "bytea" is not supported by FDW yet.
-        if (FDWUtils.useFDW) {
-            throw new SkipException("Skipping FDW test because BYTEA is not supported by FDW write path yet");
-        }
         runSqlTest("features/jdbc/writable_date_wide_range");
     }
 
