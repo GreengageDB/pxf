@@ -94,7 +94,7 @@ dependencies {
     implementation("org.mortbay.jetty:jetty-util")                   { transitive = false }
 
     // GCS jars and dependencies
-    implementation("com.google.cloud.bigdataoss:gcs-connector:hadoop2-1.9.17:shaded")
+    implementation("com.google.cloud.bigdataoss:gcs-connector:hadoop2-2.2.13:shaded")
                                                                      { transitive = false }
 
     /*******************************
