@@ -1,6 +1,6 @@
 #!/bin/bash
 # GGDB_IMAGE is from https://github.com/GreengageDB/greengage/tree/main/ci
-export GGDB_IMAGE=${GGDB_IMAGE:-greengagedb/ggdb6_ubuntu:6.29.1}
+export GGDB_IMAGE=${GGDB_IMAGE:-greengagedb/ggdb6_ubuntu:6.32.0}
 export IT_IMAGE=${IT_IMAGE:-greengagedb/ggdb6_pxf_automation}
 export IT_TAG=${IT_TAG:-it}
 
