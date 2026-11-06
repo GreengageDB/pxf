@@ -2893,45 +2893,17 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "label_values(system_cpu_usage,application)",
         "hide": 0,
         "includeAll": false,
-        "label": "Application",
-        "multi": false,
-        "name": "application",
-        "options": [],
-        "query": {
-          "query": "label_values(system_cpu_usage, application)",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 2,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
-        },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${DS_PROMETHEUS}"
-        },
-        "definition": "label_values(pxf_operation_seconds_count{application=~\"$application\"}, profile)",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Profile",
+        "label": "Cluster",
         "multi": true,
-        "name": "profile",
+        "name": "cluster_name",
         "options": [],
         "query": {
-          "query": "label_values(pxf_operation_seconds_count{application=~\"$application\"}, profile)",
+          "query": "label_values(system_cpu_usage{cluster_name=~\".*\"}, cluster_name)",
           "refId": "StandardVariableQuery"
         },
-        "refresh": 2,
+        "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
         "sort": 1,
@@ -2947,7 +2919,7 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "label_values(system_cpu_usage{application=~\"$application\"},instance)",
+        "definition": "label_values(system_cpu_usage{cluster_name=~\"$cluster_name\"}, instance)",
         "hide": 0,
         "includeAll": true,
         "label": "Instance",
@@ -2955,7 +2927,57 @@
         "name": "instance",
         "options": [],
         "query": {
-          "query": "label_values(system_cpu_usage{application=~\"$application\"}, instance)",
+          "query": "label_values(system_cpu_usage{cluster_name=~\"$cluster_name\"}, instance)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(system_cpu_usage{cluster_name=~\"$cluster_name\", instance=~\"$instance\"},application)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Application",
+        "multi": false,
+        "name": "application",
+        "options": [],
+        "query": {
+          "query": "label_values(system_cpu_usage{cluster_name=~\"$cluster_name\", instance=~\"$instance\"},application)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "label_values(pxf_operation_seconds_count{cluster_name=~\"$cluster_name\", instance=~\"$instance\", application=~\"$application\"}, profile)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Profile",
+        "multi": true,
+        "name": "profile",
+        "options": [],
+        "query": {
+          "query": "label_values(pxf_operation_seconds_count{cluster_name=~\"$cluster_name\", instance=~\"$instance\", application=~\"$application\"}, profile)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
