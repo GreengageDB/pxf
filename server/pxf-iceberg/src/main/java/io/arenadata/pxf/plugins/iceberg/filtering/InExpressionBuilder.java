@@ -20,7 +20,10 @@ public class InExpressionBuilder extends AbstractExpressionBuilder {
         var converter = getIcebergConverter(data.getGreengageType().getTypeElem(), data.getIcebergType());
         return Expressions.in(
                 data.getColumnName(),
-                data.getCollectionData().stream().map(converter::convertFromGreengageToIceberg).toList()
+                data.getCollectionData().stream()
+                        .map(converter::convertFromGreengageToIceberg)
+                        .map(IcebergLiteralConverter::convert)
+                        .toList()
         );
 
     }
