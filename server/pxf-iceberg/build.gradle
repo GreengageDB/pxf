@@ -42,7 +42,7 @@ dependencies {
     implementation("org.apache.hadoop:hadoop-yarn-api")                  { transitive = false } // Kerberos dependency
     implementation("org.apache.hadoop:hadoop-mapreduce-client-core")     { transitive = false }
     implementation("org.apache.hadoop.thirdparty:hadoop-shaded-guava")   { transitive = false }
-    implementation("org.apache.hadoop.thirdparty:hadoop-shaded-protobuf_3_7") { transitive = false }
+    implementation("org.apache.hadoop.thirdparty:hadoop-shaded-protobuf_3_25") { transitive = false }
     implementation("com.fasterxml.woodstox:woodstox-core")               { transitive = false }
     implementation("org.codehaus.woodstox:stax2-api")                    { transitive = false }
 
@@ -96,7 +96,7 @@ dependencies {
     // Compression codecs
     implementation("org.apache.commons:commons-compress")                { transitive = false }
     implementation("com.github.luben:zstd-jni")                          { transitive = false }
-    implementation("org.lz4:lz4-java")                                   { transitive = false }
+    implementation("at.yawk.lz4:lz4-java")                                   { transitive = false }
     implementation("org.xerial.snappy:snappy-java")                      { transitive = false }
 
     // Common utilities

@@ -13,7 +13,7 @@ class ParquetIntervalUtilitiesTest {
     void read() {
         byte[] bytes = new byte[] {0, 0, 0, 14, 0, 0, 0, 3, 0, -32, 101, 80};
         String actual = ParquetIntervalUtilities.read(bytes);
-        assertEquals("1 years 2 mons 3 days 4 hours 5 mins 6.0 secs", actual);
+        assertEquals("1 years 2 mons 3 days 4 hours 5 mins 6 secs", actual);
         bytes = new byte[] {0, 0, 0, 14, 0, 0, 0, 3, 0, -32, 104, 101};
         actual = ParquetIntervalUtilities.read(bytes);
         assertEquals("1 years 2 mons 3 days 4 hours 5 mins 6.789 secs", actual);
@@ -39,7 +39,7 @@ class ParquetIntervalUtilitiesTest {
     @Test
     void testRoundTripString() {
         String round = ParquetIntervalUtilities.read(Objects.requireNonNull(ParquetIntervalUtilities.write("1 year 2 month 3 day 4 hour 5 minute 6 second")).getBytes());
-        assertEquals("1 years 2 mons 3 days 4 hours 5 mins 6.0 secs", round);
+        assertEquals("1 years 2 mons 3 days 4 hours 5 mins 6 secs", round);
         round = ParquetIntervalUtilities.read(Objects.requireNonNull(ParquetIntervalUtilities.write("1 year 2 month 3 day 4 hour 5 minute 6.789 second")).getBytes());
         assertEquals("1 years 2 mons 3 days 4 hours 5 mins 6.789 secs", round);
     }

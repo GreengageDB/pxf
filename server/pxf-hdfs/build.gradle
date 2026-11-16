@@ -25,6 +25,7 @@ dependencies {
     implementation("com.google.guava:guava")
     implementation("commons-codec:commons-codec")
     implementation("org.apache.commons:commons-configuration2")
+    implementation("org.apache.commons:commons-text")
     implementation("commons-io:commons-io")
     implementation("commons-lang:commons-lang")
     implementation("org.apache.commons:commons-lang3")
@@ -58,18 +59,18 @@ dependencies {
 
     // Dependencies for writing Parquet files with compression
     implementation("com.github.luben:zstd-jni")                      { transitive = false }
-    implementation("org.lz4:lz4-java")                               { transitive = false }
+    implementation("at.yawk.lz4:lz4-java")                               { transitive = false }
 
     // Hadoop 2.10.1 uses log4j:1.2.17, but since we are using slf4j
     // we bring log4j-over-slf4j which provides compatibility for log4j
     // using underlying slf4j functionality (i.e MDC).
     implementation("org.slf4j:log4j-over-slf4j")                     { transitive = false }
 
-    // Dependency in hadoop 3.3.6
+    // Dependency in hadoop 3.4.3.3
     implementation("com.fasterxml.woodstox:woodstox-core")           { transitive = false }
     implementation("org.codehaus.woodstox:stax2-api")                { transitive = false }
     implementation("org.apache.hadoop.thirdparty:hadoop-shaded-guava") { transitive = false } // hadoop-common dependency
-    implementation("org.apache.hadoop.thirdparty:hadoop-shaded-protobuf_3_7") { transitive = false } // hadoop-common dependency
+    implementation("org.apache.hadoop.thirdparty:hadoop-shaded-protobuf_3_25") { transitive = false } // hadoop-common dependency
 
     // ORC dependencies
     implementation("org.apache.orc:orc-core")                        { transitive = false }

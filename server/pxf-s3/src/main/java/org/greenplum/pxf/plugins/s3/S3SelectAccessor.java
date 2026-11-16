@@ -14,8 +14,6 @@ import com.amazonaws.services.s3.model.SelectObjectContentEventVisitor;
 import com.amazonaws.services.s3.model.SelectObjectContentRequest;
 import com.amazonaws.services.s3.model.SelectObjectContentResult;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hadoop.fs.s3a.DefaultS3ClientFactory;
-import org.apache.hadoop.fs.s3a.S3ClientFactory;
 import org.greenplum.pxf.api.OneRow;
 import org.greenplum.pxf.api.model.Accessor;
 import org.greenplum.pxf.api.model.BasePlugin;
@@ -31,10 +29,6 @@ import java.net.URI;
 import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.apache.hadoop.fs.s3a.Constants.DEFAULT_ENDPOINT;
-import static org.apache.hadoop.fs.s3a.Constants.ENDPOINT;
-import static org.apache.hadoop.fs.s3a.Constants.PATH_STYLE_ACCESS;
-import static org.apache.hadoop.fs.s3a.S3AUtils.createAWSCredentialProviderSet;
 
 /**
  * Accessor to read data from S3, using the S3 Select Framework.
@@ -316,9 +310,7 @@ public class S3SelectAccessor extends BasePlugin implements Accessor {
      */
     private AmazonS3 initS3Client() {
         try {
-            DefaultS3ClientFactory factory = new DefaultS3ClientFactory();
-            factory.setConf(configuration);
-            return factory.createS3Client(name, getS3ClientParameters());
+            return new S3SelectClientFactory().create(name, configuration);
         } catch (IOException e) {
             throw new RuntimeException("Unable to create S3 Client connection", e);
         }
@@ -337,14 +329,5 @@ public class S3SelectAccessor extends BasePlugin implements Accessor {
     @Override
     public void closeForWrite() {
         throw new UnsupportedOperationException(UNSUPPORTED_ERR_MESSAGE);
-    }
-
-    @SuppressWarnings("deprecation")
-    private S3ClientFactory.S3ClientCreationParameters getS3ClientParameters() throws IOException {
-        return new S3ClientFactory.S3ClientCreationParameters()
-                .withCredentialSet(createAWSCredentialProviderSet(name, configuration))
-                .withPathUri(name)
-                .withEndpoint(configuration.getTrimmed(ENDPOINT, DEFAULT_ENDPOINT))
-                .withPathStyleAccess(configuration.getBoolean(PATH_STYLE_ACCESS, false));
     }
 }
