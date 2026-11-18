@@ -1,6 +1,6 @@
 module pxf-cli
 
-go 1.26.5
+go 1.26.11
 
 require (
 	github.com/GreengageDB/gp-common-go-libs v1.0.24
