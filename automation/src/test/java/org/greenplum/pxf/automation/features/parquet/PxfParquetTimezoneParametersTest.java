@@ -239,9 +239,8 @@ public class PxfParquetTimezoneParametersTest extends BaseFeature {
         hdfs.removeDirectory(hdfsPath);
     }
 
-    @AfterClass
-    protected void afterClass() throws Exception {
-        super.afterClass();
+    @AfterClass(alwaysRun = true)
+    protected void restorePxfTimezone() throws Exception {
         String command = "sed -i -E '/PXF_JVM_OPTS=/s#[[:space:]]+-Duser\\.timezone=Europe/Moscow##' " + pxfEnvFile;
         cluster.runCommandOnAllNodes(command);
         cluster.restart(pxf);
