@@ -245,13 +245,6 @@ configure(javaProjects) {
                 entry("resilience4j-retry")
             }
 
-            // AWS SDK dependencies
-            dependencySet(group:"com.amazonaws", version:"${awsJavaSdk}") {
-                entry("aws-java-sdk-core")
-                entry("aws-java-sdk-kms")
-                entry("aws-java-sdk-s3")
-            }
-
             // AWS SDK v2 dependencies (required by iceberg-aws for S3FileIO, Glue catalog and Hadoop)
             dependencySet(group:"software.amazon.awssdk", version:"${awsSdkV2Version}") {
                 entry("auth")

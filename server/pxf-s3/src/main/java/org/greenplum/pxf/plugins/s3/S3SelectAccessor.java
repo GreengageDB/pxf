@@ -1,34 +1,35 @@
 package org.greenplum.pxf.plugins.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.CSVInput;
-import com.amazonaws.services.s3.model.CSVOutput;
-import com.amazonaws.services.s3.model.CompressionType;
-import com.amazonaws.services.s3.model.ExpressionType;
-import com.amazonaws.services.s3.model.InputSerialization;
-import com.amazonaws.services.s3.model.JSONInput;
-import com.amazonaws.services.s3.model.OutputSerialization;
-import com.amazonaws.services.s3.model.ParquetInput;
-import com.amazonaws.services.s3.model.SelectObjectContentEvent;
-import com.amazonaws.services.s3.model.SelectObjectContentEventVisitor;
-import com.amazonaws.services.s3.model.SelectObjectContentRequest;
-import com.amazonaws.services.s3.model.SelectObjectContentResult;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.s3a.AWSCredentialProviderList;
+import org.apache.hadoop.fs.s3a.DefaultS3ClientFactory;
+import org.apache.hadoop.fs.s3a.S3ClientFactory;
 import org.greenplum.pxf.api.OneRow;
 import org.greenplum.pxf.api.model.Accessor;
 import org.greenplum.pxf.api.model.BasePlugin;
 import org.greenplum.pxf.api.model.GreenplumCSV;
 import org.greenplum.pxf.api.model.RequestContext;
 import org.greenplum.pxf.plugins.jdbc.dialect.DatabaseDialect;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.http.AbortableInputStream;
+import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.apache.hadoop.fs.s3a.Constants.*;
+import static org.apache.hadoop.fs.s3a.S3AUtils.propagateBucketOptions;
+import static org.apache.hadoop.fs.s3a.auth.CredentialProviderListFactory.createAWSCredentialProviderList;
 
 /**
  * Accessor to read data from S3, using the S3 Select Framework.
@@ -43,16 +44,26 @@ public class S3SelectAccessor extends BasePlugin implements Accessor {
     // the COMPRESSION_CODECs from the s3:text, s3:parquet profiles
     public static final String COMPRESSION_TYPE = "COMPRESSION_CODEC";
     public static final String FILE_HEADER_INFO = "FILE_HEADER";
-    public static final String FILE_HEADER_INFO_NONE = "NONE";
     public static final String FILE_HEADER_INFO_IGNORE = "IGNORE";
     public static final String FILE_HEADER_INFO_USE = "USE";
     public static final String JSON_TYPE = "JSON-TYPE";
     private static final String UNSUPPORTED_ERR_MESSAGE = "S3 Select accessor does not support write operation.";
+    /**
+     * Keeps the SDK's shared Netty event loop group alive across
+     * S3 Select accessor instances.
+     * <p>
+     * Each accessor creates and closes its own S3AsyncClient.
+     * Without this holder, closing the last client triggers
+     * Netty's graceful shutdown with a 2-second quiet period.
+     * <p>
+     * The holder must remain open while accessors are active.
+     */
+    private static final SdkAsyncHttpClient EVENT_LOOP_GROUP_HOLDER = NettyNioAsyncHttpClient.builder().build();
 
     private AtomicBoolean isResultComplete;
-    private AmazonS3 s3Client;
-    private SelectObjectContentResult result;
-    private InputStream resultInputStream;
+    private S3AsyncClient s3Client;
+    private AbortableInputStream resultInputStream;
+    private S3SelectObjectContentHelper s3SelectObjectContentHelper;
     private BufferedReader reader;
     private int lineReadCount;
     private URI name;
@@ -63,37 +74,27 @@ public class S3SelectAccessor extends BasePlugin implements Accessor {
     @Override
     public void afterPropertiesSet() {
         name = URI.create(context.getDataSource());
-        s3Client = initS3Client();
         lineReadCount = 0;
+        s3SelectObjectContentHelper = new S3SelectObjectContentHelper();
     }
 
     @Override
-    public boolean openForRead() {
+    public boolean openForRead() throws IOException {
         isResultComplete = new AtomicBoolean(false);
         SelectObjectContentRequest request = generateBaseCSVRequest(context);
-
-        result = s3Client.selectObjectContent(request);
-        resultInputStream = result.getPayload().getRecordsInputStream(
-                new SelectObjectContentEventVisitor() {
-                    @Override
-                    public void visit(SelectObjectContentEvent.StatsEvent event) {
-                        LOG.debug("Received Stats, Bytes Scanned: {}. Bytes Processed: {}",
-                                event.getDetails().getBytesScanned(),
-                                event.getDetails().getBytesProcessed());
-                    }
-
-                    /*
-                     * An End Event informs that the request has finished successfully.
-                     */
-                    @Override
-                    public void visit(SelectObjectContentEvent.EndEvent event) {
-                        isResultComplete.set(true);
-                        LOG.debug("Received End Event. Result is complete.");
-                    }
-                }
-        );
-        reader = new BufferedReader(new InputStreamReader(resultInputStream));
-        return resultInputStream != null;
+        s3Client = initS3Client();
+        try {
+            S3SelectEventStream eventStream = s3SelectObjectContentHelper.select(s3Client, request, name.toString());
+            resultInputStream = eventStream.toRecordsInputStream(endEvent -> {
+                isResultComplete.set(true);
+                LOG.debug("Completed successful S3 select read from {}", name);
+            });
+        } catch (IOException | RuntimeException e) {
+            closeS3Client();
+            throw e;
+        }
+        reader = new BufferedReader(new InputStreamReader(resultInputStream, StandardCharsets.UTF_8));
+        return true;
     }
 
     /**
@@ -102,8 +103,14 @@ public class S3SelectAccessor extends BasePlugin implements Accessor {
      * @return the next line, or null if the EOF has been reached
      */
     @Override
-    public OneRow readNextObject() throws Exception {
-        String str = reader.readLine();
+    public OneRow readNextObject() throws IOException {
+        String str;
+        try {
+            str = reader.readLine();
+        } catch (SdkException e) {
+            // errors of the event stream are rethrown by the records stream
+            throw s3SelectObjectContentHelper.translateException(name.toString(), e);
+        }
         if (str != null) {
             lineReadCount++;
             return new OneRow(null, str);
@@ -121,29 +128,22 @@ public class S3SelectAccessor extends BasePlugin implements Accessor {
     }
 
     @Override
-    public void closeForRead() throws IOException {
+    public void closeForRead() {
         LOG.debug("Read {} lines", lineReadCount);
 
         /*
          * Make sure to close all streams
          */
-        if (result != null) {
-            try {
-                result.close();
-                LOG.debug("SelectObjectContentResult closed");
-            } catch (IOException e) {
-                LOG.error("Unable to close SelectObjectContentResult", e);
-            }
-        }
-
         if (resultInputStream != null) {
             try {
+                resultInputStream.abort();
                 resultInputStream.close();
                 LOG.debug("ResultInputStream closed");
-            } catch (IOException e) {
+            } catch (IOException | SdkException e) {
                 LOG.error("Unable to close ResultInputStream", e);
             }
         }
+        closeS3Client();
     }
 
     /**
@@ -158,7 +158,7 @@ public class S3SelectAccessor extends BasePlugin implements Accessor {
         InputSerialization inputSerialization = getInputSerialization(context);
 
         String fileHeaderInfo = context.getOption(FILE_HEADER_INFO);
-        boolean usePositionToIdentifyColumn = inputSerialization.getCsv() != null &&
+        boolean usePositionToIdentifyColumn = inputSerialization.csv() != null &&
                 (StringUtils.isBlank(fileHeaderInfo) ||
                         !StringUtils.equalsIgnoreCase(FILE_HEADER_INFO_USE, fileHeaderInfo));
         String query = null;
@@ -172,26 +172,24 @@ public class S3SelectAccessor extends BasePlugin implements Accessor {
 
         LOG.trace("Select query: {}", query);
 
-        SelectObjectContentRequest request = new SelectObjectContentRequest();
-        request.setBucketName(name.getHost());
-        request.setKey(StringUtils.removeStart(name.getPath(), "/"));
-        request.setExpression(query);
-        request.setExpressionType(ExpressionType.SQL);
+        SelectObjectContentRequest request = SelectObjectContentRequest.builder()
+                .bucket(name.getHost())
+                .key(StringUtils.removeStart(name.getPath(), "/"))
+                .expression(query)
+                .expressionType(ExpressionType.SQL)
+                .inputSerialization(inputSerialization)
+                .outputSerialization(getOutputSerialization(context))
+                .build();
 
-        LOG.debug("With bucket name '{}'", request.getBucketName());
-        LOG.debug("With key '{}'", request.getKey());
+        LOG.debug("With bucket name '{}'", request.bucket());
+        LOG.debug("With key '{}'", request.key());
         LOG.debug("With expression query '{}'", query);
-
-        request.setInputSerialization(inputSerialization);
-
-        OutputSerialization outputSerialization = getOutputSerialization(context);
-        request.setOutputSerialization(outputSerialization);
 
         return request;
     }
 
     /**
-     * Returns a {@link com.amazonaws.services.s3.model.OutputSerialization}
+     * Returns a {@link OutputSerialization}
      * object with parsed values from the request context.
      *
      * @param context the request context
@@ -201,26 +199,25 @@ public class S3SelectAccessor extends BasePlugin implements Accessor {
 
         GreenplumCSV csv = context.getGreenplumCSV();
 
-        OutputSerialization outputSerialization = new OutputSerialization();
-        CSVOutput csvOutput = new CSVOutput();
-        csvOutput.setFieldDelimiter(csv.getDelimiter());
-        csvOutput.setQuoteCharacter(csv.getQuote());
-        csvOutput.setQuoteEscapeCharacter(csv.getEscape());
-        csvOutput.setRecordDelimiter(csv.getNewline());
+        CSVOutput csvOutput = CSVOutput.builder()
+                .fieldDelimiter(asString(csv.getDelimiter()))
+                .quoteCharacter(String.valueOf(csv.getQuote()))
+                .quoteEscapeCharacter(asString(csv.getEscape()))
+                .recordDelimiter(csv.getNewline())
+                .build();
 
-        outputSerialization.setCsv(csvOutput);
-        return outputSerialization;
+        return OutputSerialization.builder().csv(csvOutput).build();
     }
 
     /**
-     * Returns a {@link com.amazonaws.services.s3.model.InputSerialization}
+     * Returns a {@link InputSerialization}
      * object with parsed values from the request context.
      *
      * @param context the request context
      * @return a {@link InputSerialization} object
      */
     InputSerialization getInputSerialization(RequestContext context) {
-        InputSerialization inputSerialization = new InputSerialization();
+        InputSerialization.Builder inputSerialization = InputSerialization.builder();
 
         // We need to infer the format name from the profile (i.e. s3:parquet
         // would return parquet for the format)
@@ -229,91 +226,124 @@ public class S3SelectAccessor extends BasePlugin implements Accessor {
 
         LOG.debug("With format {}", format);
         if (StringUtils.equalsIgnoreCase(format, "parquet")) {
-            inputSerialization.setParquet(new ParquetInput());
+            inputSerialization.parquet(ParquetInput.builder().build());
         } else if (StringUtils.equalsIgnoreCase(format, "json")) {
-            inputSerialization.setJson(getJSONInput(context));
+            inputSerialization.json(getJSONInput(context));
         } else {
-            inputSerialization.setCsv(getCSVInput(context));
+            inputSerialization.csv(getCSVInput(context));
         }
 
         LOG.debug("With compression type {}", compressionType);
         if (StringUtils.equalsIgnoreCase(compressionType, "gzip")) {
-            inputSerialization.setCompressionType(CompressionType.GZIP);
+            inputSerialization.compressionType(CompressionType.GZIP);
         } else if (StringUtils.equalsIgnoreCase(compressionType, "bzip2")) {
-            inputSerialization.setCompressionType(CompressionType.BZIP2);
+            inputSerialization.compressionType(CompressionType.BZIP2);
         } else {
-            inputSerialization.setCompressionType(CompressionType.NONE);
+            inputSerialization.compressionType(CompressionType.NONE);
         }
 
-        return inputSerialization;
+        return inputSerialization.build();
     }
 
     /**
-     * Returns a {@link com.amazonaws.services.s3.model.JSONInput}
+     * Returns a {@link JSONInput}
      * object with parsed values from the request context.
      *
      * @param context the request context
-     * @return a {@link com.amazonaws.services.s3.model.JSONInput}
+     * @return a {@link JSONInput}
      */
     JSONInput getJSONInput(RequestContext context) {
-        JSONInput jsonInput = new JSONInput();
+        JSONInput.Builder jsonInput = JSONInput.builder();
 
         String jsonType = context.getOption(JSON_TYPE);
 
         if (StringUtils.isNoneBlank(jsonType)) {
-            jsonInput.setType(jsonType);
+            jsonInput.type(jsonType);
         }
-        return jsonInput;
+        return jsonInput.build();
     }
 
     /**
-     * Returns a {@link com.amazonaws.services.s3.model.CSVInput}
+     * Returns a {@link CSVInput}
      * object with parsed values from the request context.
      *
      * @param context the request context
      * @return a {@link CSVInput}
      */
     CSVInput getCSVInput(RequestContext context) {
-        CSVInput csvInput = new CSVInput();
+        CSVInput.Builder csvInput = CSVInput.builder();
         GreenplumCSV csv = context.getGreenplumCSV();
 
         String fileHeaderInfo = context.getOption(FILE_HEADER_INFO);
         if (fileHeaderInfo != null) {
             LOG.debug("With CSV FileHeaderInfo '{}'", fileHeaderInfo);
-            csvInput.setFileHeaderInfo(fileHeaderInfo);
+            csvInput.fileHeaderInfo(fileHeaderInfo);
         }
 
         if (csv.getDelimiter() != null) {
             LOG.debug("With CSV field delimiter '{}'", csv.getDelimiter());
-            csvInput.setFieldDelimiter(csv.getDelimiter());
+            csvInput.fieldDelimiter(asString(csv.getDelimiter()));
         }
 
         if (csv.getNewline() != null) {
             LOG.debug("With CSV NEWLINE '{}'", csv.getNewline());
-            csvInput.setRecordDelimiter(csv.getNewline());
+            csvInput.recordDelimiter(csv.getNewline());
         }
 
         if (csv.getEscape() != null) {
             LOG.debug("With CSV quote escape character '{}'", csv.getEscape());
-            csvInput.setQuoteEscapeCharacter(csv.getEscape());
+            csvInput.quoteEscapeCharacter(asString(csv.getEscape()));
         }
 
         LOG.debug("With CSV quote character '{}'", csv.getQuote());
-        csvInput.setQuoteCharacter(csv.getQuote());
+        csvInput.quoteCharacter(String.valueOf(csv.getQuote()));
 
-        return csvInput;
+        return csvInput.build();
     }
 
     /**
-     * Returns a new AmazonS3 client with credentials from
-     * the configuration file
+     * Returns a new S3AsyncClient with credentials and settings
+     * from the configuration file, the same way S3A does
      */
-    private AmazonS3 initS3Client() {
+    private S3AsyncClient initS3Client() throws IOException {
+        Configuration conf = propagateBucketOptions(configuration, name.getHost());
+        // Always turn off the request timeout: it limits the whole call,
+        // so it would interrupt the event stream of a long select.
+        conf.setTimeDuration(REQUEST_TIMEOUT, 0, TimeUnit.MILLISECONDS);
+        AWSCredentialProviderList credentials = createAWSCredentialProviderList(name, conf);
         try {
-            return new S3SelectClientFactory().create(name, configuration);
-        } catch (IOException e) {
-            throw new RuntimeException("Unable to create S3 Client connection", e);
+            S3ClientFactory.S3ClientCreationParameters parameters = new S3ClientFactory.S3ClientCreationParameters()
+                    .withCredentialSet(credentials)
+                    .withPathUri(name)
+                    .withEndpoint(conf.getTrimmed(ENDPOINT, DEFAULT_ENDPOINT))
+                    .withRegion(conf.getTrimmed(AWS_REGION))
+                    .withPathStyleAccess(conf.getBoolean(PATH_STYLE_ACCESS, false))
+                    .withRequesterPays(conf.getBoolean(ALLOW_REQUESTER_PAYS, DEFAULT_ALLOW_REQUESTER_PAYS))
+                    .withFipsEnabled(conf.getBoolean(FIPS_ENDPOINT, ENDPOINT_FIPS_DEFAULT))
+                    .withChecksumValidationEnabled(conf.getBoolean(CHECKSUM_VALIDATION, CHECKSUM_VALIDATION_DEFAULT))
+                    .withChecksumCalculationEnabled(conf.getBoolean(CHECKSUM_GENERATION, DEFAULT_CHECKSUM_GENERATION))
+                    .withMd5HeaderEnabled(conf.getBoolean(REQUEST_MD5_HEADER, DEFAULT_REQUEST_MD5_HEADER))
+                    .withMultipartCopyEnabled(false);
+
+            DefaultS3ClientFactory factory = new DefaultS3ClientFactory();
+            factory.setConf(conf);
+            return factory.createS3AsyncClient(name, parameters);
+        } catch (IOException | RuntimeException e) {
+            credentials.close();
+            throw e;
         }
+    }
+
+    private void closeS3Client() {
+        if (s3Client != null) {
+            s3Client.close();
+            s3Client = null;
+            LOG.debug("S3AsyncClient closed");
+        }
+    }
+
+    private String asString(Character character) {
+        return character == null ? null : character.toString();
     }
 
     @Override
