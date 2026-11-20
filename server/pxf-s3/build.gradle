@@ -24,13 +24,10 @@ dependencies {
     implementation("org.apache.httpcomponents:httpcore")             { transitive = false }
     implementation("org.apache.hadoop:hadoop-aws")                   { transitive = false }
     implementation("org.apache.hadoop:hadoop-annotations")           { transitive = false }
-    implementation("com.amazonaws:aws-java-sdk-core")                { transitive = false }
-    implementation("com.amazonaws:aws-java-sdk-kms")                 { transitive = false }
-    implementation("com.amazonaws:aws-java-sdk-s3")                  { transitive = false }
     implementation("joda-time:joda-time")                            { transitive = false }
     implementation("org.slf4j:slf4j-api")
 
-    // AWS SDK v2 — required by Hadoop S3A
+    // AWS SDK v2 — required by Hadoop S3A and S3 Select
     implementation("software.amazon.awssdk:s3")
     implementation("software.amazon.awssdk:s3-transfer-manager")
     implementation("software.amazon.awssdk:sts")

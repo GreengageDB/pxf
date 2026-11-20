@@ -1,11 +1,12 @@
 package org.greenplum.pxf.plugins.s3;
 
-import com.amazonaws.services.s3.model.InputSerialization;
-import com.amazonaws.services.s3.model.SelectObjectContentRequest;
 import org.apache.hadoop.conf.Configuration;
 import org.greenplum.pxf.api.OneRow;
 import org.greenplum.pxf.api.model.RequestContext;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.s3.model.CompressionType;
+import software.amazon.awssdk.services.s3.model.InputSerialization;
+import software.amazon.awssdk.services.s3.model.SelectObjectContentRequest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -21,17 +22,17 @@ public class S3SelectAccessorTest {
         InputSerialization inputSerialization =
                 new S3SelectAccessor().getInputSerialization(context);
         assertNotNull(inputSerialization);
-        assertNotNull(inputSerialization.getCsv());
-        assertNull(inputSerialization.getCsv().getAllowQuotedRecordDelimiter());
-        assertNull(inputSerialization.getCsv().getComments());
-        assertNull(inputSerialization.getCsv().getFileHeaderInfo());
-        assertEquals(',', inputSerialization.getCsv().getFieldDelimiter().charValue());
-        assertEquals('"', inputSerialization.getCsv().getQuoteCharacter().charValue());
-        assertEquals('"', inputSerialization.getCsv().getQuoteEscapeCharacter().charValue());
-        assertEquals('\n', inputSerialization.getCsv().getRecordDelimiter().charValue());
-        assertNull(inputSerialization.getJson());
-        assertNull(inputSerialization.getParquet());
-        assertEquals("NONE", inputSerialization.getCompressionType());
+        assertNotNull(inputSerialization.csv());
+        assertNull(inputSerialization.csv().allowQuotedRecordDelimiter());
+        assertNull(inputSerialization.csv().comments());
+        assertNull(inputSerialization.csv().fileHeaderInfoAsString());
+        assertEquals(",", inputSerialization.csv().fieldDelimiter());
+        assertEquals("\"", inputSerialization.csv().quoteCharacter());
+        assertEquals("\"", inputSerialization.csv().quoteEscapeCharacter());
+        assertEquals("\n", inputSerialization.csv().recordDelimiter());
+        assertNull(inputSerialization.json());
+        assertNull(inputSerialization.parquet());
+        assertEquals(CompressionType.NONE, inputSerialization.compressionType());
     }
 
     @Test
@@ -41,7 +42,7 @@ public class S3SelectAccessorTest {
 
         InputSerialization inputSerialization =
                 new S3SelectAccessor().getInputSerialization(context);
-        assertEquals("GZIP", inputSerialization.getCompressionType());
+        assertEquals(CompressionType.GZIP, inputSerialization.compressionType());
     }
 
     @Test
@@ -51,7 +52,7 @@ public class S3SelectAccessorTest {
 
         InputSerialization inputSerialization =
                 new S3SelectAccessor().getInputSerialization(context);
-        assertEquals("BZIP2", inputSerialization.getCompressionType());
+        assertEquals(CompressionType.BZIP2, inputSerialization.compressionType());
     }
 
     @Test
@@ -61,9 +62,9 @@ public class S3SelectAccessorTest {
 
         InputSerialization inputSerialization =
                 new S3SelectAccessor().getInputSerialization(context);
-        assertNotNull(inputSerialization.getParquet());
-        assertNull(inputSerialization.getJson());
-        assertNull(inputSerialization.getCsv());
+        assertNotNull(inputSerialization.parquet());
+        assertNull(inputSerialization.json());
+        assertNull(inputSerialization.csv());
     }
 
     @Test
@@ -73,9 +74,9 @@ public class S3SelectAccessorTest {
 
         InputSerialization inputSerialization =
                 new S3SelectAccessor().getInputSerialization(context);
-        assertNotNull(inputSerialization.getJson());
-        assertNull(inputSerialization.getCsv());
-        assertNull(inputSerialization.getParquet());
+        assertNotNull(inputSerialization.json());
+        assertNull(inputSerialization.csv());
+        assertNull(inputSerialization.parquet());
     }
 
     @Test
@@ -86,10 +87,10 @@ public class S3SelectAccessorTest {
 
         InputSerialization inputSerialization =
                 new S3SelectAccessor().getInputSerialization(context);
-        assertNotNull(inputSerialization.getJson());
-        assertNull(inputSerialization.getCsv());
-        assertNull(inputSerialization.getParquet());
-        assertEquals("document", inputSerialization.getJson().getType());
+        assertNotNull(inputSerialization.json());
+        assertNull(inputSerialization.csv());
+        assertNull(inputSerialization.parquet());
+        assertEquals("document", inputSerialization.json().typeAsString());
     }
 
     @Test
@@ -100,10 +101,10 @@ public class S3SelectAccessorTest {
 
         InputSerialization inputSerialization =
                 new S3SelectAccessor().getInputSerialization(context);
-        assertNotNull(inputSerialization.getJson());
-        assertNull(inputSerialization.getCsv());
-        assertNull(inputSerialization.getParquet());
-        assertEquals("lines", inputSerialization.getJson().getType());
+        assertNotNull(inputSerialization.json());
+        assertNull(inputSerialization.csv());
+        assertNull(inputSerialization.parquet());
+        assertEquals("lines", inputSerialization.json().typeAsString());
     }
 
     @Test
@@ -113,7 +114,7 @@ public class S3SelectAccessorTest {
 
         InputSerialization inputSerialization =
                 new S3SelectAccessor().getInputSerialization(context);
-        assertEquals('|', inputSerialization.getCsv().getFieldDelimiter().charValue());
+        assertEquals("|", inputSerialization.csv().fieldDelimiter());
     }
 
     @Test
@@ -122,7 +123,7 @@ public class S3SelectAccessorTest {
         context.addOption("FILE_HEADER", "IGNORE");
         InputSerialization inputSerialization =
                 new S3SelectAccessor().getInputSerialization(context);
-        assertEquals("IGNORE", inputSerialization.getCsv().getFileHeaderInfo());
+        assertEquals("IGNORE", inputSerialization.csv().fileHeaderInfoAsString());
     }
 
     @Test
@@ -131,7 +132,7 @@ public class S3SelectAccessorTest {
         context.addOption("FILE_HEADER", "USE");
         InputSerialization inputSerialization =
                 new S3SelectAccessor().getInputSerialization(context);
-        assertEquals("USE", inputSerialization.getCsv().getFileHeaderInfo());
+        assertEquals("USE", inputSerialization.csv().fileHeaderInfoAsString());
     }
 
     @Test
@@ -140,7 +141,7 @@ public class S3SelectAccessorTest {
         context.addOption("FILE_HEADER", "NONE");
         InputSerialization inputSerialization =
                 new S3SelectAccessor().getInputSerialization(context);
-        assertEquals("NONE", inputSerialization.getCsv().getFileHeaderInfo());
+        assertEquals("NONE", inputSerialization.csv().fileHeaderInfoAsString());
     }
 
     @Test
@@ -149,7 +150,7 @@ public class S3SelectAccessorTest {
         context.addOption("ESCAPE", "\"");
         InputSerialization inputSerialization =
                 new S3SelectAccessor().getInputSerialization(context);
-        assertEquals('\"', inputSerialization.getCsv().getQuoteEscapeCharacter().charValue());
+        assertEquals("\"", inputSerialization.csv().quoteEscapeCharacter());
     }
 
     @Test
@@ -158,7 +159,7 @@ public class S3SelectAccessorTest {
         context.addOption("NEWLINE", "\n");
         InputSerialization inputSerialization =
                 new S3SelectAccessor().getInputSerialization(context);
-        assertEquals('\n', inputSerialization.getCsv().getRecordDelimiter().charValue());
+        assertEquals("\n", inputSerialization.csv().recordDelimiter());
     }
 
     @Test
@@ -167,7 +168,7 @@ public class S3SelectAccessorTest {
         context.addOption("QUOTE", "\"");
         InputSerialization inputSerialization =
                 new S3SelectAccessor().getInputSerialization(context);
-        assertEquals('"', inputSerialization.getCsv().getQuoteCharacter().charValue());
+        assertEquals("\"", inputSerialization.csv().quoteCharacter());
     }
 
     @Test
@@ -182,8 +183,8 @@ public class S3SelectAccessorTest {
         accessor.setRequestContext(context);
         accessor.afterPropertiesSet();
         SelectObjectContentRequest request = accessor.generateBaseCSVRequest(context);
-        assertEquals("my-bucket", request.getBucketName());
-        assertEquals("my/s3/path/", request.getKey());
+        assertEquals("my-bucket", request.bucket());
+        assertEquals("my/s3/path/", request.key());
     }
 
     @Test
@@ -198,8 +199,8 @@ public class S3SelectAccessorTest {
         accessor.setRequestContext(context);
         accessor.afterPropertiesSet();
         SelectObjectContentRequest request = accessor.generateBaseCSVRequest(context);
-        assertEquals("my-bucket", request.getBucketName());
-        assertEquals("", request.getKey());
+        assertEquals("my-bucket", request.bucket());
+        assertEquals("", request.key());
     }
 
     @Test
