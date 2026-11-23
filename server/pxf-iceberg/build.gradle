@@ -43,7 +43,6 @@ dependencies {
     implementation("org.apache.hadoop:hadoop-mapreduce-client-core")     { transitive = false }
     implementation("org.apache.hadoop.thirdparty:hadoop-shaded-guava")   { transitive = false }
     implementation("org.apache.hadoop.thirdparty:hadoop-shaded-protobuf_3_7") { transitive = false }
-    implementation("org.apache.htrace:htrace-core4")                     { transitive = false }
     implementation("com.fasterxml.woodstox:woodstox-core")               { transitive = false }
     implementation("org.codehaus.woodstox:stax2-api")                    { transitive = false }
 

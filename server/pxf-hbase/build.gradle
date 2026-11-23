@@ -35,7 +35,6 @@ dependencies {
     implementation("org.apache.hbase.thirdparty:hbase-shaded-miscellaneous") { transitive = false }
     implementation("org.apache.hbase.thirdparty:hbase-shaded-netty") { transitive = false }
     implementation("org.apache.hbase.thirdparty:hbase-shaded-gson") { transitive = false }
-    implementation("org.apache.htrace:htrace-core")                  { transitive = false }
     implementation("org.apache.zookeeper:zookeeper")                 { transitive = false }
     implementation("io.netty:netty-common")                          { transitive = false }
     implementation("io.netty:netty-transport")                       { transitive = false }
